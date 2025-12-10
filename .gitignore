@@ -126,3 +126,7 @@ public
 # OS
 Thumbs.db
 
+# Storage
+storage/
+!.gitkeep
+

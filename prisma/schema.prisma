@@ -1,0 +1,643 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  avatar        String?
+  bio           String?
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  roles         UserRole[]
+  enrollments  Enrollment[]
+  videoProgress VideoProgress[]
+  testAttempts  TestAttempt[]
+  completions   Completion[]
+  createdCourses      Course[]         @relation("CourseCreator")
+  createdLearningPlans LearningPlan[]  @relation("LearningPlanCreator")
+  instructorAssignments InstructorAssignment[] @relation("Instructor")
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  approvedEnrollments Enrollment[] @relation("EnrollmentApprover")
+  assignedBy    InstructorAssignment[] @relation("AssignmentCreator")
+  fileUploads   RepositoryFile[] @relation("FileUploader")
+  fileDownloads FileDownload[] @relation("FileDownloader")
+  ratings       Rating[] @relation("Rater")
+  courseVersions CourseVersion[] @relation("CourseVersionCreator")
+  learningPlanVersions LearningPlanVersion[] @relation("LearningPlanVersionCreator")
+  questionRepositories QuestionRepository[] @relation("QuestionRepositoryCreator")
+  contentRepositories ContentRepository[] @relation("ContentRepositoryUploader")
+  groupMembers GroupMember[]
+  
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String[]
+  
+  users       UserRole[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  members     GroupMember[]
+  courseAccess CourseGroupAccess[]
+  learningPlanAccess LearningPlanGroupAccess[]
+  
+  @@index([name])
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+}
+
+model LearningPlan {
+  id                String   @id @default(cuid())
+  code              String?  @unique
+  title             String
+  shortDescription  String?  @db.VarChar(130)
+  description       String   @db.Text
+  thumbnail         String?
+  coverImage        String?
+  status            String   @default("DRAFT")
+  estimatedTime     Int?
+  difficultyLevel   String?
+  selfEnrollment    Boolean  @default(false)
+  requiresApproval Boolean  @default(false)
+  maxEnrollments   Int?
+  publicAccess     Boolean  @default(false)
+  hasCertificate   Boolean  @default(false)
+  certificateTemplate String?
+  hasBadge         Boolean  @default(false)
+  badgeImage       String?
+  categoryId       String?
+  tags             String[]
+  featured         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdById      String
+  
+  createdBy        User     @relation("LearningPlanCreator", fields: [createdById], references: [id])
+  category         Category? @relation(fields: [categoryId], references: [id])
+  courses          LearningPlanCourse[]
+  enrollments      Enrollment[]
+  groupAccess      LearningPlanGroupAccess[]
+  ratings          Rating[]
+  completions      Completion[]
+  versions         LearningPlanVersion[]
+  instructorAssignments InstructorAssignment[] @relation("InstructorLearningPlan")
+  
+  @@index([status])
+  @@index([createdById])
+  @@index([categoryId])
+  @@index([publicAccess, selfEnrollment])
+}
+
+model LearningPlanCourse {
+  id              String   @id @default(cuid())
+  learningPlanId  String
+  courseId        String
+  order           Int
+  createdAt       DateTime @default(now())
+  
+  learningPlan    LearningPlan @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  course          Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([learningPlanId, courseId])
+  @@index([learningPlanId, order])
+  @@index([courseId])
+}
+
+model Course {
+  id                String   @id @default(cuid())
+  code              String?  @unique
+  title             String
+  shortDescription  String?  @db.VarChar(130)
+  description       String   @db.Text
+  thumbnail         String?
+  coverImage        String?
+  status            String   @default("DRAFT")
+  type              String   @default("E-LEARNING")
+  estimatedTime     Int?
+  difficultyLevel   String?
+  selfEnrollment    Boolean  @default(false)
+  requiresApproval Boolean  @default(false)
+  maxEnrollments   Int?
+  publicAccess     Boolean  @default(false)
+  sequentialRequired Boolean @default(true)
+  allowSkipping      Boolean  @default(false)
+  categoryId       String?
+  tags             String[]
+  featured         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdById      String
+  
+  createdBy        User     @relation("CourseCreator", fields: [createdById], references: [id])
+  category         Category? @relation(fields: [categoryId], references: [id])
+  learningPlans    LearningPlanCourse[]
+  enrollments      Enrollment[]
+  groupAccess      CourseGroupAccess[]
+  contentItems     ContentItem[]
+  repositoryFiles  RepositoryFile[]
+  prerequisites    CoursePrerequisite[] @relation("Prerequisite")
+  dependentCourses CoursePrerequisite[] @relation("DependentCourse")
+  ratings          Rating[]
+  completions      Completion[]
+  versions         CourseVersion[]
+  instructorAssignments InstructorAssignment[]
+  
+  @@index([status])
+  @@index([createdById])
+  @@index([categoryId])
+  @@index([publicAccess, selfEnrollment])
+}
+
+model CoursePrerequisite {
+  id              String   @id @default(cuid())
+  courseId        String
+  prerequisiteId  String
+  createdAt       DateTime @default(now())
+  
+  course          Course   @relation("Prerequisite", fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisite    Course   @relation("DependentCourse", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  
+  @@unique([courseId, prerequisiteId])
+  @@index([courseId])
+  @@index([prerequisiteId])
+}
+
+model ContentItem {
+  id              String   @id @default(cuid())
+  courseId        String
+  title           String
+  description     String?  @db.Text
+  type            String
+  order           Int
+  priority        Int      @default(0)
+  required        Boolean  @default(true)
+  videoUrl        String?
+  videoDuration   Int?
+  completionThreshold Float @default(0.8)
+  allowSeeking    Boolean  @default(true)
+  pdfUrl          String?
+  pdfPages        Int?
+  pptUrl          String?
+  pptSlides       Int?
+  htmlContent     String?  @db.Text
+  externalUrl     String?
+  externalType    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videoProgress   VideoProgress[]
+  test            Test?
+  
+  @@index([courseId, order])
+  @@index([courseId, priority])
+}
+
+model Test {
+  id                    String   @id @default(cuid())
+  contentItemId         String   @unique
+  title                 String
+  description           String?   @db.Text
+  passingScore          Float     @default(0.7)
+  maxAttempts           Int?
+  timeLimit             Int?
+  showCorrectAnswers    Boolean   @default(false)
+  randomizeQuestions    Boolean   @default(false)
+  randomizeAnswers       Boolean   @default(false)
+  useQuestionRepository Boolean   @default(false)
+  repositoryCategoryId  String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  contentItem           ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  questions             Question[]
+  attempts              TestAttempt[]
+  
+  @@index([contentItemId])
+}
+
+model Question {
+  id              String   @id @default(cuid())
+  testId          String?
+  repositoryId    String?
+  type            String
+  questionText    String   @db.Text
+  points          Float    @default(1.0)
+  order           Int
+  options         Json?
+  correctAnswer   Boolean?
+  correctAnswers   String[]
+  caseSensitive    Boolean  @default(false)
+  blankPositions   Int[]
+  explanation      String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  test             Test?    @relation(fields: [testId], references: [id], onDelete: Cascade)
+  repository       QuestionRepository? @relation("QuestionRepository", fields: [repositoryId], references: [id], onDelete: SetNull)
+  answers          TestAnswer[]
+  
+  @@index([testId, order])
+  @@index([repositoryId])
+}
+
+model Enrollment {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String?
+  learningPlanId  String?
+  status          String   @default("ENROLLED")
+  enrollmentType  String   @default("MANUAL")
+  enrolledAt      DateTime @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  dueDate         DateTime?
+  requiresApproval Boolean @default(false)
+  approvedAt      DateTime?
+  approvedById    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPlan    LearningPlan? @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  approvedBy      User?    @relation("EnrollmentApprover", fields: [approvedById], references: [id])
+  
+  @@unique([userId, courseId])
+  @@unique([userId, learningPlanId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([learningPlanId])
+  @@index([status])
+}
+
+model VideoProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  contentItemId   String
+  watchTime       Int      @default(0)
+  totalDuration   Int
+  lastPosition    Float    @default(0)
+  timesWatched    Int      @default(1)
+  completed       Boolean  @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem     ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, contentItemId])
+  @@index([userId])
+  @@index([contentItemId])
+  @@index([completed])
+}
+
+model TestAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  testId          String
+  attemptNumber   Int
+  score           Float?
+  pointsEarned    Float    @default(0)
+  totalPoints     Float
+  passed          Boolean?
+  timeSpent       Int
+  startedAt       DateTime @default(now())
+  submittedAt     DateTime?
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test            Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers         TestAnswer[]
+  
+  @@index([userId, testId])
+  @@index([testId])
+  @@index([submittedAt])
+}
+
+model TestAnswer {
+  id              String   @id @default(cuid())
+  attemptId       String
+  questionId      String
+  answerText      String?  @db.Text
+  selectedOptions Int[]
+  isCorrect       Boolean?
+  pointsEarned    Float    @default(0)
+  createdAt       DateTime @default(now())
+  
+  attempt         TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+model Completion {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String?
+  learningPlanId  String?
+  contentItemId   String?
+  completedAt     DateTime @default(now())
+  score           Float?
+  certificateUrl  String?
+  certificateGeneratedAt DateTime?
+  badgeAwarded    Boolean  @default(false)
+  badgeAwardedAt  DateTime?
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPlan    LearningPlan? @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([courseId])
+  @@index([learningPlanId])
+  @@index([contentItemId])
+  @@index([completedAt])
+}
+
+model RepositoryFile {
+  id              String   @id @default(cuid())
+  courseId        String
+  fileName        String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  folderPath      String?
+  order           Int      @default(0)
+  downloadCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  uploadedById    String
+  
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  uploader        User     @relation("FileUploader", fields: [uploadedById], references: [id])
+  downloads       FileDownload[]
+  
+  @@index([courseId])
+  @@index([folderPath])
+}
+
+model FileDownload {
+  id              String   @id @default(cuid())
+  fileId          String
+  userId          String
+  downloadedAt    DateTime @default(now())
+  
+  file            RepositoryFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user            User     @relation("FileDownloader", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([fileId])
+  @@index([userId])
+  @@index([downloadedAt])
+}
+
+model Category {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  parentId        String?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  parent          Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryParent")
+  courses         Course[]
+  learningPlans   LearningPlan[]
+  
+  @@index([parentId])
+}
+
+model Rating {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String?
+  learningPlanId  String?
+  rating          Int
+  review          String?  @db.Text
+  helpfulCount    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation("Rater", fields: [userId], references: [id], onDelete: Cascade)
+  course          Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPlan    LearningPlan? @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@unique([userId, learningPlanId])
+  @@index([courseId])
+  @@index([learningPlanId])
+}
+
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String
+  title           String
+  message         String   @db.Text
+  link            String?
+  read            Boolean  @default(false)
+  readAt          DateTime?
+  emailSent       Boolean  @default(false)
+  emailSentAt     DateTime?
+  createdAt       DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model InstructorAssignment {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String?
+  learningPlanId  String?
+  assignedAt      DateTime @default(now())
+  assignedById    String
+  
+  user            User     @relation("Instructor", fields: [userId], references: [id], onDelete: Cascade)
+  course          Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPlan    LearningPlan? @relation("InstructorLearningPlan", fields: [learningPlanId], references: [id], onDelete: Cascade)
+  assignedBy      User     @relation("AssignmentCreator", fields: [assignedById], references: [id])
+  
+  @@unique([userId, courseId])
+  @@unique([userId, learningPlanId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([learningPlanId])
+}
+
+model CourseGroupAccess {
+  id              String   @id @default(cuid())
+  courseId        String
+  groupId         String
+  createdAt       DateTime @default(now())
+  
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  group           Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([courseId, groupId])
+  @@index([courseId])
+  @@index([groupId])
+}
+
+model LearningPlanGroupAccess {
+  id              String   @id @default(cuid())
+  learningPlanId  String
+  groupId         String
+  createdAt       DateTime @default(now())
+  
+  learningPlan    LearningPlan @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  group           Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([learningPlanId, groupId])
+  @@index([learningPlanId])
+  @@index([groupId])
+}
+
+model CourseVersion {
+  id              String   @id @default(cuid())
+  courseId        String
+  versionNumber   Int
+  title           String
+  description     String   @db.Text
+  status          String
+  createdById     String
+  createdAt       DateTime @default(now())
+  publishedAt     DateTime?
+  
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy       User     @relation("CourseVersionCreator", fields: [createdById], references: [id])
+  
+  @@index([courseId, versionNumber])
+}
+
+model LearningPlanVersion {
+  id              String   @id @default(cuid())
+  learningPlanId  String
+  versionNumber   Int
+  title           String
+  description     String   @db.Text
+  status          String
+  createdById     String
+  createdAt       DateTime @default(now())
+  publishedAt     DateTime?
+  
+  learningPlan    LearningPlan @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  createdBy       User         @relation("LearningPlanVersionCreator", fields: [createdById], references: [id])
+  
+  @@index([learningPlanId, versionNumber])
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  userId          String?
+  action          String
+  entityType      String
+  entityId        String?
+  changes         Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model QuestionRepository {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?   @db.Text
+  category        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdById     String
+  
+  questions       Question[] @relation("QuestionRepository")
+  createdBy       User      @relation("QuestionRepositoryCreator", fields: [createdById], references: [id])
+  
+  @@index([category])
+}
+
+model ContentRepository {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?   @db.Text
+  type            String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  folderPath      String?
+  tags            String[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  uploadedById    String
+  
+  uploadedBy      User      @relation("ContentRepositoryUploader", fields: [uploadedById], references: [id])
+  
+  @@index([type])
+  @@index([uploadedById])
+}
+
