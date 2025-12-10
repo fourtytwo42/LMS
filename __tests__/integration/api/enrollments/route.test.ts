@@ -16,12 +16,47 @@ describe("Enrollments API", () => {
   let testLearningPlan: { id: string };
 
   beforeEach(async () => {
-    // Clean up any existing users first
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["admin-enroll@test.com", "learner-enroll@test.com", "instructor-enroll@test.com"] },
-      },
-    });
+    // Clean up any existing data first (in correct order to avoid foreign key constraints)
+    // First delete courses and learning plans that might reference these users
+    try {
+      await prisma.course.deleteMany({
+        where: {
+          title: "Test Enrollment Course",
+        },
+      });
+    } catch (e) {
+      // Ignore errors
+    }
+    try {
+      await prisma.learningPlan.deleteMany({
+        where: {
+          title: "Test Enrollment Plan",
+        },
+      });
+    } catch (e) {
+      // Ignore errors
+    }
+    try {
+      await prisma.enrollment.deleteMany({
+        where: {
+          user: {
+            email: { in: ["admin-enroll@test.com", "learner-enroll@test.com", "instructor-enroll@test.com"] },
+          },
+        },
+      });
+    } catch (e) {
+      // Ignore errors
+    }
+    // Then delete users
+    try {
+      await prisma.user.deleteMany({
+        where: {
+          email: { in: ["admin-enroll@test.com", "learner-enroll@test.com", "instructor-enroll@test.com"] },
+        },
+      });
+    } catch (e) {
+      // Ignore errors - users might not exist
+    }
 
     // Create admin user
     const adminPasswordHash = await hashPassword("AdminPass123");

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { GET } from "@/app/api/files/[id]/route";
+import { GET, DELETE } from "@/app/api/files/[id]/route";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
@@ -169,6 +169,268 @@ describe("Files API", () => {
 
       const response = await GET(request, { params: { id: "non-existent" } });
       expect(response.status).toBe(404);
+    });
+
+    it("should allow enrolled user to access file", async () => {
+      // Create learner user
+      const learnerPasswordHash = await hashPassword("LearnerPass123");
+      const learnerUser = await prisma.user.create({
+        data: {
+          email: "learner-files@test.com",
+          passwordHash: learnerPasswordHash,
+          firstName: "Learner",
+          lastName: "User",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "LEARNER" },
+                  create: {
+                    name: "LEARNER",
+                    description: "Learner",
+                    permissions: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Get the course from testFile
+      const file = await prisma.repositoryFile.findUnique({
+        where: { id: testFile.id },
+        include: { course: true },
+      });
+
+      // Enroll learner in course
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          courseId: file!.courseId,
+          status: "ENROLLED",
+        },
+      });
+
+      const learnerToken = generateToken({
+        userId: learnerUser.id,
+        email: learnerUser.email,
+        roles: ["LEARNER"],
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/files/${testFile.id}`, {
+        headers: {
+          cookie: `accessToken=${learnerToken}`,
+        },
+      });
+
+      const response = await GET(request, { params: { id: testFile.id } });
+      expect(response.status).toBe(200);
+
+      // Cleanup
+      await prisma.enrollment.deleteMany({ where: { userId: learnerUser.id } });
+      await prisma.user.delete({ where: { id: learnerUser.id } });
+    });
+
+    it("should deny access to unauthorized user", async () => {
+      // Create learner user (not enrolled)
+      const learnerPasswordHash = await hashPassword("LearnerPass123");
+      const learnerUser = await prisma.user.create({
+        data: {
+          email: "unauthorized-learner@test.com",
+          passwordHash: learnerPasswordHash,
+          firstName: "Unauthorized",
+          lastName: "User",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "LEARNER" },
+                  create: {
+                    name: "LEARNER",
+                    description: "Learner",
+                    permissions: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const learnerToken = generateToken({
+        userId: learnerUser.id,
+        email: learnerUser.email,
+        roles: ["LEARNER"],
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/files/${testFile.id}`, {
+        headers: {
+          cookie: `accessToken=${learnerToken}`,
+        },
+      });
+
+      const response = await GET(request, { params: { id: testFile.id } });
+      expect(response.status).toBe(403);
+
+      // Cleanup
+      await prisma.user.delete({ where: { id: learnerUser.id } });
+    });
+  });
+
+  describe("DELETE /api/files/:id", () => {
+    it("should delete file as admin", async () => {
+      // Create a file to delete
+      const fileToDelete = await prisma.repositoryFile.create({
+        data: {
+          courseId: (await prisma.course.findFirst({ where: { title: "Test Course" } }))!.id,
+          fileName: "delete-test.pdf",
+          filePath: "repository/test-course/delete-test.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          uploadedById: instructorUser.id,
+        },
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/files/${fileToDelete.id}`, {
+        method: "DELETE",
+        headers: {
+          cookie: `accessToken=${adminToken}`,
+        },
+      });
+
+      const response = await DELETE(request, { params: { id: fileToDelete.id } });
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.message).toContain("deleted successfully");
+    });
+
+    it("should delete file as uploader", async () => {
+      // Create a file to delete
+      const fileToDelete = await prisma.repositoryFile.create({
+        data: {
+          courseId: (await prisma.course.findFirst({ where: { title: "Test Course" } }))!.id,
+          fileName: "delete-test-2.pdf",
+          filePath: "repository/test-course/delete-test-2.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          uploadedById: instructorUser.id,
+        },
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/files/${fileToDelete.id}`, {
+        method: "DELETE",
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await DELETE(request, { params: { id: fileToDelete.id } });
+      expect(response.status).toBe(200);
+    });
+
+    it("should deny delete for non-instructor/admin", async () => {
+      const learnerPasswordHash = await hashPassword("LearnerPass123");
+      const learnerUser = await prisma.user.create({
+        data: {
+          email: "learner-delete@test.com",
+          passwordHash: learnerPasswordHash,
+          firstName: "Learner",
+          lastName: "User",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "LEARNER" },
+                  create: {
+                    name: "LEARNER",
+                    description: "Learner",
+                    permissions: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const learnerToken = generateToken({
+        userId: learnerUser.id,
+        email: learnerUser.email,
+        roles: ["LEARNER"],
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/files/${testFile.id}`, {
+        method: "DELETE",
+        headers: {
+          cookie: `accessToken=${learnerToken}`,
+        },
+      });
+
+      const response = await DELETE(request, { params: { id: testFile.id } });
+      expect(response.status).toBe(403);
+
+      // Cleanup
+      await prisma.user.delete({ where: { id: learnerUser.id } });
+    });
+
+    it("should return 404 for non-existent file on delete", async () => {
+      const request = new NextRequest("http://localhost:3000/api/files/non-existent", {
+        method: "DELETE",
+        headers: {
+          cookie: `accessToken=${adminToken}`,
+        },
+      });
+
+      const response = await DELETE(request, { params: { id: "non-existent" } });
+      expect(response.status).toBe(404);
+    });
+
+    it("should deny delete for instructor without permission", async () => {
+      // Create another instructor
+      const otherInstructorPasswordHash = await hashPassword("OtherInstructorPass123");
+      const otherInstructor = await prisma.user.create({
+        data: {
+          email: "other-instructor@test.com",
+          passwordHash: otherInstructorPasswordHash,
+          firstName: "Other",
+          lastName: "Instructor",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "INSTRUCTOR" },
+                  create: {
+                    name: "INSTRUCTOR",
+                    description: "Instructor",
+                    permissions: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const otherInstructorToken = generateToken({
+        userId: otherInstructor.id,
+        email: otherInstructor.email,
+        roles: ["INSTRUCTOR"],
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/files/${testFile.id}`, {
+        method: "DELETE",
+        headers: {
+          cookie: `accessToken=${otherInstructorToken}`,
+        },
+      });
+
+      const response = await DELETE(request, { params: { id: testFile.id } });
+      expect(response.status).toBe(403);
+
+      // Cleanup
+      await prisma.user.delete({ where: { id: otherInstructor.id } });
     });
   });
 });

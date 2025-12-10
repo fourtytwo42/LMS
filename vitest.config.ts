@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./__tests__/setup.ts"],
     exclude: ["**/node_modules/**", "**/e2e/**", "**/.next/**"],
+    // Run integration tests sequentially to avoid database conflicts
+    fileParallelism: false,
+    sequence: {
+      shuffle: false,
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

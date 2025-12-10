@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
         courseId: validated.courseId,
         contentItemId: validated.contentItemId,
         folderPath: validated.folderPath,
+        originalFilename: file.name,
       }
     );
 

@@ -18,14 +18,32 @@ describe("Certificate Templates API", () => {
         email: { in: ["admin@test.com", "instructor@test.com"] },
       },
     });
-    await prisma.role.deleteMany({
-      where: {
-        name: { in: ["ADMIN", "INSTRUCTOR"] },
-        users: {
-          none: {},
-        },
-      },
-    });
+    
+    // Clean up roles only if no users have them
+    const adminRole = await prisma.role.findUnique({ where: { name: "ADMIN" } });
+    const instructorRole = await prisma.role.findUnique({ where: { name: "INSTRUCTOR" } });
+    
+    if (adminRole) {
+      const adminUsers = await prisma.userRole.count({ where: { roleId: adminRole.id } });
+      if (adminUsers === 0) {
+        try {
+          await prisma.role.delete({ where: { name: "ADMIN" } });
+        } catch (e) {
+          // Role might have been deleted already or doesn't exist
+        }
+      }
+    }
+    
+    if (instructorRole) {
+      const instructorUsers = await prisma.userRole.count({ where: { roleId: instructorRole.id } });
+      if (instructorUsers === 0) {
+        try {
+          await prisma.role.delete({ where: { name: "INSTRUCTOR" } });
+        } catch (e) {
+          // Role might have been deleted already or doesn't exist
+        }
+      }
+    }
     
     // Create admin user
     const adminPasswordHash = await hashPassword("AdminPass123");

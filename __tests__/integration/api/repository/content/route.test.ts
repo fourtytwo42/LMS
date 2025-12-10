@@ -12,6 +12,39 @@ describe("Content Repository API", () => {
   let learnerToken: string;
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["instructor@test.com", "learner@test.com"] },
+      },
+    });
+    
+    // Clean up roles if no users have them
+    const instructorRole = await prisma.role.findUnique({ where: { name: "INSTRUCTOR" } });
+    const learnerRole = await prisma.role.findUnique({ where: { name: "LEARNER" } });
+    
+    if (instructorRole) {
+      const instructorUsers = await prisma.userRole.count({ where: { roleId: instructorRole.id } });
+      if (instructorUsers === 0) {
+        try {
+          await prisma.role.delete({ where: { name: "INSTRUCTOR" } });
+        } catch (e) {
+          // Role might have been deleted already or doesn't exist
+        }
+      }
+    }
+    
+    if (learnerRole) {
+      const learnerUsers = await prisma.userRole.count({ where: { roleId: learnerRole.id } });
+      if (learnerUsers === 0) {
+        try {
+          await prisma.role.delete({ where: { name: "LEARNER" } });
+        } catch (e) {
+          // Role might have been deleted already or doesn't exist
+        }
+      }
+    }
+
     // Create instructor user
     const instructorPasswordHash = await hashPassword("InstructorPass123");
     instructorUser = await prisma.user.create({
