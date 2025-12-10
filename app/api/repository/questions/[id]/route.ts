@@ -47,9 +47,6 @@ export async function GET(
           },
         },
         questions: {
-          include: {
-            options: true,
-          },
           orderBy: {
             order: "asc",
           },
@@ -76,7 +73,7 @@ export async function GET(
           type: q.type,
           questionText: q.questionText,
           points: q.points,
-          options: q.options,
+          options: q.options, // This is JSON field
           correctAnswer: q.correctAnswer,
           explanation: q.explanation,
           order: q.order,

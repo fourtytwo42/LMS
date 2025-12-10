@@ -124,6 +124,127 @@ describe("Users API", () => {
       const data = await response.json();
       expect(data.users.every((u: any) => u.roles.includes("LEARNER"))).toBe(true);
     });
+
+    it("should search by email", async () => {
+      const request = new NextRequest("http://localhost:3000/api/users?search=admin@test.com", {
+        headers: {
+          cookie: `accessToken=${adminToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.users.length).toBeGreaterThan(0);
+      expect(data.users.some((u: any) => u.email.includes("admin"))).toBe(true);
+    });
+
+    it("should search by firstName", async () => {
+      const request = new NextRequest("http://localhost:3000/api/users?search=Admin", {
+        headers: {
+          cookie: `accessToken=${adminToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.users.length).toBeGreaterThan(0);
+    });
+
+    it("should search by lastName", async () => {
+      const request = new NextRequest("http://localhost:3000/api/users?search=User", {
+        headers: {
+          cookie: `accessToken=${adminToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.users.length).toBeGreaterThan(0);
+    });
+
+    it("should filter by groupId", async () => {
+      // Create a group and add user to it
+      const testGroup = await prisma.group.create({
+        data: {
+          name: "Test Group",
+          type: "STANDARD",
+        },
+      });
+
+      await prisma.groupMember.create({
+        data: {
+          groupId: testGroup.id,
+          userId: regularUser.id,
+        },
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/users?groupId=${testGroup.id}`, {
+        headers: {
+          cookie: `accessToken=${adminToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.users.some((u: any) => u.id === regularUser.id)).toBe(true);
+
+      // Cleanup
+      await prisma.groupMember.deleteMany({ where: { groupId: testGroup.id } });
+      await prisma.group.delete({ where: { id: testGroup.id } });
+    });
+
+    it("should return 403 for non-admin/instructor", async () => {
+      const learnerPasswordHash = await hashPassword("LearnerPass123");
+      const learnerUser = await prisma.user.create({
+        data: {
+          email: "learner@test.com",
+          passwordHash: learnerPasswordHash,
+          firstName: "Learner",
+          lastName: "User",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "LEARNER" },
+                  create: {
+                    name: "LEARNER",
+                    description: "Learner",
+                    permissions: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      const learnerToken = generateToken({ userId: learnerUser.id, email: learnerUser.email, roles: ["LEARNER"] });
+
+      const request = new NextRequest("http://localhost:3000/api/users", {
+        headers: {
+          cookie: `accessToken=${learnerToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(403);
+
+      await prisma.user.delete({ where: { id: learnerUser.id } });
+    });
+
+    it("should return 401 for unauthenticated request", async () => {
+      const request = new NextRequest("http://localhost:3000/api/users");
+
+      const response = await GET(request);
+      expect(response.status).toBe(401);
+    });
   });
 
   describe("POST /api/users", () => {

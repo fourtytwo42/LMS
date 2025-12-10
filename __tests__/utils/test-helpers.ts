@@ -66,6 +66,18 @@ export async function cleanupDatabase() {
   });
 }
 
+export async function createTestCourse(createdById: string, title: string) {
+  return await prisma.course.create({
+    data: {
+      title,
+      description: "Test course",
+      status: "PUBLISHED",
+      type: "E-LEARNING",
+      createdById,
+    },
+  });
+}
+
 export function authenticateRequest(request: Request, token: string): Request {
   const headers = new Headers(request.headers);
   headers.set("Cookie", `accessToken=${token}`);

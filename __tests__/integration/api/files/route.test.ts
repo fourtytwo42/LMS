@@ -13,10 +13,28 @@ describe("Files API", () => {
   let testFile: { id: string };
 
   beforeEach(async () => {
-    // Clean up any existing users first
+    // Clean up in dependency order: files -> courses -> users/roles
+    await prisma.repositoryFile.deleteMany({
+      where: {
+        course: {
+          title: { in: ["Test Course"] },
+        },
+      },
+    });
+    await prisma.course.deleteMany({
+      where: {
+        title: "Test Course",
+      },
+    });
     await prisma.user.deleteMany({
       where: {
         email: { in: ["admin-files@test.com", "instructor-files@test.com"] },
+      },
+    });
+    await prisma.role.deleteMany({
+      where: {
+        name: { in: ["ADMIN", "INSTRUCTOR"] },
+        users: { none: {} },
       },
     });
 
@@ -107,7 +125,9 @@ describe("Files API", () => {
   afterEach(async () => {
     await prisma.repositoryFile.deleteMany({
       where: {
-        id: testFile.id,
+        course: {
+          title: "Test Course",
+        },
       },
     });
     await prisma.course.deleteMany({
@@ -275,6 +295,12 @@ describe("Files API", () => {
 
       // Cleanup
       await prisma.user.delete({ where: { id: learnerUser.id } });
+    });
+
+    it("should require authentication", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/files/${testFile.id}`);
+      const response = await GET(request, { params: { id: testFile.id } });
+      expect(response.status).toBe(401);
     });
   });
 

@@ -158,6 +158,15 @@ describe("Notifications API", () => {
       expect(data.message).toBe("All notifications marked as read");
       expect(data.count).toBeGreaterThanOrEqual(0);
     });
+
+    it("should require authentication", async () => {
+      const request = new NextRequest("http://localhost:3000/api/notifications/read-all", {
+        method: "PUT",
+      });
+
+      const response = await PUT(request);
+      expect(response.status).toBe(401);
+    });
   });
 });
 

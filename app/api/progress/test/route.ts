@@ -17,12 +17,17 @@ const submitTestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await authenticate(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "Authentication required" },
-        { status: 401 }
-      );
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
     }
 
     const body = await request.json();
@@ -128,9 +133,11 @@ export async function POST(request: NextRequest) {
             .join(", "),
         });
       } else if (question.type === "TRUE_FALSE") {
-        const correctAnswer = question.correctAnswer?.toLowerCase().trim();
+        // correctAnswer is Boolean for TRUE_FALSE
+        const correctAnswerBool = question.correctAnswer === true || question.correctAnswer === "true" || (typeof question.correctAnswer === "string" && question.correctAnswer.toLowerCase().trim() === "true");
         const userAnswerText = userAnswer?.answerText?.toLowerCase().trim();
-        isCorrect = correctAnswer === userAnswerText;
+        const userAnswerBool = userAnswerText === "true";
+        isCorrect = correctAnswerBool === userAnswerBool;
         earnedPoints = isCorrect ? question.points : 0;
         gradedAnswers.push({
           questionId: question.id,
@@ -179,18 +186,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create test answers
+    // Create test answers with grading information for all questions
     await Promise.all(
-      validated.answers.map((answer) =>
-        prisma.testAnswer.create({
+      test.questions.map((question) => {
+        const gradedAnswer = gradedAnswers.find((ga) => ga.questionId === question.id);
+        const userAnswer = validated.answers.find((a) => a.questionId === question.id);
+        return prisma.testAnswer.create({
           data: {
             attemptId: attempt.id,
-            questionId: answer.questionId,
-            answerText: answer.answerText || null,
-            selectedOptions: answer.selectedOptions || [],
+            questionId: question.id,
+            answerText: userAnswer?.answerText || null,
+            selectedOptions: userAnswer?.selectedOptions || [],
+            isCorrect: gradedAnswer?.isCorrect || false,
+            pointsEarned: gradedAnswer?.pointsEarned || 0,
           },
-        })
-      )
+        });
+      })
     );
 
     // If passed, create completion record

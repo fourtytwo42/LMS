@@ -127,6 +127,24 @@ describe("Content Repository API", () => {
   });
 
   describe("GET /api/repository/content", () => {
+    let testContentItem: any;
+
+    beforeEach(async () => {
+      testContentItem = await prisma.contentRepository.create({
+        data: {
+          name: "Test Content",
+          description: "Test description",
+          type: "VIDEO",
+          filePath: "videos/test.mp4",
+          fileSize: 1024,
+          mimeType: "video/mp4",
+          folderPath: "videos/course1",
+          tags: ["math", "algebra"],
+          uploadedById: instructorUser.id,
+        },
+      });
+    });
+
     it("should list content items as instructor", async () => {
       const request = new NextRequest("http://localhost:3000/api/repository/content", {
         headers: {
@@ -142,6 +160,106 @@ describe("Content Repository API", () => {
       expect(Array.isArray(data.contentItems)).toBe(true);
     });
 
+    it("should filter by type", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/content?type=VIDEO", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.contentItems.every((item: any) => item.type === "VIDEO")).toBe(true);
+    });
+
+    it("should filter by folderPath", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/content?folderPath=videos/course1", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.contentItems.every((item: any) => item.folderPath === "videos/course1")).toBe(true);
+    });
+
+    it("should filter by tags", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/content?tags=math,algebra", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.contentItems.length).toBeGreaterThan(0);
+    });
+
+    it("should search by name", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/content?search=Test", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.contentItems.length).toBeGreaterThan(0);
+    });
+
+    it("should search by description", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/content?search=description", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.contentItems.length).toBeGreaterThan(0);
+    });
+
+    it("should paginate results", async () => {
+      // Create multiple content items
+      for (let i = 0; i < 5; i++) {
+        await prisma.contentRepository.create({
+          data: {
+            name: `Content ${i}`,
+            type: "VIDEO",
+            filePath: `videos/test${i}.mp4`,
+            fileSize: 1024,
+            mimeType: "video/mp4",
+            uploadedById: instructorUser.id,
+          },
+        });
+      }
+
+      const request = new NextRequest("http://localhost:3000/api/repository/content?page=1&limit=2", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.contentItems.length).toBeLessThanOrEqual(2);
+      expect(data.pagination.page).toBe(1);
+      expect(data.pagination.limit).toBe(2);
+    });
+
     it("should not list content as learner", async () => {
       const request = new NextRequest("http://localhost:3000/api/repository/content", {
         headers: {
@@ -151,6 +269,13 @@ describe("Content Repository API", () => {
 
       const response = await GET(request);
       expect(response.status).toBe(403);
+    });
+
+    it("should return 401 for unauthenticated request", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/content");
+
+      const response = await GET(request);
+      expect(response.status).toBe(401);
     });
   });
 });

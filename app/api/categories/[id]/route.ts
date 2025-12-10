@@ -83,12 +83,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await authenticate(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "Authentication required" },
-        { status: 401 }
-      );
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
     }
 
     // Only admin can update categories

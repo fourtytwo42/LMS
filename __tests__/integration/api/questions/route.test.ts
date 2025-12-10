@@ -158,6 +158,22 @@ describe("Questions API", () => {
       expect(data.question).toBeDefined();
       expect(data.question.id).toBe(testQuestion.id);
     });
+
+    it("should require authentication", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/questions/${testQuestion.id}`);
+      const response = await GET(request, { params: { id: testQuestion.id } });
+      expect(response.status).toBe(401);
+    });
+
+    it("should return 404 for missing question", async () => {
+      const request = new NextRequest("http://localhost:3000/api/questions/missing-id", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+      const response = await GET(request, { params: { id: "missing-id" } });
+      expect(response.status).toBe(404);
+    });
   });
 
   describe("PUT /api/questions/:id", () => {

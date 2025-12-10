@@ -146,6 +146,16 @@ describe("Certificate Templates API", () => {
       const response = await GET(request);
       expect(response.status).toBe(403);
     });
+
+    it("should return 401 for unauthenticated request", async () => {
+      const request = new NextRequest("http://localhost:3000/api/certificates/templates");
+
+      const response = await GET(request);
+      expect(response.status).toBe(401);
+
+      const data = await response.json();
+      expect(data.error).toBeDefined();
+    });
   });
 
   describe("POST /api/certificates/templates", () => {
@@ -202,6 +212,118 @@ describe("Certificate Templates API", () => {
 
       const response = await POST(request);
       expect(response.status).toBe(403);
+    });
+
+    it("should return 401 for unauthenticated request", async () => {
+      const request = new NextRequest("http://localhost:3000/api/certificates/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Custom Template",
+          template: {
+            layout: "landscape",
+            fields: {
+              title: { x: 400, y: 100, fontSize: 48, fontFamily: "Arial" },
+              recipientName: { x: 400, y: 250, fontSize: 36, fontFamily: "Arial" },
+              courseName: { x: 400, y: 350, fontSize: 24, fontFamily: "Arial" },
+              completionDate: { x: 400, y: 450, fontSize: 18, fontFamily: "Arial" },
+            },
+          },
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(401);
+
+      const data = await response.json();
+      expect(data.error).toBeDefined();
+    });
+
+    it("should return validation error for invalid template structure", async () => {
+      const request = new NextRequest("http://localhost:3000/api/certificates/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Invalid Template",
+          template: {
+            layout: "invalid-layout", // Invalid enum value
+            fields: {
+              title: { x: 400, y: 100, fontSize: 48, fontFamily: "Arial" },
+              recipientName: { x: 400, y: 250, fontSize: 36, fontFamily: "Arial" },
+              courseName: { x: 400, y: 350, fontSize: 24, fontFamily: "Arial" },
+              completionDate: { x: 400, y: 450, fontSize: 18, fontFamily: "Arial" },
+            },
+          },
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+      expect(data.details).toBeDefined();
+    });
+
+    it("should return validation error for missing required fields", async () => {
+      const request = new NextRequest("http://localhost:3000/api/certificates/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          // Missing name field
+          template: {
+            layout: "landscape",
+            fields: {
+              title: { x: 400, y: 100, fontSize: 48, fontFamily: "Arial" },
+              recipientName: { x: 400, y: 250, fontSize: 36, fontFamily: "Arial" },
+              courseName: { x: 400, y: 350, fontSize: 24, fontFamily: "Arial" },
+              completionDate: { x: 400, y: 450, fontSize: 18, fontFamily: "Arial" },
+            },
+          },
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+      expect(data.details).toBeDefined();
+    });
+
+    it("should return validation error for missing template fields", async () => {
+      const request = new NextRequest("http://localhost:3000/api/certificates/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Incomplete Template",
+          template: {
+            layout: "landscape",
+            fields: {
+              title: { x: 400, y: 100, fontSize: 48, fontFamily: "Arial" },
+              // Missing recipientName, courseName, completionDate
+            },
+          },
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+      expect(data.details).toBeDefined();
     });
   });
 });

@@ -13,12 +13,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await authenticate(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "Authentication required" },
-        { status: 401 }
-      );
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
     }
 
     const contentItem = await prisma.contentItem.findUnique({
@@ -26,7 +31,9 @@ export async function PUT(
       include: {
         course: {
           include: {
-            instructors: true,
+            instructorAssignments: {
+              select: { userId: true },
+            },
           },
         },
       },
@@ -41,8 +48,8 @@ export async function PUT(
 
     // Check permissions
     const isAdmin = user.roles.includes("ADMIN");
-    const isAssignedInstructor = contentItem.course.instructors.some(
-      (inst) => inst.userId === user.id
+    const isAssignedInstructor = contentItem.course.instructorAssignments.some(
+      (ia) => ia.userId === user.id
     );
     const isCreator = contentItem.course.createdById === user.id;
 

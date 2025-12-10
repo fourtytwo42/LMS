@@ -127,6 +127,19 @@ describe("Question Repository API", () => {
   });
 
   describe("GET /api/repository/questions", () => {
+    let testRepository: any;
+
+    beforeEach(async () => {
+      testRepository = await prisma.questionRepository.create({
+        data: {
+          name: "Test Repository",
+          description: "Test description",
+          category: "Math",
+          createdById: instructorUser.id,
+        },
+      });
+    });
+
     it("should list question repositories as instructor", async () => {
       const request = new NextRequest("http://localhost:3000/api/repository/questions", {
         headers: {
@@ -142,6 +155,75 @@ describe("Question Repository API", () => {
       expect(Array.isArray(data.repositories)).toBe(true);
     });
 
+    it("should filter by category", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?category=Math", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories.length).toBeGreaterThan(0);
+      expect(data.repositories.every((r: any) => r.category === "Math")).toBe(true);
+    });
+
+    it("should search repositories by name", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?search=Test", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories.length).toBeGreaterThan(0);
+    });
+
+    it("should search repositories by description", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?search=description", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories.length).toBeGreaterThan(0);
+    });
+
+    it("should paginate results", async () => {
+      // Create multiple repositories
+      for (let i = 0; i < 5; i++) {
+        await prisma.questionRepository.create({
+          data: {
+            name: `Repository ${i}`,
+            createdById: instructorUser.id,
+          },
+        });
+      }
+
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?page=1&limit=2", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories.length).toBeLessThanOrEqual(2);
+      expect(data.pagination.page).toBe(1);
+      expect(data.pagination.limit).toBe(2);
+    });
+
     it("should not list repositories as learner", async () => {
       const request = new NextRequest("http://localhost:3000/api/repository/questions", {
         headers: {
@@ -151,6 +233,13 @@ describe("Question Repository API", () => {
 
       const response = await GET(request);
       expect(response.status).toBe(403);
+    });
+
+    it("should return 401 for unauthenticated request", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions");
+
+      const response = await GET(request);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -177,6 +266,63 @@ describe("Question Repository API", () => {
       expect(data.repository.name).toBe("Test Repository");
     });
 
+    it("should create repository without optional fields", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          name: "Minimal Repository",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(201);
+
+      const data = await response.json();
+      expect(data.repository.name).toBe("Minimal Repository");
+    });
+
+    it("should return validation error for missing name", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          description: "No name provided",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for empty name", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          name: "",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
     it("should not create repository as learner", async () => {
       const request = new NextRequest("http://localhost:3000/api/repository/questions", {
         method: "POST",
@@ -191,6 +337,21 @@ describe("Question Repository API", () => {
 
       const response = await POST(request);
       expect(response.status).toBe(403);
+    });
+
+    it("should return 401 for unauthenticated request", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Test Repository",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(401);
     });
   });
 });

@@ -163,6 +163,153 @@ describe("Video Progress API", () => {
       const data = await response.json();
       expect(data.progress.completed).toBe(true);
     });
+
+    it("should require authentication", async () => {
+      const request = new NextRequest("http://localhost:3000/api/progress/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentItemId: testContentItem.id,
+          watchTime: 10,
+          totalDuration: 20,
+          lastPosition: 0.5,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(401);
+    });
+
+    it("should return 404 for non-existent content item", async () => {
+      const request = new NextRequest("http://localhost:3000/api/progress/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          contentItemId: "non-existent-id",
+          watchTime: 10,
+          totalDuration: 20,
+          lastPosition: 0.5,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data.error).toBe("NOT_FOUND");
+    });
+
+    it("should return 400 for non-video content item", async () => {
+      const pdfContentItem = await prisma.contentItem.create({
+        data: {
+          courseId: testCourse.id,
+          title: "Test PDF",
+          type: "PDF",
+          order: 2,
+          pdfUrl: "pdfs/test.pdf",
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/progress/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          contentItemId: pdfContentItem.id,
+          watchTime: 10,
+          totalDuration: 20,
+          lastPosition: 0.5,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("BAD_REQUEST");
+      expect(data.message).toContain("not a video");
+
+      await prisma.contentItem.delete({ where: { id: pdfContentItem.id } });
+    });
+
+    it("should return 403 for non-enrolled user", async () => {
+      const otherLearnerPasswordHash = await hashPassword("OtherPass123");
+      const otherLearner = await prisma.user.create({
+        data: {
+          email: "other-learner-progress@test.com",
+          passwordHash: otherLearnerPasswordHash,
+          firstName: "Other",
+          lastName: "Learner",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "LEARNER" },
+                  create: {
+                    name: "LEARNER",
+                    description: "Learner role",
+                    permissions: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      const otherLearnerToken = generateToken({
+        userId: otherLearner.id,
+        email: otherLearner.email,
+        roles: ["LEARNER"],
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/progress/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${otherLearnerToken}`,
+        },
+        body: JSON.stringify({
+          contentItemId: testContentItem.id,
+          watchTime: 10,
+          totalDuration: 20,
+          lastPosition: 0.5,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.error).toBe("FORBIDDEN");
+      expect(data.message).toContain("not enrolled");
+
+      await prisma.user.delete({ where: { id: otherLearner.id } });
+    });
+
+    it("should return 400 for validation error", async () => {
+      const request = new NextRequest("http://localhost:3000/api/progress/video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          contentItemId: testContentItem.id,
+          watchTime: -1, // Invalid
+          totalDuration: 20,
+          lastPosition: 0.5,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
   });
 });
 

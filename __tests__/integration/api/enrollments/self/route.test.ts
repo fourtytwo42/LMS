@@ -470,6 +470,163 @@ describe("Self Enrollment API", () => {
       await prisma.enrollment.deleteMany({ where: { learningPlanId: testLearningPlan.id } });
       await prisma.learningPlan.delete({ where: { id: testLearningPlan.id } });
     });
+
+    it("should return 404 when learning plan not found", async () => {
+      const request = new NextRequest("http://localhost:3000/api/enrollments/self", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          learningPlanId: "missing-plan",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(404);
+    });
+
+    it("should allow enrollment in non-public course through group access", async () => {
+      // Create group
+      const testGroup = await prisma.group.create({
+        data: {
+          name: "Test Group",
+          description: "Test group for enrollment",
+          type: "STANDARD",
+        },
+      });
+
+      // Add learner to group
+      await prisma.groupMember.create({
+        data: {
+          groupId: testGroup.id,
+          userId: learnerUser.id,
+        },
+      });
+
+      // Create non-public course with group access
+      const groupCourse = await prisma.course.create({
+        data: {
+          title: "Group Course",
+          description: "A course with group access",
+          type: "E-LEARNING",
+          status: "PUBLISHED",
+          selfEnrollment: true,
+          publicAccess: false,
+          createdById: instructorUser.id,
+          instructorAssignments: {
+            create: {
+              userId: instructorUser.id,
+              assignedById: instructorUser.id,
+            },
+          },
+          groupAccess: {
+            create: {
+              groupId: testGroup.id,
+            },
+          },
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments/self", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          courseId: groupCourse.id,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(201);
+
+      // Cleanup
+      await prisma.enrollment.deleteMany({ where: { courseId: groupCourse.id } });
+      await prisma.courseGroupAccess.deleteMany({ where: { courseId: groupCourse.id } });
+      await prisma.course.delete({ where: { id: groupCourse.id } });
+      await prisma.groupMember.deleteMany({ where: { groupId: testGroup.id } });
+      await prisma.group.delete({ where: { id: testGroup.id } });
+    });
+
+    it("should reject enrollment in non-public course without group access", async () => {
+      // Create non-public course without group access
+      const privateCourse = await prisma.course.create({
+        data: {
+          title: "Private Course",
+          description: "A private course",
+          type: "E-LEARNING",
+          status: "PUBLISHED",
+          selfEnrollment: true,
+          publicAccess: false,
+          createdById: instructorUser.id,
+          instructorAssignments: {
+            create: {
+              userId: instructorUser.id,
+              assignedById: instructorUser.id,
+            },
+          },
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments/self", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          courseId: privateCourse.id,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.message).toContain("do not have access");
+
+      // Cleanup
+      await prisma.course.delete({ where: { id: privateCourse.id } });
+    });
+
+    it("should reject enrollment in learning plan when not published", async () => {
+      const draftPlan = await prisma.learningPlan.create({
+        data: {
+          title: "Draft Plan",
+          description: "A draft learning plan",
+          status: "DRAFT",
+          selfEnrollment: true,
+          publicAccess: true,
+          createdById: instructorUser.id,
+          instructorAssignments: {
+            create: {
+              userId: instructorUser.id,
+              assignedById: instructorUser.id,
+            },
+          },
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments/self", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          learningPlanId: draftPlan.id,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.message).toContain("not available for enrollment");
+
+      await prisma.learningPlan.delete({ where: { id: draftPlan.id } });
+    });
   });
 });
 
