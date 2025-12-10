@@ -15,16 +15,21 @@ const menuItems = {
   INSTRUCTOR: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/courses", label: "Courses", icon: BookOpen },
+    { href: "/enrollments", label: "Enrollments", icon: Users },
     { href: "/catalog", label: "Catalog", icon: BookOpen },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/profile", label: "Profile", icon: Users },
   ],
   ADMIN: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/courses", label: "Courses", icon: BookOpen },
+    { href: "/learning-plans", label: "Learning Plans", icon: BookOpen },
     { href: "/users", label: "Users", icon: Users },
     { href: "/groups", label: "Groups", icon: Users },
+    { href: "/enrollments", label: "Enrollments", icon: Users },
+    { href: "/categories", label: "Categories", icon: BookOpen },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/profile", label: "Profile", icon: LayoutDashboard },
+    { href: "/profile", label: "Profile", icon: Users },
   ],
 };
 
