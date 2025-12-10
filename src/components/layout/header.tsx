@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 
 export function Header() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export function Header() {
 
         {user && (
           <div className="flex items-center gap-4">
+            <NotificationCenter />
             <div className="flex items-center gap-2">
               <Avatar
                 src={user.avatar}
