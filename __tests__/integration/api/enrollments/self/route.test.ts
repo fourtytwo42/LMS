@@ -128,6 +128,19 @@ describe("Self Enrollment API", () => {
         email: { in: ["self-enroll@test.com", "instructor-self@test.com"] },
       },
     });
+    // Clean up roles if they exist and have no users
+    try {
+      await prisma.role.deleteMany({
+        where: {
+          name: { in: ["LEARNER", "INSTRUCTOR"] },
+          users: {
+            none: {},
+          },
+        },
+      });
+    } catch (error) {
+      // Ignore errors - roles might be in use by other tests
+    }
   });
 
   describe("POST /api/enrollments/self", () => {

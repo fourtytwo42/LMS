@@ -131,6 +131,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Save to content repository if type is for content repository
+    // This would be triggered by a separate endpoint or flag
+    // For now, we'll handle it here if needed
+
     // For other file types, return uploaded file info
     return NextResponse.json({
       file: uploadedFile,
