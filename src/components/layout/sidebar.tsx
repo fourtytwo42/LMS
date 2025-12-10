@@ -21,6 +21,7 @@ const menuItems = {
     { href: "/courses", label: "Courses", icon: BookOpen },
     { href: "/users", label: "Users", icon: Users },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/profile", label: "Profile", icon: LayoutDashboard },
   ],
 };
 
