@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         code: validated.code,
         title: validated.title,
         shortDescription: validated.shortDescription,
-        description: validated.description,
+        description: validated.description || "",
         type: validated.type,
         categoryId: validated.categoryId,
         tags: validated.tags || [],
@@ -228,9 +228,11 @@ export async function POST(request: NextRequest) {
         sequentialRequired: validated.sequentialRequired,
         allowSkipping: validated.allowSkipping,
         status: "DRAFT",
-        instructors: {
+        createdById: user.id,
+        instructorAssignments: {
           create: {
             userId: user.id,
+            assignedById: user.id,
           },
         },
       },
