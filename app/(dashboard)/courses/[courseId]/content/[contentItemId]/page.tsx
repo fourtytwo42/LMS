@@ -195,10 +195,22 @@ export default function ContentItemPage() {
           {contentItem.type === "TEST" && (
             <div className="rounded-lg border p-6 text-center">
               <p className="mb-4 text-gray-600">
-                Test content will be available in the assessment engine.
+                Click below to take the test.
               </p>
               <Button
-                onClick={() => router.push(`/courses/${courseId}/tests/${contentItem.id}`)}
+                onClick={async () => {
+                  // First check if test exists, if not show message
+                  try {
+                    const response = await fetch(`/api/tests/${contentItem.id}`);
+                    if (response.ok) {
+                      router.push(`/courses/${courseId}/tests/${contentItem.id}`);
+                    } else {
+                      alert("Test is not yet configured. Please contact your instructor.");
+                    }
+                  } catch (error) {
+                    alert("Error loading test. Please try again.");
+                  }
+                }}
               >
                 Take Test
               </Button>
