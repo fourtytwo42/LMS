@@ -20,6 +20,7 @@ const menuItems = {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/courses", label: "Courses", icon: BookOpen },
     { href: "/users", label: "Users", icon: Users },
+    { href: "/groups", label: "Groups", icon: Users },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/profile", label: "Profile", icon: LayoutDashboard },
   ],
