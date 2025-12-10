@@ -158,7 +158,6 @@ export async function GET(request: NextRequest) {
               where: {
                 userId: enrollment.userId,
                 courseId: enrollment.courseId,
-                completed: true,
               },
             });
             completedCount = completions;
@@ -195,7 +194,6 @@ export async function GET(request: NextRequest) {
                 where: {
                   userId: enrollment.userId,
                   courseId: planCourse.courseId,
-                  completed: true,
                 },
               });
               totalCompleted += completions;

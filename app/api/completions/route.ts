@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
             id: true,
             title: true,
             code: true,
-            hasCertificate: true,
           },
         },
         learningPlan: {
@@ -71,8 +70,8 @@ export async function GET(request: NextRequest) {
         userId: c.userId,
         courseId: c.courseId,
         learningPlanId: c.learningPlanId,
-        completed: c.completed,
         completedAt: c.completedAt,
+        score: c.score,
         certificateUrl: c.certificateUrl,
         certificateGeneratedAt: c.certificateGeneratedAt,
         badgeAwarded: c.badgeAwarded,
