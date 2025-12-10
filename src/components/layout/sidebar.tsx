@@ -40,9 +40,9 @@ export function Sidebar() {
 
   if (isLoading || !user) {
     return (
-      <aside className="w-64 border-r bg-gray-50">
+      <aside className="w-64 border-r bg-gray-50" aria-label="Loading navigation">
         <nav className="p-4">
-          <div className="animate-pulse">
+          <div className="animate-pulse" aria-busy="true" aria-label="Loading menu">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
           </div>
@@ -66,25 +66,26 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-64 border-r bg-gray-50">
+    <aside className="w-full md:w-64 border-r bg-gray-50" aria-label="Main navigation">
       <nav className="p-4">
-        <ul className="space-y-2">
+        <ul className="space-y-2" role="list">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
             return (
-              <li key={item.href}>
+              <li key={item.href} role="listitem">
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500",
                     isActive
                       ? "bg-blue-100 text-blue-900"
                       : "text-gray-700 hover:bg-gray-100"
                   )}
+                  aria-current={isActive ? "page" : undefined}
                 >
-                  <Icon className="h-5 w-5" />
-                  {item.label}
+                  <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                  <span className="truncate">{item.label}</span>
                 </Link>
               </li>
             );

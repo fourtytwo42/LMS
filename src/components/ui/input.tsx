@@ -27,10 +27,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 : "border-gray-300 focus:border-blue-500",
               className
             )}
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={error ? `${props.id}-error` : undefined}
             {...props}
           />
         </div>
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {error && (
+          <p id={`${props.id}-error`} className="mt-1 text-sm text-red-500" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     );
   }

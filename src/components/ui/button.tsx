@@ -12,7 +12,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+          "rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           {
             "bg-blue-600 text-white hover:bg-blue-700": variant === "primary",
             "bg-gray-200 text-gray-900 hover:bg-gray-300": variant === "secondary",

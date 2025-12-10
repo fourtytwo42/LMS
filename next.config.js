@@ -4,9 +4,11 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '100mb',
     },
+    optimizePackageImports: ['lucide-react', 'recharts'],
   },
   images: {
     domains: [],
+    formats: ['image/avif', 'image/webp'],
   },
   typescript: {
     ignoreBuildErrors: false,
@@ -15,6 +17,35 @@ const nextConfig = {
   output: 'standalone',
   // Disable static page generation for error pages
   generateStaticParams: false,
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin'
+          },
+        ],
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig

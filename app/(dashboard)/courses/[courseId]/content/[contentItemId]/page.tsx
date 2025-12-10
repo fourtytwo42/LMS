@@ -5,8 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { VideoPlayer } from "@/components/video/video-player";
-import { PDFViewer } from "@/components/pdf/pdf-viewer";
+import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
+import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
 import { useAuthStore } from "@/store/auth-store";
 
 interface ContentItem {
@@ -145,7 +145,7 @@ export default function ContentItemPage() {
 
         <div className="mt-6">
           {contentItem.type === "VIDEO" && contentItem.videoUrl && (
-            <VideoPlayer
+            <VideoPlayerLazy
               contentItemId={contentItem.id}
               videoUrl={contentItem.videoUrl}
               completionThreshold={contentItem.completionThreshold || 0.8}
@@ -155,7 +155,7 @@ export default function ContentItemPage() {
           )}
 
           {contentItem.type === "PDF" && contentItem.pdfUrl && (
-            <PDFViewer pdfUrl={contentItem.pdfUrl} title={contentItem.title} />
+            <PdfViewerLazy fileUrl={contentItem.pdfUrl} />
           )}
 
           {contentItem.type === "HTML" && contentItem.htmlContent && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { Avatar } from "@/components/ui/avatar";
@@ -18,29 +19,39 @@ export function Header() {
   };
 
   return (
-    <header className="border-b bg-white">
+    <header className="border-b bg-white" role="banner">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900">LMS</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+              LMS
+            </Link>
+          </h1>
         </div>
 
         {user && (
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-4" aria-label="User menu">
             <NotificationCenter />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" aria-label={`Logged in as ${user.firstName} ${user.lastName}`}>
               <Avatar
                 src={user.avatar}
                 name={`${user.firstName} ${user.lastName}`}
                 size="sm"
               />
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium hidden sm:inline">
                 {user.firstName} {user.lastName}
               </span>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              aria-label="Logout"
+              title="Logout"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
-          </div>
+          </nav>
         )}
       </div>
     </header>
