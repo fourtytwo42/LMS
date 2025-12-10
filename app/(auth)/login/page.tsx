@@ -7,11 +7,18 @@ export default function LoginPage() {
     <Card>
       <h2 className="mb-6 text-2xl font-semibold">Log in to your account</h2>
       <LoginForm />
-      <div className="mt-4 text-center text-sm">
-        <span className="text-gray-600">Don't have an account? </span>
-        <Link href="/register" className="text-blue-600 hover:underline">
-          Register
-        </Link>
+      <div className="mt-4 space-y-2 text-center text-sm">
+        <div>
+          <Link href="/forgot-password" className="text-blue-600 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+        <div>
+          <span className="text-gray-600">Don't have an account? </span>
+          <Link href="/register" className="text-blue-600 hover:underline">
+            Register
+          </Link>
+        </div>
       </div>
     </Card>
   );
