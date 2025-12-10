@@ -1,0 +1,69 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { authenticate } from "@/lib/auth/middleware";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { testId: string } }
+) {
+  try {
+    const user = await authenticate(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const test = await prisma.test.findUnique({
+      where: { id: params.testId },
+    });
+
+    if (!test) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "Test not found" },
+        { status: 404 }
+      );
+    }
+
+    const attempts = await prisma.testAttempt.findMany({
+      where: {
+        testId: params.testId,
+        userId: user.id,
+      },
+      orderBy: {
+        submittedAt: "desc",
+      },
+    });
+
+    const bestAttempt = attempts.reduce(
+      (best, current) => (current.score > best.score ? current : best),
+      attempts[0] || { score: 0 }
+    );
+
+    const remainingAttempts = test.maxAttempts
+      ? Math.max(0, test.maxAttempts - attempts.length)
+      : null;
+
+    return NextResponse.json({
+      testId: params.testId,
+      attempts: attempts.map((attempt) => ({
+        id: attempt.id,
+        attemptNumber: attempt.attemptNumber,
+        score: attempt.score,
+        passed: attempt.passed,
+        submittedAt: attempt.submittedAt,
+      })),
+      bestScore: bestAttempt.score || 0,
+      canRetake: remainingAttempts === null || remainingAttempts > 0,
+      remainingAttempts,
+    });
+  } catch (error) {
+    console.error("Error fetching test progress:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
