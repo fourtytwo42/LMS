@@ -81,7 +81,6 @@ export async function POST(request: NextRequest) {
             where: {
               userId: enrollment.userId,
               courseId: validated.entityId,
-              completed: true,
             },
           });
 

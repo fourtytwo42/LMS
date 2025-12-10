@@ -52,7 +52,6 @@ export async function GET(
       where: {
         userId: user.id,
         courseId: params.courseId,
-        completed: true,
       },
     });
 
@@ -91,7 +90,7 @@ export async function GET(
         );
         if (previousItem) {
           const prevCompletion = completionMap.get(previousItem.id);
-          unlocked = !!prevCompletion?.completed;
+          unlocked = !!prevCompletion;
         }
       }
 
@@ -109,7 +108,7 @@ export async function GET(
         title: item.title,
         type: item.type,
         order: item.order,
-        completed: completion?.completed || false,
+        completed: !!completion,
         progress,
         unlocked,
         completedAt: completion?.completedAt || null,
@@ -122,7 +121,7 @@ export async function GET(
     // Calculate overall progress
     const totalItems = contentItemsWithProgress.length;
     const completedItems = contentItemsWithProgress.filter(
-      (item) => item.completed
+      (item) => item.completed === true
     ).length;
     const overallProgress =
       totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;

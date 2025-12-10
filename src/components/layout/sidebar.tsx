@@ -11,6 +11,7 @@ const menuItems = {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/catalog", label: "Catalog", icon: BookOpen },
     { href: "/courses", label: "My Courses", icon: BookOpen },
+    { href: "/certificates", label: "Certificates", icon: BookOpen },
   ],
   INSTRUCTOR: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

@@ -122,7 +122,6 @@ export async function GET(
             where: {
               contentItemId: item.id,
               courseId: params.id,
-              completed: true,
             },
           });
 
@@ -186,7 +185,6 @@ export async function GET(
           where: {
             contentItemId: item.id,
             courseId: params.id,
-            completed: true,
           },
         });
 

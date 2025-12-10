@@ -108,26 +108,31 @@ export async function POST(request: NextRequest) {
 
     // If completed, create or update completion record
     if (completed) {
-      await prisma.completion.upsert({
+      const existingCompletion = await prisma.completion.findFirst({
         where: {
-          userId_courseId_contentItemId: {
-            userId: user.id,
-            courseId: contentItem.courseId,
-            contentItemId: validated.contentItemId,
-          },
-        },
-        update: {
-          completed: true,
-          completedAt: new Date(),
-        },
-        create: {
           userId: user.id,
           courseId: contentItem.courseId,
           contentItemId: validated.contentItemId,
-          completed: true,
-          completedAt: new Date(),
         },
       });
+
+      if (existingCompletion) {
+        await prisma.completion.update({
+          where: { id: existingCompletion.id },
+          data: {
+            completedAt: new Date(),
+          },
+        });
+      } else {
+        await prisma.completion.create({
+          data: {
+            userId: user.id,
+            courseId: contentItem.courseId,
+            contentItemId: validated.contentItemId,
+            completedAt: new Date(),
+          },
+        });
+      }
 
       // Check if next content should be unlocked
       const nextContent = await prisma.contentItem.findFirst({

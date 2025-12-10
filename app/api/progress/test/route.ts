@@ -195,26 +195,33 @@ export async function POST(request: NextRequest) {
 
     // If passed, create completion record
     if (passed) {
-      await prisma.completion.upsert({
+      const existingCompletion = await prisma.completion.findFirst({
         where: {
-          userId_courseId_contentItemId: {
-            userId: user.id,
-            courseId: test.contentItem.courseId,
-            contentItemId: test.contentItemId,
-          },
-        },
-        update: {
-          completed: true,
-          completedAt: new Date(),
-        },
-        create: {
           userId: user.id,
           courseId: test.contentItem.courseId,
           contentItemId: test.contentItemId,
-          completed: true,
-          completedAt: new Date(),
         },
       });
+
+      if (existingCompletion) {
+        await prisma.completion.update({
+          where: { id: existingCompletion.id },
+          data: {
+            completedAt: new Date(),
+            score: score,
+          },
+        });
+      } else {
+        await prisma.completion.create({
+          data: {
+            userId: user.id,
+            courseId: test.contentItem.courseId,
+            contentItemId: test.contentItemId,
+            completedAt: new Date(),
+            score: score,
+          },
+        });
+      }
     }
 
     const remainingAttempts = test.maxAttempts
