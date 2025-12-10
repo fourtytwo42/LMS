@@ -15,6 +15,13 @@ describe("Completions API", () => {
   let testLearningPlan: { id: string };
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["completion-learner@test.com", "completion-admin@test.com", "completion-instructor@test.com"] },
+      },
+    });
+
     // Create learner user
     const learnerPasswordHash = await hashPassword("LearnerPass123");
     learnerUser = await prisma.user.create({

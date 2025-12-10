@@ -11,6 +11,13 @@ describe("Users API", () => {
   let regularUser: { id: string; email: string };
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["admin@test.com", "user@test.com", "newuser@test.com"] },
+      },
+    });
+
     // Create admin user
     const adminPasswordHash = await hashPassword("AdminPass123");
     adminUser = await prisma.user.create({

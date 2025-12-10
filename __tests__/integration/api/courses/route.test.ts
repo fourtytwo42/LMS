@@ -11,6 +11,13 @@ describe("Courses API", () => {
   let testCategory: { id: string };
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: "instructor@test.com",
+      },
+    });
+
     // Create instructor user
     const instructorPasswordHash = await hashPassword("InstructorPass123");
     instructorUser = await prisma.user.create({

@@ -16,6 +16,13 @@ describe("Enrollments API", () => {
   let testLearningPlan: { id: string };
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["admin-enroll@test.com", "learner-enroll@test.com", "instructor-enroll@test.com"] },
+      },
+    });
+
     // Create admin user
     const adminPasswordHash = await hashPassword("AdminPass123");
     adminUser = await prisma.user.create({

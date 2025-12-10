@@ -80,10 +80,21 @@ describe("Files API", () => {
       roles: ["INSTRUCTOR"],
     });
 
+    // Create test course
+    const testCourse = await prisma.course.create({
+      data: {
+        title: "Test Course",
+        description: "Test course for files",
+        status: "PUBLISHED",
+        type: "E-LEARNING",
+        createdById: instructorUser.id,
+      },
+    });
+
     // Create test file
     testFile = await prisma.repositoryFile.create({
       data: {
-        courseId: "test-course",
+        courseId: testCourse.id,
         fileName: "test.pdf",
         filePath: "repository/test-course/test.pdf",
         fileSize: 1024,
@@ -97,6 +108,11 @@ describe("Files API", () => {
     await prisma.repositoryFile.deleteMany({
       where: {
         id: testFile.id,
+      },
+    });
+    await prisma.course.deleteMany({
+      where: {
+        title: "Test Course",
       },
     });
     await prisma.user.deleteMany({

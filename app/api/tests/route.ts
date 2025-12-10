@@ -15,14 +15,128 @@ const createTestSchema = z.object({
   randomizeAnswers: z.boolean().default(false),
 });
 
+export async function GET(request: NextRequest) {
+  try {
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const skip = (page - 1) * limit;
+
+    // Build where clause - users can see tests for courses they're enrolled in or manage
+    const where: any = {};
+
+    if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
+      // Learners can only see tests for courses they're enrolled in
+      where.contentItem = {
+        course: {
+          enrollments: {
+            some: {
+              userId: user.id,
+              status: { in: ["ENROLLED", "IN_PROGRESS", "COMPLETED"] },
+            },
+          },
+        },
+      };
+    } else if (user.roles.includes("INSTRUCTOR") && !user.roles.includes("ADMIN")) {
+      // Instructors can see tests for courses they created or are assigned to
+      where.contentItem = {
+        course: {
+          OR: [
+            { createdById: user.id },
+            {
+              instructorAssignments: {
+                some: {
+                  userId: user.id,
+                },
+              },
+            },
+          ],
+        },
+      };
+    }
+
+    const [tests, total] = await Promise.all([
+      prisma.test.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          contentItem: {
+            select: {
+              id: true,
+              title: true,
+              courseId: true,
+            },
+          },
+          _count: {
+            select: {
+              questions: true,
+              attempts: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.test.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      tests: tests.map((test) => ({
+        id: test.id,
+        title: test.title,
+        description: test.description,
+        passingScore: test.passingScore,
+        maxAttempts: test.maxAttempts,
+        timeLimit: test.timeLimit,
+        contentItem: test.contentItem,
+        questionCount: test._count.questions,
+        attemptCount: test._count.attempts,
+        createdAt: test.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error listing tests:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const user = await authenticate(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "Authentication required" },
-        { status: 401 }
-      );
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
     }
 
     // Only instructor and admin can create tests

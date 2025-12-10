@@ -38,15 +38,14 @@ describe("JWT", () => {
     expect(() => verifyToken("invalid-token")).toThrow();
   });
 
-  it("should throw error for expired token", () => {
+  it("should throw error for expired token", async () => {
     const oldPayload = { ...payload };
     process.env.JWT_EXPIRES_IN = "1ms";
     const token = generateToken(oldPayload);
     
     // Wait a bit for token to expire
-    setTimeout(() => {
-      expect(() => verifyToken(token)).toThrow();
-    }, 10);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(() => verifyToken(token)).toThrow();
   });
 });
 

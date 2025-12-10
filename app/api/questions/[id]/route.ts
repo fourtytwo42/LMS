@@ -26,17 +26,101 @@ const updateQuestionSchema = z.object({
   order: z.number().int().min(0).optional(),
 });
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
+    const question = await prisma.question.findUnique({
+      where: { id: params.id },
+      include: {
+        test: {
+          include: {
+            contentItem: {
+              include: {
+                course: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!question) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "Question not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check permissions
+    const isAdmin = user.roles.includes("ADMIN");
+    const isInstructor = user.roles.includes("INSTRUCTOR");
+    const isCreator = question.test.contentItem.course.createdById === user.id;
+    const isAssigned = await prisma.instructorAssignment.findFirst({
+      where: {
+        courseId: question.test.contentItem.courseId,
+        userId: user.id,
+      },
+    });
+
+    if (!isAdmin && !isInstructor && !isCreator && !isAssigned) {
+      return NextResponse.json(
+        { error: "FORBIDDEN", message: "Insufficient permissions" },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
+      question: {
+        id: question.id,
+        type: question.type,
+        questionText: question.questionText,
+        points: question.points,
+        order: question.order,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching question:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await authenticate(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "Authentication required" },
-        { status: 401 }
-      );
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
     }
 
     // Only instructor and admin can update questions
@@ -138,12 +222,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await authenticate(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: "UNAUTHORIZED", message: "Authentication required" },
-        { status: 401 }
-      );
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
     }
 
     // Only instructor and admin can delete questions
