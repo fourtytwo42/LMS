@@ -10,10 +10,12 @@ const menuItems = {
   LEARNER: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/catalog", label: "Catalog", icon: BookOpen },
+    { href: "/courses", label: "My Courses", icon: BookOpen },
   ],
   INSTRUCTOR: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/courses", label: "Courses", icon: BookOpen },
+    { href: "/catalog", label: "Catalog", icon: BookOpen },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
   ],
   ADMIN: [
