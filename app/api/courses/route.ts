@@ -1,0 +1,283 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { authenticate } from "@/lib/auth/middleware";
+import { z } from "zod";
+
+const createCourseSchema = z.object({
+  code: z.string().optional(),
+  title: z.string().min(1, "Title is required"),
+  shortDescription: z.string().optional(),
+  description: z.string().optional(),
+  type: z.enum(["E-LEARNING", "BLENDED", "IN_PERSON"]).default("E-LEARNING"),
+  categoryId: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  estimatedTime: z.number().optional(),
+  difficultyLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
+  publicAccess: z.boolean().default(false),
+  selfEnrollment: z.boolean().default(false),
+  sequentialRequired: z.boolean().default(true),
+  allowSkipping: z.boolean().default(false),
+});
+
+export async function GET(request: NextRequest) {
+  try {
+    const user = await authenticate(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const search = searchParams.get("search") || "";
+    const categoryId = searchParams.get("categoryId");
+    const status = searchParams.get("status");
+    const publicAccess = searchParams.get("publicAccess");
+    const selfEnrollment = searchParams.get("selfEnrollment");
+    const featured = searchParams.get("featured");
+    const difficultyLevel = searchParams.get("difficultyLevel");
+    const sort = searchParams.get("sort") || "newest";
+
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { shortDescription: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    if (status) {
+      where.status = status;
+    } else if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
+      // Non-admins and non-instructors only see published courses
+      where.status = "PUBLISHED";
+    }
+
+    if (publicAccess === "true") {
+      where.publicAccess = true;
+    } else if (publicAccess === "false") {
+      where.publicAccess = false;
+    }
+
+    if (selfEnrollment === "true") {
+      where.selfEnrollment = true;
+    } else if (selfEnrollment === "false") {
+      where.selfEnrollment = false;
+    }
+
+    if (featured === "true") {
+      where.featured = true;
+    }
+
+    if (difficultyLevel) {
+      where.difficultyLevel = difficultyLevel;
+    }
+
+    // If user is not admin/instructor, filter by access
+    if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
+      where.OR = [
+        { publicAccess: true },
+        {
+          enrollments: {
+            some: {
+              userId: user.id,
+            },
+          },
+        },
+        {
+          instructors: {
+            some: {
+              userId: user.id,
+            },
+          },
+        },
+      ];
+    }
+
+    // Build orderBy
+    let orderBy: any = { createdAt: "desc" };
+    if (sort === "oldest") {
+      orderBy = { createdAt: "asc" };
+    } else if (sort === "title") {
+      orderBy = { title: "asc" };
+    } else if (sort === "rating") {
+      orderBy = { rating: "desc" };
+    }
+
+    const [courses, total] = await Promise.all([
+      prisma.course.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              enrollments: true,
+              contentItems: true,
+            },
+          },
+        },
+        orderBy,
+      }),
+      prisma.course.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      courses: courses.map((course) => ({
+        id: course.id,
+        code: course.code,
+        title: course.title,
+        shortDescription: course.shortDescription,
+        thumbnail: course.thumbnail,
+        status: course.status,
+        type: course.type,
+        estimatedTime: course.estimatedTime,
+        difficultyLevel: course.difficultyLevel,
+        publicAccess: course.publicAccess,
+        selfEnrollment: course.selfEnrollment,
+        rating: course.rating,
+        reviewCount: course.reviewCount,
+        category: course.category,
+        enrollmentCount: course._count.enrollments,
+        contentItemCount: course._count.contentItems,
+        createdAt: course.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error listing courses:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await authenticate(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // Only instructor and admin can create courses
+    if (!user.roles.includes("INSTRUCTOR") && !user.roles.includes("ADMIN")) {
+      return NextResponse.json(
+        { error: "FORBIDDEN", message: "Insufficient permissions" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const validated = createCourseSchema.parse(body);
+
+    // Check if code already exists (if provided)
+    if (validated.code) {
+      const existingCourse = await prisma.course.findUnique({
+        where: { code: validated.code },
+      });
+
+      if (existingCourse) {
+        return NextResponse.json(
+          { error: "CONFLICT", message: "Course code already exists" },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Create course
+    const newCourse = await prisma.course.create({
+      data: {
+        code: validated.code,
+        title: validated.title,
+        shortDescription: validated.shortDescription,
+        description: validated.description,
+        type: validated.type,
+        categoryId: validated.categoryId,
+        tags: validated.tags || [],
+        estimatedTime: validated.estimatedTime,
+        difficultyLevel: validated.difficultyLevel,
+        publicAccess: validated.publicAccess,
+        selfEnrollment: validated.selfEnrollment,
+        sequentialRequired: validated.sequentialRequired,
+        allowSkipping: validated.allowSkipping,
+        status: "DRAFT",
+        instructors: {
+          create: {
+            userId: user.id,
+          },
+        },
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(
+      {
+        course: {
+          id: newCourse.id,
+          code: newCourse.code,
+          title: newCourse.title,
+          status: newCourse.status,
+          type: newCourse.type,
+          category: newCourse.category,
+          createdAt: newCourse.createdAt,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "VALIDATION_ERROR",
+          message: "Invalid input data",
+          details: error.issues.reduce((acc, err) => {
+            acc[err.path.join(".")] = err.message;
+            return acc;
+          }, {} as Record<string, string>),
+        },
+        { status: 400 }
+      );
+    }
+
+    console.error("Error creating course:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
