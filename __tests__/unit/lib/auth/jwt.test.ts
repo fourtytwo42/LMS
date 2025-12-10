@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { generateToken, verifyToken, generateRefreshToken, verifyRefreshToken } from "@/lib/auth/jwt";
+import jwt from "jsonwebtoken";
 
 describe("JWT", () => {
   const payload = {
@@ -38,14 +39,20 @@ describe("JWT", () => {
     expect(() => verifyToken("invalid-token")).toThrow();
   });
 
-  it("should throw error for expired token", async () => {
-    const oldPayload = { ...payload };
-    process.env.JWT_EXPIRES_IN = "1ms";
-    const token = generateToken(oldPayload);
+  it("should throw error for expired token", () => {
+    // Create a token with a past expiration
+    const expiredPayload = {
+      ...payload,
+      exp: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+      iat: Math.floor(Date.now() / 1000) - 7200, // 2 hours ago
+    };
     
-    // Wait a bit for token to expire
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(() => verifyToken(token)).toThrow();
+    // Manually create an expired token by signing with past exp
+    const expiredToken = jwt.sign(expiredPayload, process.env.JWT_SECRET!, {
+      expiresIn: "-1h", // Expired 1 hour ago
+    });
+    
+    expect(() => verifyToken(expiredToken)).toThrow();
   });
 });
 

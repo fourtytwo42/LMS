@@ -18,6 +18,14 @@ describe("Tests API", () => {
         email: "instructor-tests@test.com",
       },
     });
+    await prisma.role.deleteMany({
+      where: {
+        name: "INSTRUCTOR",
+        users: {
+          none: {},
+        },
+      },
+    });
 
     // Create instructor user
     const instructorPasswordHash = await hashPassword("InstructorPass123");

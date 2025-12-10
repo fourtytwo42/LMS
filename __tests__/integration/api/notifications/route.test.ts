@@ -11,6 +11,13 @@ describe("Notifications API", () => {
   let userToken: string;
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: "notify@test.com",
+      },
+    });
+
     // Create test user
     const passwordHash = await hashPassword("TestPass123");
     testUser = await prisma.user.create({

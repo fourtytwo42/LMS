@@ -12,6 +12,21 @@ describe("Question Repository API", () => {
   let learnerToken: string;
 
   beforeEach(async () => {
+    // Clean up any existing users first
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["instructor@test.com", "learner@test.com"] },
+      },
+    });
+    await prisma.role.deleteMany({
+      where: {
+        name: { in: ["INSTRUCTOR", "LEARNER"] },
+        users: {
+          none: {},
+        },
+      },
+    });
+
     // Create instructor user
     const instructorPasswordHash = await hashPassword("InstructorPass123");
     instructorUser = await prisma.user.create({

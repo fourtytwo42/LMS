@@ -60,6 +60,15 @@ describe("Video Progress API", () => {
       },
     });
 
+    // Enroll learner in course
+    await prisma.enrollment.create({
+      data: {
+        userId: learnerUser.id,
+        courseId: testCourse.id,
+        status: "ENROLLED",
+      },
+    });
+
     // Create test content item
     testContentItem = await prisma.contentItem.create({
       data: {
@@ -67,7 +76,7 @@ describe("Video Progress API", () => {
         title: "Test Video",
         type: "VIDEO",
         order: 1,
-        filePath: "videos/test.mp4",
+        videoUrl: "videos/test.mp4",
       },
     });
   });
@@ -76,6 +85,12 @@ describe("Video Progress API", () => {
     await prisma.videoProgress.deleteMany({
       where: {
         userId: learnerUser.id,
+      },
+    });
+    await prisma.enrollment.deleteMany({
+      where: {
+        userId: learnerUser.id,
+        courseId: testCourse.id,
       },
     });
     await prisma.contentItem.deleteMany({

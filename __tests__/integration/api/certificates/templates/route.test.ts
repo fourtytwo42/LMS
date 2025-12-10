@@ -18,6 +18,14 @@ describe("Certificate Templates API", () => {
         email: { in: ["admin@test.com", "instructor@test.com"] },
       },
     });
+    await prisma.role.deleteMany({
+      where: {
+        name: { in: ["ADMIN", "INSTRUCTOR"] },
+        users: {
+          none: {},
+        },
+      },
+    });
     
     // Create admin user
     const adminPasswordHash = await hashPassword("AdminPass123");

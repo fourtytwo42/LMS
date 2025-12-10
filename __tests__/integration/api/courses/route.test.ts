@@ -73,6 +73,14 @@ describe("Courses API", () => {
         email: "instructor@test.com",
       },
     });
+    await prisma.role.deleteMany({
+      where: {
+        name: "INSTRUCTOR",
+        users: {
+          none: {},
+        },
+      },
+    });
   });
 
   describe("GET /api/courses", () => {
