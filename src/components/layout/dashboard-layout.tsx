@@ -15,12 +15,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <AuthProvider>
       <div className="flex min-h-screen flex-col">
         <Header />
-        <div className="flex flex-1 flex-col md:flex-row">
-          <Sidebar />
-          <main className="flex-1 p-4 md:p-6" role="main">
+      <div className="flex flex-1 flex-col md:flex-row">
+        <Sidebar />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8" role="main">
+          <div className="max-w-7xl mx-auto w-full">
             {children}
-          </main>
-        </div>
+          </div>
+        </main>
+      </div>
         <Footer />
       </div>
     </AuthProvider>

@@ -4,10 +4,10 @@ import { Card } from "@/components/ui/card";
 
 export default function LoginPage() {
   return (
-    <Card>
-      <h2 className="mb-6 text-2xl font-semibold">Log in to your account</h2>
+    <Card className="p-6 sm:p-8">
+      <h2 className="mb-6 sm:mb-8 text-2xl sm:text-3xl font-semibold text-gray-900">Log in to your account</h2>
       <LoginForm />
-      <div className="mt-4 space-y-2 text-center text-sm">
+      <div className="mt-6 sm:mt-8 space-y-2.5 text-center text-sm">
         <div>
           <Link href="/forgot-password" className="text-blue-600 hover:underline">
             Forgot password?

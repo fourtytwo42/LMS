@@ -53,22 +53,22 @@ export function RegisterForm() {
 
   if (success) {
     return (
-      <div className="rounded-lg bg-green-50 p-4 text-center">
-        <p className="text-green-800">Registration successful! Redirecting to login...</p>
+      <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
+        <p className="text-green-800 font-medium">Registration successful! Redirecting to login...</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3.5 text-sm text-red-800">
           {error}
         </div>
       )}
 
-      <div>
-        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-1.5">
+        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
           First Name
         </label>
         <Input
@@ -79,8 +79,8 @@ export function RegisterForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-1.5">
+        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
           Last Name
         </label>
         <Input
@@ -91,8 +91,8 @@ export function RegisterForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email
         </label>
         <Input
@@ -104,8 +104,8 @@ export function RegisterForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-1.5">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Password
         </label>
         <Input
@@ -115,14 +115,16 @@ export function RegisterForm() {
           {...register("password")}
           error={errors.password?.message}
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1.5 text-xs text-gray-500">
           Must be at least 8 characters with uppercase, lowercase, and number
         </p>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Registering..." : "Register"}
-      </Button>
+      <div className="pt-2">
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Registering..." : "Register"}
+        </Button>
+      </div>
     </form>
   );
 }

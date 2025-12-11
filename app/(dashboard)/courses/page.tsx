@@ -139,9 +139,12 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Courses</h1>
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Courses</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-600">Manage and view all courses</p>
+        </div>
         {(isAdmin || isInstructor) && (
           <Button onClick={() => router.push("/courses/new")}>
             <Plus className="mr-2 h-4 w-4" />
@@ -150,8 +153,8 @@ export default function CoursesPage() {
         )}
       </div>
 
-      <Card className="p-4">
-        <div className="mb-4 flex gap-4">
+      <Card className="p-4 sm:p-5">
+        <div className="mb-4 sm:mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <Input
               placeholder="Search courses..."
@@ -199,10 +202,10 @@ export default function CoursesPage() {
           <div className="py-8 text-center text-gray-500">No courses found</div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
-                <Card key={course.id} className="p-4 hover:shadow-lg transition-shadow">
-                  <div className="mb-3">
+                <Card key={course.id} className="p-4 sm:p-5 hover:shadow-lg transition-shadow">
+                  <div className="mb-4">
                     {course.thumbnail ? (
                       <img
                         src={course.thumbnail}
@@ -214,7 +217,7 @@ export default function CoursesPage() {
                         <BookOpen className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
-                    <h3 className="text-lg font-semibold mb-1">{course.title}</h3>
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1.5">{course.title}</h3>
                     {course.code && (
                       <p className="text-sm text-gray-500 mb-2">{course.code}</p>
                     )}
@@ -224,7 +227,7 @@ export default function CoursesPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     <Badge
                       variant={
                         course.status === "PUBLISHED"
@@ -243,11 +246,11 @@ export default function CoursesPage() {
                       <Badge variant="default">{course.category.name}</Badge>
                     )}
                   </div>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                     <span>{course.enrollmentCount} enrollments</span>
                     <span>{course.contentItemCount} items</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="ghost"
                       size="sm"

@@ -51,15 +51,15 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3.5 text-sm text-red-800">
           {error}
         </div>
       )}
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email
         </label>
         <Input
@@ -71,8 +71,8 @@ export function LoginForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-1.5">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Password
         </label>
         <Input
@@ -84,9 +84,11 @@ export function LoginForm() {
         />
       </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Logging in..." : "Log in"}
-      </Button>
+      <div className="pt-2">
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Log in"}
+        </Button>
+      </div>
     </form>
   );
 }

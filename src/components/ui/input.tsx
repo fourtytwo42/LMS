@@ -19,8 +19,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             className={cn(
-              "w-full rounded-lg border px-4 py-2 text-base",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500",
+              "w-full rounded-lg border px-4 py-2.5 text-base",
+              "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+              "transition-colors duration-200",
               icon && "pl-10",
               error
                 ? "border-red-500 focus:ring-red-500"
@@ -33,7 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && (
-          <p id={`${props.id}-error`} className="mt-1 text-sm text-red-500" role="alert">
+          <p id={`${props.id}-error`} className="mt-1.5 text-sm text-red-600" role="alert">
             {error}
           </p>
         )}

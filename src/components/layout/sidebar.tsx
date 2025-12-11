@@ -6,12 +6,16 @@ import { LayoutDashboard, BookOpen, Users, BarChart3 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils/cn";
 
+import { Bell } from "lucide-react";
+
 const menuItems = {
   LEARNER: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/catalog", label: "Catalog", icon: BookOpen },
     { href: "/courses", label: "My Courses", icon: BookOpen },
     { href: "/certificates", label: "Certificates", icon: BookOpen },
+    { href: "/notifications", label: "Notifications", icon: Bell },
+    { href: "/profile", label: "Profile", icon: Users },
   ],
   INSTRUCTOR: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,6 +23,7 @@ const menuItems = {
     { href: "/enrollments", label: "Enrollments", icon: Users },
     { href: "/catalog", label: "Catalog", icon: BookOpen },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/notifications", label: "Notifications", icon: Bell },
     { href: "/profile", label: "Profile", icon: Users },
   ],
   ADMIN: [
@@ -30,6 +35,7 @@ const menuItems = {
     { href: "/enrollments", label: "Enrollments", icon: Users },
     { href: "/categories", label: "Categories", icon: BookOpen },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/notifications", label: "Notifications", icon: Bell },
     { href: "/profile", label: "Profile", icon: Users },
   ],
 };
@@ -66,9 +72,9 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-full md:w-64 border-r bg-gray-50" aria-label="Main navigation">
-      <nav className="p-4">
-        <ul className="space-y-2" role="list">
+    <aside className="w-full md:w-64 border-r border-gray-200 bg-white shadow-sm" aria-label="Main navigation">
+      <nav className="p-4 sm:p-5">
+        <ul className="space-y-1.5" role="list">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
@@ -77,10 +83,10 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
                     isActive
-                      ? "bg-blue-100 text-blue-900"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >

@@ -120,16 +120,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">My Profile</h1>
+    <div className="space-y-6 sm:space-y-8">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Profile</h1>
+        <p className="mt-2 text-sm sm:text-base text-gray-600">Manage your profile information and preferences</p>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2">
-          <h2 className="mb-4 text-xl font-semibold">Edit Profile</h2>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium">
+        <Card className="p-5 sm:p-6 lg:col-span-2">
+          <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900">Edit Profile</h2>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
                   First Name
                 </label>
                 <Input
@@ -137,8 +140,8 @@ export default function ProfilePage() {
                   error={errors.firstName?.message}
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
                   Last Name
                 </label>
                 <Input
@@ -148,25 +151,25 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">Email</label>
-              <Input value={user.email} disabled />
-              <p className="mt-1 text-xs text-gray-500">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <Input value={user.email} disabled className="bg-gray-50" />
+              <p className="mt-1.5 text-xs text-gray-500">
                 Email cannot be changed
               </p>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">Bio</label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700">Bio</label>
               <textarea
                 {...register("bio")}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:border-blue-500 transition-colors duration-200 resize-y"
                 rows={4}
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700">
                 Avatar URL
               </label>
               <Input
@@ -176,7 +179,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <Button type="submit" disabled={saving}>
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Saving..." : "Save Changes"}
@@ -185,9 +188,9 @@ export default function ProfilePage() {
           </form>
         </Card>
 
-        <Card className="p-6">
-          <h2 className="mb-4 text-xl font-semibold">Profile Info</h2>
-          <div className="space-y-4">
+        <Card className="p-5 sm:p-6">
+          <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900">Profile Info</h2>
+          <div className="space-y-5 sm:space-y-6">
             <div className="flex justify-center">
               <Avatar
                 src={user.avatar}
@@ -195,8 +198,8 @@ export default function ProfilePage() {
                 size="lg"
               />
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
                 Upload Avatar
               </label>
               <label htmlFor="avatar-upload" className="cursor-pointer">
@@ -215,9 +218,9 @@ export default function ProfilePage() {
                 onChange={handleAvatarUpload}
               />
             </div>
-            <div>
-              <div className="text-sm text-gray-500">Roles</div>
-              <div className="mt-1 flex flex-wrap gap-1">
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-700">Roles</div>
+              <div className="flex flex-wrap gap-2">
                 {user.roles?.map((role) => (
                   <Badge key={role} variant="default">
                     {role}

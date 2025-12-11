@@ -179,12 +179,15 @@ export default function CatalogPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Course Catalog</h1>
+    <div className="container mx-auto py-6 sm:py-8 px-4 sm:px-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Course Catalog</h1>
+        <p className="text-sm sm:text-base text-gray-600">Browse and enroll in available courses and learning plans</p>
+      </div>
 
       {/* Search and Filters */}
-      <div className="mb-6 space-y-4">
-        <div className="flex gap-4">
+      <div className="mb-6 sm:mb-8 space-y-4 sm:space-y-5">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
@@ -198,7 +201,7 @@ export default function CatalogPage() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
@@ -209,7 +212,7 @@ export default function CatalogPage() {
           </select>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
           <Button
             variant={showCourses ? "primary" : "secondary"}
             onClick={() => setShowCourses(!showCourses)}
@@ -229,14 +232,14 @@ export default function CatalogPage() {
 
       {/* Courses */}
       {showCourses && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Courses</h2>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-5">Courses</h2>
           {filteredCourses.length === 0 ? (
-            <p className="text-gray-600">No courses found.</p>
+            <p className="text-gray-600 py-8 text-center">No courses found.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCourses.map((course) => (
-                <Card key={course.id} className="p-6 hover:shadow-lg transition-shadow">
+                <Card key={course.id} className="p-5 sm:p-6 hover:shadow-lg transition-shadow">
                   {course.thumbnail && (
                     <img
                       src={course.thumbnail}
@@ -244,26 +247,26 @@ export default function CatalogPage() {
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
                   )}
-                  <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{course.title}</h3>
                   {course.shortDescription && (
-                    <p className="text-gray-600 mb-4 line-clamp-2">
+                    <p className="text-gray-600 mb-4 line-clamp-2 text-sm sm:text-base">
                       {course.shortDescription}
                     </p>
                   )}
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-gray-500 mb-4">
                     {course.category && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs sm:text-sm font-medium">
                         {course.category.name}
                       </span>
                     )}
                     {course.difficultyLevel && (
-                      <span>Level: {course.difficultyLevel}</span>
+                      <span className="text-xs sm:text-sm">Level: {course.difficultyLevel}</span>
                     )}
                     {course.estimatedTime && (
-                      <span>{course.estimatedTime} min</span>
+                      <span className="text-xs sm:text-sm">{course.estimatedTime} min</span>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <Link href={`/courses/${course.id}`}>
                       <Button variant="secondary" className="flex-1">
                         View Details
@@ -289,13 +292,13 @@ export default function CatalogPage() {
       {/* Learning Plans */}
       {showLearningPlans && (
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Learning Plans</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-5">Learning Plans</h2>
           {filteredLearningPlans.length === 0 ? (
-            <p className="text-gray-600">No learning plans found.</p>
+            <p className="text-gray-600 py-8 text-center">No learning plans found.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredLearningPlans.map((plan) => (
-                <Card key={plan.id} className="p-6 hover:shadow-lg transition-shadow">
+                <Card key={plan.id} className="p-5 sm:p-6 hover:shadow-lg transition-shadow">
                   {plan.thumbnail && (
                     <img
                       src={plan.thumbnail}
@@ -303,26 +306,26 @@ export default function CatalogPage() {
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
                   )}
-                  <h3 className="text-xl font-semibold mb-2">{plan.title}</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{plan.title}</h3>
                   {plan.shortDescription && (
-                    <p className="text-gray-600 mb-4 line-clamp-2">
+                    <p className="text-gray-600 mb-4 line-clamp-2 text-sm sm:text-base">
                       {plan.shortDescription}
                     </p>
                   )}
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-gray-500 mb-4">
                     {plan.category && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                      <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-md text-xs sm:text-sm font-medium">
                         {plan.category.name}
                       </span>
                     )}
                     {plan.difficultyLevel && (
-                      <span>Level: {plan.difficultyLevel}</span>
+                      <span className="text-xs sm:text-sm">Level: {plan.difficultyLevel}</span>
                     )}
                     {plan.estimatedTime && (
-                      <span>{plan.estimatedTime} min</span>
+                      <span className="text-xs sm:text-sm">{plan.estimatedTime} min</span>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <Link href={`/learning-plans/${plan.id}`}>
                       <Button variant="secondary" className="flex-1">
                         View Details

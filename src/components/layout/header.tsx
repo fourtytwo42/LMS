@@ -19,8 +19,8 @@ export function Header() {
   };
 
   return (
-    <header className="border-b bg-white" role="banner">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+    <header className="border-b border-gray-200 bg-white shadow-sm" role="banner">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-gray-900">
             <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
