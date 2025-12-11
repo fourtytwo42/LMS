@@ -1,0 +1,231 @@
+---
+description: Always use current GitHub authentication without re-authenticating
+globs: "**/*"
+alwaysApply: true
+---
+
+# GitHub Authentication Rule
+
+This rule ensures that all GitHub operations use the currently logged-in GitHub user without prompting for re-authentication.
+
+## Core Principle
+
+**Always use the existing GitHub authentication.** Never attempt to re-authenticate or prompt for credentials. Use the current GitHub CLI session and git credentials that are already configured.
+
+## Authentication Methods
+
+### Primary Method: GitHub CLI (gh)
+
+When performing GitHub operations, use the GitHub CLI (`gh`) which uses the current logged-in session:
+
+```bash
+# Check authentication status
+gh auth status
+
+# Use gh for GitHub operations
+gh repo view
+gh pr list
+gh issue list
+```
+
+### Secondary Method: Git with Existing Credentials
+
+For git operations (commit, push, pull), use git directly with existing credentials:
+
+```bash
+# Standard git operations use existing auth
+git add .
+git commit -m "message"
+git push origin main
+```
+
+## Rules for GitHub Operations
+
+### 1. Never Re-authenticate
+
+**DO NOT:**
+- Run `gh auth login` unless explicitly requested by user
+- Prompt for GitHub credentials
+- Attempt to configure new authentication
+- Use `git config --global` for credential setup
+- Ask user for username/password/token
+
+**DO:**
+- Use existing `gh` authentication
+- Use existing git credentials
+- Check auth status with `gh auth status` if needed
+- Assume authentication is already configured
+
+### 2. Git Operations
+
+**Always use standard git commands:**
+```bash
+git add .
+git commit -m "commit message"
+git push origin main
+git pull origin main
+```
+
+**Never use:**
+- `git push https://username:token@github.com/...` (explicit credentials)
+- `git config credential.helper` (unless checking status)
+- Authentication prompts or credential managers
+
+### 3. GitHub CLI Operations
+
+**Use gh CLI for GitHub-specific operations:**
+```bash
+# View repository info
+gh repo view
+
+# Create pull request
+gh pr create --title "Title" --body "Description"
+
+# List pull requests
+gh pr list
+
+# View issues
+gh issue list
+
+# Clone repositories
+gh repo clone owner/repo
+```
+
+**These operations automatically use the current gh authentication.**
+
+## Checking Authentication Status
+
+If you need to verify authentication:
+
+```bash
+# Check GitHub CLI auth status
+gh auth status
+
+# Check git remote configuration
+git remote -v
+
+# Check git config
+git config --list | grep user
+```
+
+**Only check status if there's an actual error.** Don't check proactively.
+
+## Error Handling
+
+### If Authentication Fails
+
+**If git push/pull fails with auth error:**
+
+1. **First, check if gh is authenticated:**
+   ```bash
+   gh auth status
+   ```
+
+2. **If gh shows logged in, git should work automatically**
+
+3. **If still failing, inform user:**
+   - "GitHub authentication appears to be expired. Please run `gh auth login` to re-authenticate."
+   - **DO NOT** run `gh auth login` automatically
+   - **DO NOT** try to fix authentication without user permission
+
+### If User Requests Re-authentication
+
+**Only if user explicitly requests:**
+```bash
+gh auth login
+```
+
+Follow the interactive prompts, but this should be rare.
+
+## Common Operations
+
+### Commit and Push
+
+```bash
+# Standard workflow - uses existing auth
+git add .
+git commit -m "feat: add new feature"
+git push origin main
+```
+
+### Create Pull Request
+
+```bash
+# Create branch
+git checkout -b feature/new-feature
+
+# Make changes and commit
+git add .
+git commit -m "feat: add new feature"
+git push origin feature/new-feature
+
+# Create PR using gh CLI (uses current auth)
+gh pr create --title "Add new feature" --body "Description"
+```
+
+### Clone Repository
+
+```bash
+# Use gh CLI for cloning (uses current auth)
+gh repo clone owner/repo-name
+
+# Or use standard git (uses existing credentials)
+git clone https://github.com/owner/repo-name.git
+```
+
+## Best Practices
+
+1. **Trust Existing Auth:** Assume GitHub authentication is already configured
+2. **Use gh CLI:** Prefer `gh` commands for GitHub operations
+3. **Standard Git:** Use standard git commands for version control
+4. **No Prompts:** Never prompt for credentials unless authentication fails
+5. **Error First:** Only check auth status if there's an actual error
+6. **User Permission:** Only re-authenticate if user explicitly requests it
+
+## Examples
+
+### ✅ Good: Using Existing Auth
+
+```bash
+# Commit and push - uses existing auth automatically
+git add .
+git commit -m "docs: update documentation"
+git push origin main
+```
+
+### ✅ Good: Using gh CLI
+
+```bash
+# Create PR - uses current gh auth
+gh pr create --title "Update docs" --body "Updated documentation"
+```
+
+### ❌ Bad: Attempting Re-authentication
+
+```bash
+# DON'T do this unless user explicitly requests
+gh auth login
+```
+
+### ❌ Bad: Using Explicit Credentials
+
+```bash
+# DON'T use explicit credentials in commands
+git push https://username:token@github.com/owner/repo.git
+```
+
+## Integration with Other Rules
+
+- Follow [update-docs.mdc](mdc:.cursor/rules/update-docs.mdc) when committing documentation changes
+- Follow [update-project-docs.mdc](mdc:.cursor/rules/update-project-docs.mdc) when committing project documentation
+- Use conventional commit messages for all commits
+
+## Enforcement
+
+This rule applies to:
+- All git operations (commit, push, pull, clone)
+- All GitHub CLI operations (gh commands)
+- All GitHub API interactions
+- Repository management operations
+
+**Remember:** The user is already authenticated. Use that authentication. Don't try to change it or re-authenticate.

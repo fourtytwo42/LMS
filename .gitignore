@@ -1,5 +1,7 @@
 # Cursor IDE
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**/*
 
 # Node.js
 node_modules/
