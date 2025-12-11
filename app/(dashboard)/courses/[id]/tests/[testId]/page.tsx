@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useAuthStore } from "@/store/auth-store";
 
 interface Question {
   id: string;
@@ -35,16 +34,15 @@ interface TestProgress {
     submittedAt: string;
   }>;
   bestScore: number;
-  canRetake: boolean;
+  canRetake: boolean | null;
   remainingAttempts: number | null;
 }
 
 export default function TestPage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = params.courseId as string;
+  const courseId = params.id as string;
   const testId = params.testId as string;
-  const { user } = useAuthStore();
   const [test, setTest] = useState<Test | null>(null);
   const [progress, setProgress] = useState<TestProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -301,7 +299,7 @@ export default function TestPage() {
             )}
           </div>
 
-          {progress && !progress.canRetake && (
+          {progress && !(progress.canRetake ?? false) && (
             <div className="mb-6 rounded-lg bg-yellow-100 p-4 text-yellow-800">
               You have reached the maximum number of attempts for this test.
             </div>
@@ -309,10 +307,10 @@ export default function TestPage() {
 
           <Button
             onClick={handleStartTest}
-            disabled={progress && !progress.canRetake}
+            disabled={progress ? !(progress.canRetake ?? false) : false}
             className="w-full"
           >
-            {progress && !progress.canRetake
+            {progress && !(progress.canRetake ?? false)
               ? "Maximum Attempts Reached"
               : "Start Test"}
           </Button>

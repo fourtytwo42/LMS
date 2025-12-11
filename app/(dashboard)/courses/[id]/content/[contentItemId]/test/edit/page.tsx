@@ -35,13 +35,13 @@ interface Test {
 export default function TestEditPage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = params.courseId as string;
+  const courseId = params.id as string;
   const contentItemId = params.contentItemId as string;
   const { user } = useAuthStore();
   const [test, setTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 

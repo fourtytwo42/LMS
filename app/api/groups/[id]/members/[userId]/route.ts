@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
+    const { id, userId } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -26,8 +27,8 @@ export async function DELETE(
     await prisma.groupMember.delete({
       where: {
         userId_groupId: {
-          userId: params.userId,
-          groupId: params.id,
+          userId: userId,
+          groupId: id,
         },
       },
     });

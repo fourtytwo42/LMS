@@ -4,10 +4,23 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await authenticate(request);
+    const { id } = await params;
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "Authentication required" },
@@ -16,7 +29,7 @@ export async function GET(
     }
 
     const course = await prisma.course.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         contentItems: true,
         enrollments: true,
@@ -35,7 +48,7 @@ export async function GET(
     const isCreator = course.createdById === user.id;
     const isAssigned = await prisma.instructorAssignment.findFirst({
       where: {
-        courseId: params.id,
+        courseId: id,
         userId: user.id,
       },
     });
@@ -82,8 +95,10 @@ export async function GET(
 
       if (test) {
         for (const attempt of test.attempts) {
-          totalScore += attempt.score;
-          scoreCount++;
+          if (attempt.score !== null) {
+            totalScore += attempt.score;
+            scoreCount++;
+          }
         }
       }
     }
@@ -121,7 +136,7 @@ export async function GET(
           const completions = await prisma.completion.count({
             where: {
               contentItemId: item.id,
-              courseId: params.id,
+              courseId: id,
             },
           });
 
@@ -165,7 +180,7 @@ export async function GET(
               totalAttempts > 0 ? (passedAttempts / totalAttempts) * 100 : 0;
             const averageScore =
               totalAttempts > 0
-                ? (test.attempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts) *
+                ? (test.attempts.reduce((sum, a) => sum + (a.score || 0), 0) / totalAttempts) *
                   100
                 : 0;
 
@@ -184,7 +199,7 @@ export async function GET(
         const completions = await prisma.completion.count({
           where: {
             contentItemId: item.id,
-            courseId: params.id,
+            courseId: id,
           },
         });
 
@@ -198,7 +213,7 @@ export async function GET(
     );
 
     return NextResponse.json({
-      courseId: params.id,
+      courseId: id,
       enrollments,
       completionRate: Math.round(completionRate * 10) / 10,
       averageScore: Math.round(averageScore * 10) / 10,

@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     const test = await prisma.test.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         contentItem: {
           include: {
@@ -64,7 +65,7 @@ export async function GET(
 
     const averageScore =
       totalAttempts > 0
-        ? (test.attempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts) * 100
+        ? (test.attempts.reduce((sum, a) => sum + (a.score || 0), 0) / totalAttempts) * 100
         : 0;
 
     const averageTimeSpent =
@@ -79,7 +80,7 @@ export async function GET(
           where: {
             questionId: question.id,
             attempt: {
-              testId: params.id,
+              testId: id,
             },
           },
           include: {
@@ -92,19 +93,23 @@ export async function GET(
           let isCorrect = false;
 
           if (question.type === "SINGLE_CHOICE") {
-            const correctIndex = question.options.findIndex((opt: any) => opt.correct);
+            const options = (question.options as any) || [];
+            const correctIndex = Array.isArray(options) ? options.findIndex((opt: any) => opt.correct) : -1;
             isCorrect = answer.selectedOptions[0] === correctIndex;
           } else if (question.type === "MULTIPLE_CHOICE") {
-            const correctIndices = question.options
-              .map((opt: any, idx: number) => (opt.correct ? idx : -1))
-              .filter((idx: number) => idx !== -1)
-              .sort();
+            const options = (question.options as any) || [];
+            const correctIndices = Array.isArray(options)
+              ? options
+                  .map((opt: any, idx: number) => (opt.correct ? idx : -1))
+                  .filter((idx: number) => idx !== -1)
+                  .sort()
+              : [];
             const selectedIndices = [...answer.selectedOptions].sort();
             isCorrect =
               correctIndices.length === selectedIndices.length &&
               correctIndices.every((val: number, idx: number) => val === selectedIndices[idx]);
           } else {
-            const correctAnswer = question.correctAnswer?.toLowerCase().trim();
+            const correctAnswer = String(question.correctAnswer || "").toLowerCase().trim();
             const userAnswer = answer.answerText?.toLowerCase().trim();
             isCorrect = correctAnswer === userAnswer;
           }
@@ -139,14 +144,14 @@ export async function GET(
     for (const range of scoreRanges) {
       scoreDistribution[range.label] = test.attempts.filter(
         (a) => {
-          const scorePercent = a.score * 100;
+          const scorePercent = (a.score || 0) * 100;
           return scorePercent >= range.min && scorePercent < range.max;
         }
       ).length;
     }
 
     return NextResponse.json({
-      testId: params.id,
+      testId: id,
       title: test.title,
       totalAttempts,
       passedAttempts,

@@ -9,9 +9,10 @@ const addMemberSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -29,7 +30,7 @@ export async function GET(
     }
 
     const members = await prisma.groupMember.findMany({
-      where: { groupId: params.id },
+      where: { groupId: id },
       include: {
         user: {
           select: {
@@ -66,9 +67,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -90,7 +92,7 @@ export async function POST(
 
     // Check if group exists
     const group = await prisma.group.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!group) {
@@ -117,7 +119,7 @@ export async function POST(
       where: {
         userId_groupId: {
           userId: validated.userId,
-          groupId: params.id,
+          groupId: id,
         },
       },
     });
@@ -132,7 +134,7 @@ export async function POST(
     await prisma.groupMember.create({
       data: {
         userId: validated.userId,
-        groupId: params.id,
+        groupId: id,
       },
     });
 

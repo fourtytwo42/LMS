@@ -288,7 +288,7 @@ export default function GroupDetailPage() {
               >
                 <div className="flex items-center gap-3">
                   <Avatar
-                    src={member.avatar}
+                    src={member.avatar || undefined}
                     name={`${member.firstName} ${member.lastName}`}
                     size="sm"
                   />

@@ -28,21 +28,16 @@ const createCourseSchema = z.object({
 
 type CreateCourseForm = z.infer<typeof createCourseSchema>;
 
-interface Category {
-  id: string;
-  name: string;
-}
 
 export default function NewCoursePage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateCourseForm>({
+  } = useForm({
     resolver: zodResolver(createCourseSchema),
     defaultValues: {
       type: "E-LEARNING",

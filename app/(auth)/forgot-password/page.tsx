@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
             <Button
               onClick={() => router.push("/login")}
               className="mt-4"
-              variant="outline"
+              variant="secondary"
             >
               Back to Login
             </Button>

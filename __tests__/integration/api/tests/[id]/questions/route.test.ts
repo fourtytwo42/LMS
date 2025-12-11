@@ -381,7 +381,7 @@ describe("Tests [id] Questions API", () => {
           type: "SHORT_ANSWER",
           questionText: "What is the capital of France?",
           points: 1.0,
-          correctAnswer: "Paris",
+          correctAnswers: ["Paris"], // Use correctAnswers array for SHORT_ANSWER
         }),
       });
 
@@ -402,7 +402,7 @@ describe("Tests [id] Questions API", () => {
           type: "FILL_BLANK",
           questionText: "The capital of France is _____",
           points: 1.0,
-          correctAnswer: "Paris",
+          correctAnswers: ["Paris"], // Use correctAnswers array for FILL_BLANK
         }),
       });
 
@@ -452,7 +452,7 @@ describe("Tests [id] Questions API", () => {
       expect(data.message).toContain("at least 2 options");
     });
 
-    it("should return 400 for SHORT_ANSWER without correctAnswer", async () => {
+    it("should return 400 for SHORT_ANSWER without correctAnswers", async () => {
       const request = new NextRequest(`http://localhost:3000/api/tests/${testTest.id}/questions`, {
         method: "POST",
         headers: {
@@ -463,7 +463,7 @@ describe("Tests [id] Questions API", () => {
           type: "SHORT_ANSWER",
           questionText: "Question",
           points: 1.0,
-          // Missing correctAnswer
+          // Missing correctAnswers
         }),
       });
 
@@ -473,7 +473,7 @@ describe("Tests [id] Questions API", () => {
       expect(data.message).toContain("correct answer");
     });
 
-    it("should return 400 for FILL_BLANK without correctAnswer", async () => {
+    it("should return 400 for FILL_BLANK without correctAnswers", async () => {
       const request = new NextRequest(`http://localhost:3000/api/tests/${testTest.id}/questions`, {
         method: "POST",
         headers: {
@@ -484,7 +484,7 @@ describe("Tests [id] Questions API", () => {
           type: "FILL_BLANK",
           questionText: "Question",
           points: 1.0,
-          // Missing correctAnswer
+          // Missing correctAnswers
         }),
       });
 

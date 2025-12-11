@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/prisma";
-import { saveFile, validateFile, FileType } from "@/lib/storage/file-upload";
+import { saveFile, validateFile } from "@/lib/storage/file-upload";
 import { z } from "zod";
 
 const bulkUploadSchema = z.object({

@@ -34,6 +34,7 @@ export function NotificationCenter() {
       const interval = setInterval(fetchNotifications, 30000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [user]);
 
   const fetchNotifications = async () => {

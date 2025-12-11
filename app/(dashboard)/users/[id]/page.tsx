@@ -56,7 +56,6 @@ export default function UserDetailPage() {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<UpdateUserForm>({
     resolver: zodResolver(updateUserSchema),
   });
@@ -232,7 +231,7 @@ export default function UserDetailPage() {
           <div className="space-y-4">
             <div className="flex justify-center">
               <Avatar
-                src={user.avatar}
+                    src={user.avatar || undefined}
                 name={`${user.firstName} ${user.lastName}`}
                 size="lg"
               />

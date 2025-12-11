@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
-import { useAuthStore } from "@/store/auth-store";
 
 interface ContentItem {
   id: string;
@@ -28,9 +27,8 @@ interface ContentItem {
 export default function ContentItemPage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = params.courseId as string;
+  const courseId = params.id as string;
   const contentItemId = params.contentItemId as string;
-  const { user } = useAuthStore();
   const [contentItem, setContentItem] = useState<ContentItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { testId: string } }
+  { params }: { params: Promise<{ testId: string }> }
 ) {
   try {
+    const { testId } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     const test = await prisma.test.findUnique({
-      where: { id: params.testId },
+      where: { id: testId },
     });
 
     if (!test) {
@@ -33,7 +34,7 @@ export async function GET(
 
     const attempts = await prisma.testAttempt.findMany({
       where: {
-        testId: params.testId,
+        testId: testId,
         userId: user.id,
       },
       orderBy: {
@@ -42,7 +43,7 @@ export async function GET(
     });
 
     const bestAttempt = attempts.reduce(
-      (best, current) => (current.score > best.score ? current : best),
+      (best, current) => ((current.score || 0) > (best.score || 0) ? current : best),
       attempts[0] || { score: 0 }
     );
 
@@ -51,7 +52,7 @@ export async function GET(
       : null;
 
     return NextResponse.json({
-      testId: params.testId,
+      testId: testId,
       attempts: attempts.map((attempt) => ({
         id: attempt.id,
         attemptNumber: attempt.attemptNumber,

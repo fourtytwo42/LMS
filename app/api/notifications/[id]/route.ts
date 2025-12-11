@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -21,7 +22,7 @@ export async function DELETE(
     }
 
     const notification = await prisma.notification.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!notification) {
@@ -40,7 +41,7 @@ export async function DELETE(
     }
 
     await prisma.notification.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

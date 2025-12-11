@@ -8,13 +8,21 @@ const createEnrollmentSchema = z.object({
   courseId: z.string().optional(),
   learningPlanId: z.string().optional(),
   dueDate: z.string().datetime().optional(),
-}).refine(
-  (data) => data.courseId || data.learningPlanId,
-  {
-    message: "Either courseId or learningPlanId is required",
-    path: ["courseId"],
-  }
-);
+})
+  .refine(
+    (data) => data.courseId || data.learningPlanId,
+    {
+      message: "Either courseId or learningPlanId is required",
+      path: ["courseId"],
+    }
+  )
+  .refine(
+    (data) => !(data.courseId && data.learningPlanId),
+    {
+      message: "Cannot provide both courseId and learningPlanId",
+      path: ["courseId"],
+    }
+  );
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,8 +40,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1")); // Ensure page is at least 1
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "20"))); // Ensure limit is between 1 and 100
     const userId = searchParams.get("userId");
     const courseId = searchParams.get("courseId");
     const learningPlanId = searchParams.get("learningPlanId");

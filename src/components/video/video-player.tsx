@@ -23,7 +23,6 @@ export function VideoPlayer({
   onProgressUpdate,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState({
     watchTime: 0,
     totalDuration: 0,
@@ -154,8 +153,6 @@ export function VideoPlayer({
         controls
         controlsList={allowSeeking ? undefined : "nodownload nofullscreen"}
         className="w-full rounded-lg"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
       />
       {progress.completed && (
         <div className="mt-4 rounded-lg bg-green-100 p-4 text-green-800">

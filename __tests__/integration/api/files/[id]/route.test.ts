@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { GET, DELETE } from "@/app/api/files/[id]/route";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { createTestUser, createTestCourse } from "../../../../utils/test-helpers";
+import { createTestUser, createTestCourse, cleanupTestUsers } from "../../../../utils/test-helpers";
 import { generateToken } from "@/lib/auth/jwt";
 
 describe("GET /api/files/[id]", () => {
@@ -17,11 +17,7 @@ describe("GET /api/files/[id]", () => {
 
   beforeEach(async () => {
     // Clean up any existing users first
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["admin@test.com", "instructor@test.com", "learner@test.com", "other@test.com"] },
-      },
-    });
+    await cleanupTestUsers(["admin@test.com", "instructor@test.com", "learner@test.com", "other@test.com"]);
     
     testUser = await createTestUser({ email: "admin@test.com", roles: ["ADMIN"] });
     testUserToken = generateToken({ userId: testUser.id, email: testUser.email, roles: ["ADMIN"] });
@@ -49,15 +45,8 @@ describe("GET /api/files/[id]", () => {
     if (testCourse) {
       await prisma.course.deleteMany({ where: { id: testCourse.id } }).catch(() => {});
     }
-    if (testUser) {
-      await prisma.user.deleteMany({ where: { id: testUser.id } }).catch(() => {});
-    }
-    if (testInstructor) {
-      await prisma.user.deleteMany({ where: { id: testInstructor.id } }).catch(() => {});
-    }
-    if (testLearner) {
-      await prisma.user.deleteMany({ where: { id: testLearner.id } }).catch(() => {});
-    }
+    // Cleanup users after courses (to avoid foreign key constraints)
+    await cleanupTestUsers(["admin@test.com", "instructor@test.com", "learner@test.com", "other@test.com"]);
   });
 
   it("should return file metadata for admin", async () => {
@@ -161,11 +150,7 @@ describe("DELETE /api/files/[id]", () => {
 
   beforeEach(async () => {
     // Clean up any existing users first
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["admin@test.com", "instructor@test.com", "learner@test.com"] },
-      },
-    });
+    await cleanupTestUsers(["admin@test.com", "instructor@test.com", "learner@test.com"]);
     
     testUser = await createTestUser({ email: "admin@test.com", roles: ["ADMIN"] });
     testUserToken = generateToken({ userId: testUser.id, email: testUser.email, roles: ["ADMIN"] });
@@ -193,15 +178,8 @@ describe("DELETE /api/files/[id]", () => {
     if (testCourse) {
       await prisma.course.deleteMany({ where: { id: testCourse.id } }).catch(() => {});
     }
-    if (testUser) {
-      await prisma.user.deleteMany({ where: { id: testUser.id } }).catch(() => {});
-    }
-    if (testInstructor) {
-      await prisma.user.deleteMany({ where: { id: testInstructor.id } }).catch(() => {});
-    }
-    if (testLearner) {
-      await prisma.user.deleteMany({ where: { id: testLearner.id } }).catch(() => {});
-    }
+    // Cleanup users after courses (to avoid foreign key constraints)
+    await cleanupTestUsers(["admin@test.com", "instructor@test.com", "learner@test.com", "other@test.com"]);
   });
 
   it("should delete file for admin", async () => {

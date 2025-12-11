@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { generateToken } from "@/lib/auth/jwt";
+import { cleanupTestUsers } from "@/__tests__/utils/test-helpers";
 
 describe("Question Repository API", () => {
   let instructorUser: { id: string; email: string };
@@ -107,6 +108,8 @@ describe("Question Repository API", () => {
   });
 
   afterEach(async () => {
+    // Best practice: Delete in dependency order (child records first)
+    // Delete question repositories first (they reference users)
     await prisma.questionRepository.deleteMany({
       where: {
         createdBy: {
@@ -114,16 +117,19 @@ describe("Question Repository API", () => {
         },
       },
     });
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["instructor@test.com", "learner@test.com"] },
-      },
-    });
-    await prisma.role.deleteMany({
-      where: {
-        name: { in: ["INSTRUCTOR", "LEARNER"] },
-      },
-    });
+    // Use cleanup helper for proper user cleanup
+    await cleanupTestUsers(["instructor@test.com", "learner@test.com"]);
+    // Clean up roles if no users have them
+    try {
+      await prisma.role.deleteMany({
+        where: {
+          name: { in: ["INSTRUCTOR", "LEARNER"] },
+          users: { none: {} },
+        },
+      });
+    } catch (error) {
+      // Ignore role cleanup errors
+    }
   });
 
   describe("GET /api/repository/questions", () => {
@@ -196,6 +202,49 @@ describe("Question Repository API", () => {
 
       const data = await response.json();
       expect(data.repositories.length).toBeGreaterThan(0);
+    });
+
+    it("should filter by category and search combination", async () => {
+      // Create repository with different category
+      await prisma.questionRepository.create({
+        data: {
+          name: "Science Repository",
+          description: "Science questions",
+          category: "Science",
+          createdById: instructorUser.id,
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?category=Math&search=Test", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Should only return Math category repositories matching "Test"
+      expect(data.repositories.every((r: any) => r.category === "Math")).toBe(true);
+      expect(data.repositories.some((r: any) => r.name.includes("Test") || r.description?.includes("Test"))).toBe(true);
+    });
+
+    it("should handle search with no results", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?search=NonexistentRepository12345", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories).toBeDefined();
+      expect(Array.isArray(data.repositories)).toBe(true);
+      // May be empty if no matches
+      expect(data.pagination.total).toBeGreaterThanOrEqual(0);
     });
 
     it("should paginate results", async () => {
@@ -352,6 +401,87 @@ describe("Question Repository API", () => {
 
       const response = await POST(request);
       expect(response.status).toBe(401);
+    });
+
+    it("should return validation error for empty name", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          name: "",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for missing name", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          description: "No name provided",
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should handle GET with only category filter (no search)", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?category=Math", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories.every((r: any) => r.category === "Math")).toBe(true);
+    });
+
+    it("should handle GET with only search filter (no category)", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions?search=Test", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories.length).toBeGreaterThan(0);
+    });
+
+    it("should handle GET with neither category nor search filters", async () => {
+      const request = new NextRequest("http://localhost:3000/api/repository/questions", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.repositories).toBeDefined();
+      expect(Array.isArray(data.repositories)).toBe(true);
     });
   });
 });

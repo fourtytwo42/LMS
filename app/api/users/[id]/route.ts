@@ -13,9 +13,10 @@ const updateUserSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -24,7 +25,7 @@ export async function GET(
       );
     }
 
-    const userId = params.id;
+    const userId = id;
 
     // Users can view their own profile, admins and instructors can view any
     const canView =
@@ -100,9 +101,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -111,7 +113,7 @@ export async function PUT(
       );
     }
 
-    const userId = params.id;
+    const userId = id;
     const body = await request.json();
     const validated = updateUserSchema.parse(body);
 
@@ -216,9 +218,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -235,7 +238,7 @@ export async function DELETE(
       );
     }
 
-    const userId = params.id;
+    const userId = id;
 
     // Check if user has active enrollments
     const enrollments = await prisma.enrollment.findMany({

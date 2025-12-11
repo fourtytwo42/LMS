@@ -5,9 +5,10 @@ import { serveFile } from "@/lib/storage/file-serve";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -17,7 +18,7 @@ export async function GET(
     }
 
     const repositoryFile = await prisma.repositoryFile.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {

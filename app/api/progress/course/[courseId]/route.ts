@@ -4,10 +4,23 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
-    const user = await authenticate(request);
+    const { courseId } = await params;
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "Authentication required" },
@@ -15,15 +28,28 @@ export async function GET(
       );
     }
 
-    // Get enrollment
+    // Get enrollment first
     const enrollment = await prisma.enrollment.findFirst({
       where: {
         userId: user.id,
-        courseId: params.courseId,
+        courseId: courseId,
       },
     });
 
     if (!enrollment) {
+      // Check if course exists to return appropriate error
+      const courseExists = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { id: true },
+      });
+
+      if (!courseExists) {
+        return NextResponse.json(
+          { error: "NOT_FOUND", message: "Course not found" },
+          { status: 404 }
+        );
+      }
+
       return NextResponse.json(
         { error: "FORBIDDEN", message: "You are not enrolled in this course" },
         { status: 403 }
@@ -32,7 +58,7 @@ export async function GET(
 
     // Get course with content items
     const course = await prisma.course.findUnique({
-      where: { id: params.courseId },
+      where: { id: courseId },
       include: {
         contentItems: {
           orderBy: { order: "asc" },
@@ -51,7 +77,7 @@ export async function GET(
     const completions = await prisma.completion.findMany({
       where: {
         userId: user.id,
-        courseId: params.courseId,
+        courseId: courseId,
       },
     });
 
@@ -127,7 +153,7 @@ export async function GET(
       totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
     return NextResponse.json({
-      courseId: params.courseId,
+      courseId: courseId,
       enrollmentId: enrollment.id,
       status: enrollment.status,
       progress: overallProgress,

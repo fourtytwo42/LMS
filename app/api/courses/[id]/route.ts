@@ -23,9 +23,10 @@ const updateCourseSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -35,7 +36,7 @@ export async function GET(
     }
 
     const course = await prisma.course.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         category: true,
         createdBy: {
@@ -46,7 +47,7 @@ export async function GET(
             email: true,
           },
         },
-        instructors: {
+        instructorAssignments: {
           include: {
             user: {
               select: {
@@ -76,9 +77,8 @@ export async function GET(
 
     // Check access permissions
     const isAdmin = user.roles.includes("ADMIN");
-    const isInstructor = user.roles.includes("INSTRUCTOR");
-    const isAssignedInstructor = course.instructors.some(
-      (inst) => inst.userId === user.id
+    const isAssignedInstructor = course.instructorAssignments.some(
+      (ia) => ia.userId === user.id
     );
     const isEnrolled = await prisma.enrollment.findFirst({
       where: {
@@ -119,11 +119,9 @@ export async function GET(
       allowSkipping: course.allowSkipping,
       category: course.category,
       tags: course.tags,
-      rating: course.rating,
-      reviewCount: course.reviewCount,
       featured: course.featured,
       createdBy: course.createdBy,
-      instructors: course.instructors.map((inst) => inst.user),
+      instructors: course.instructorAssignments.map((ia) => ia.user),
       enrollmentCount: course._count.enrollments,
       contentItemCount: course._count.contentItems,
       createdAt: course.createdAt,
@@ -140,9 +138,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -152,9 +151,9 @@ export async function PUT(
     }
 
     const course = await prisma.course.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
-        instructors: true,
+        instructorAssignments: true,
       },
     });
 
@@ -167,8 +166,8 @@ export async function PUT(
 
     // Check permissions
     const isAdmin = user.roles.includes("ADMIN");
-    const isAssignedInstructor = course.instructors.some(
-      (inst) => inst.userId === user.id
+    const isAssignedInstructor = course.instructorAssignments.some(
+      (ia) => ia.userId === user.id
     );
     const isCreator = course.createdById === user.id;
 
@@ -211,7 +210,7 @@ export async function PUT(
       updateData.coverImage = validated.coverImage || null;
 
     const updatedCourse = await prisma.course.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         category: {
@@ -259,9 +258,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -281,7 +281,7 @@ export async function DELETE(
     // Check if course has active enrollments
     const enrollments = await prisma.enrollment.findMany({
       where: {
-        courseId: params.id,
+        courseId: id,
         status: "IN_PROGRESS",
       },
     });
@@ -297,7 +297,7 @@ export async function DELETE(
     }
 
     await prisma.course.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ message: "Course deleted successfully" });

@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BookOpen, GraduationCap, Search, Filter, CheckCircle } from "lucide-react";
+import { BookOpen, GraduationCap, Search } from "lucide-react";
 import Link from "next/link";
 
 interface Course {
@@ -211,14 +211,14 @@ export default function CatalogPage() {
 
         <div className="flex gap-4">
           <Button
-            variant={showCourses ? "default" : "outline"}
+            variant={showCourses ? "primary" : "secondary"}
             onClick={() => setShowCourses(!showCourses)}
           >
             <BookOpen className="mr-2 h-4 w-4" />
             Courses ({filteredCourses.length})
           </Button>
           <Button
-            variant={showLearningPlans ? "default" : "outline"}
+            variant={showLearningPlans ? "primary" : "secondary"}
             onClick={() => setShowLearningPlans(!showLearningPlans)}
           >
             <GraduationCap className="mr-2 h-4 w-4" />
@@ -265,7 +265,7 @@ export default function CatalogPage() {
                   </div>
                   <div className="flex gap-2">
                     <Link href={`/courses/${course.id}`}>
-                      <Button variant="outline" className="flex-1">
+                      <Button variant="secondary" className="flex-1">
                         View Details
                       </Button>
                     </Link>
@@ -324,7 +324,7 @@ export default function CatalogPage() {
                   </div>
                   <div className="flex gap-2">
                     <Link href={`/learning-plans/${plan.id}`}>
-                      <Button variant="outline" className="flex-1">
+                      <Button variant="secondary" className="flex-1">
                         View Details
                       </Button>
                     </Link>

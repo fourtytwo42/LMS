@@ -5,7 +5,6 @@ import { Download, Award, BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/store/auth-store";
 
 interface Completion {
   id: string;
@@ -31,7 +30,6 @@ interface Completion {
 }
 
 export default function CertificatesPage() {
-  const { user } = useAuthStore();
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +59,7 @@ export default function CertificatesPage() {
 
       if (!response.ok) throw new Error("Failed to generate certificate");
 
-      const data = await response.json();
+      await response.json();
       // Refresh completions
       const completionsResponse = await fetch("/api/completions");
       if (completionsResponse.ok) {
@@ -128,7 +126,7 @@ export default function CertificatesPage() {
                 <div className="flex gap-2">
                   {completion.certificateUrl ? (
                     <Button
-                      variant="default"
+                      variant="primary"
                       className="flex-1"
                       onClick={() => {
                         window.open(completion.certificateUrl || "", "_blank");

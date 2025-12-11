@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/prisma";
 import { saveFile, validateFile, FileType } from "@/lib/storage/file-upload";
-import { parse } from "formidable";
 import { z } from "zod";
 
 const uploadSchema = z.object({
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
         courseId: validated.courseId,
         contentItemId: validated.contentItemId,
         folderPath: validated.folderPath,
-        originalFilename: file.name,
+        fileName: file.name,
       }
     );
 

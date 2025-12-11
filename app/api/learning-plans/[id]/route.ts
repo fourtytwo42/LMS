@@ -24,9 +24,10 @@ const updateLearningPlanSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -36,7 +37,7 @@ export async function GET(
     }
 
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         category: true,
         createdBy: {
@@ -141,9 +142,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -153,7 +155,7 @@ export async function PUT(
     }
 
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!learningPlan) {
@@ -209,7 +211,7 @@ export async function PUT(
       updateData.coverImage = validated.coverImage || null;
 
     const updatedPlan = await prisma.learningPlan.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         category: {
@@ -256,9 +258,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -278,7 +281,7 @@ export async function DELETE(
     // Check if plan has active enrollments
     const enrollments = await prisma.enrollment.findMany({
       where: {
-        learningPlanId: params.id,
+        learningPlanId: id,
         status: "IN_PROGRESS",
       },
     });
@@ -294,7 +297,7 @@ export async function DELETE(
     }
 
     await prisma.learningPlan.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

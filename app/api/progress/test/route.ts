@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       let earnedPoints = 0;
 
       if (question.type === "SINGLE_CHOICE") {
-        const correctIndex = question.options.findIndex((opt: any) => opt.correct);
+        const correctIndex = ((question.options as any[]) || []).findIndex((opt: any) => opt.correct);
         isCorrect =
           userAnswer?.selectedOptions?.[0] === correctIndex && correctIndex !== -1;
         earnedPoints = isCorrect ? question.points : 0;
@@ -111,10 +111,10 @@ export async function POST(request: NextRequest) {
           questionId: question.id,
           isCorrect,
           pointsEarned: earnedPoints,
-          correctAnswer: question.options[correctIndex]?.text,
+          correctAnswer: ((question.options as any[]) || [])[correctIndex]?.text,
         });
       } else if (question.type === "MULTIPLE_CHOICE") {
-        const correctIndices = question.options
+        const correctIndices = ((question.options as any[]) || [])
           .map((opt: any, idx: number) => (opt.correct ? idx : -1))
           .filter((idx: number) => idx !== -1)
           .sort();
@@ -127,14 +127,14 @@ export async function POST(request: NextRequest) {
           questionId: question.id,
           isCorrect,
           pointsEarned: earnedPoints,
-          correctAnswer: question.options
+          correctAnswer: ((question.options as any[]) || [])
             .filter((opt: any) => opt.correct)
             .map((opt: any) => opt.text)
             .join(", "),
         });
       } else if (question.type === "TRUE_FALSE") {
         // correctAnswer is Boolean for TRUE_FALSE
-        const correctAnswerBool = question.correctAnswer === true || question.correctAnswer === "true" || (typeof question.correctAnswer === "string" && question.correctAnswer.toLowerCase().trim() === "true");
+        const correctAnswerBool = question.correctAnswer === true || (typeof question.correctAnswer === "string" && (question.correctAnswer as string).toLowerCase().trim() === "true");
         const userAnswerText = userAnswer?.answerText?.toLowerCase().trim();
         const userAnswerBool = userAnswerText === "true";
         isCorrect = correctAnswerBool === userAnswerBool;
@@ -143,19 +143,20 @@ export async function POST(request: NextRequest) {
           questionId: question.id,
           isCorrect,
           pointsEarned: earnedPoints,
-          correctAnswer: question.correctAnswer || "",
+          correctAnswer: String(question.correctAnswer ?? ""),
         });
       } else if (question.type === "SHORT_ANSWER" || question.type === "FILL_BLANK") {
-        const correctAnswer = question.correctAnswer?.toLowerCase().trim();
+        // Use correctAnswers (String[]) for SHORT_ANSWER and FILL_BLANK
+        const correctAnswers = (question.correctAnswers || []).map((ans: string) => ans.toLowerCase().trim());
         const userAnswerText = userAnswer?.answerText?.toLowerCase().trim();
-        // Simple exact match - could be enhanced with fuzzy matching
-        isCorrect = correctAnswer === userAnswerText;
+        // Check if user answer matches any of the correct answers
+        isCorrect = userAnswerText ? correctAnswers.includes(userAnswerText) : false;
         earnedPoints = isCorrect ? question.points : 0;
         gradedAnswers.push({
           questionId: question.id,
           isCorrect,
           pointsEarned: earnedPoints,
-          correctAnswer: question.correctAnswer || "",
+          correctAnswer: correctAnswers.join(", ") || "",
         });
       } else {
         // No answer provided

@@ -4,10 +4,23 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await authenticate(request);
+    const { id } = await params;
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "Authentication required" },
@@ -16,7 +29,7 @@ export async function GET(
     }
 
     // Users can only view their own analytics unless admin
-    if (!user.roles.includes("ADMIN") && user.id !== params.id) {
+    if (!user.roles.includes("ADMIN") && user.id !== id) {
       return NextResponse.json(
         { error: "FORBIDDEN", message: "Insufficient permissions" },
         { status: 403 }
@@ -25,7 +38,7 @@ export async function GET(
 
     // Get user enrollments
     const enrollments = await prisma.enrollment.findMany({
-      where: { userId: params.id },
+      where: { userId: id },
     });
 
     const enrollmentStats = {
@@ -38,7 +51,7 @@ export async function GET(
     // Get completions with scores
     const completions = await prisma.completion.findMany({
       where: {
-        userId: params.id,
+        userId: id,
         score: { not: null },
       },
       select: { score: true },
@@ -51,7 +64,7 @@ export async function GET(
 
     // Calculate total time spent (from video progress)
     const videoProgresses = await prisma.videoProgress.findMany({
-      where: { userId: params.id },
+      where: { userId: id },
       select: { watchTime: true },
     });
 
@@ -61,7 +74,7 @@ export async function GET(
     // Get certificates earned
     const certificatesEarned = await prisma.completion.count({
       where: {
-        userId: params.id,
+        userId: id,
         certificateUrl: { not: null },
       },
     });
@@ -69,16 +82,15 @@ export async function GET(
     // Get badges earned
     const badgesEarned = await prisma.completion.count({
       where: {
-        userId: params.id,
+        userId: id,
         badgeAwarded: true,
       },
     });
 
-    // Get recent completions
-    const recentCompletions = await prisma.completion.findMany({
+    // Get recent completions (filter out null completedAt in the query by ordering)
+    const allCompletions = await prisma.completion.findMany({
       where: {
-        userId: params.id,
-        completedAt: { not: null },
+        userId: id,
       },
       include: {
         course: {
@@ -91,11 +103,15 @@ export async function GET(
       orderBy: {
         completedAt: "desc",
       },
-      take: 10,
     });
 
+    // Filter out completions without completedAt and take first 10
+    const recentCompletions = allCompletions
+      .filter((c) => c.completedAt !== null)
+      .slice(0, 10);
+
     return NextResponse.json({
-      userId: params.id,
+      userId: id,
       enrollments: enrollmentStats,
       averageScore: Math.round(averageScore * 100 * 10) / 10,
       totalTimeSpent: Math.round(totalTimeSpent),

@@ -11,9 +11,10 @@ const updateGroupSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -31,7 +32,7 @@ export async function GET(
     }
 
     const group = await prisma.group.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         members: {
           include: {
@@ -90,9 +91,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -119,7 +121,7 @@ export async function PUT(
       updateData.description = validated.description;
 
     const updatedGroup = await prisma.group.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 
@@ -157,9 +159,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -177,7 +180,7 @@ export async function DELETE(
     }
 
     await prisma.group.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ message: "Group deleted successfully" });

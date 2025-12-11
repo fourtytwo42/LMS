@@ -28,9 +28,10 @@ const updateQuestionSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -45,7 +46,7 @@ export async function GET(
     }
 
     const question = await prisma.question.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         test: {
           include: {
@@ -67,6 +68,12 @@ export async function GET(
     }
 
     // Check permissions
+    if (!question.test) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "Question test not found" },
+        { status: 404 }
+      );
+    }
     const isAdmin = user.roles.includes("ADMIN");
     const isInstructor = user.roles.includes("INSTRUCTOR");
     const isCreator = question.test.contentItem.course.createdById === user.id;
@@ -107,9 +114,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -132,7 +140,7 @@ export async function PUT(
     }
 
     const question = await prisma.question.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         test: {
           include: {
@@ -154,6 +162,12 @@ export async function PUT(
     }
 
     // Check permissions
+    if (!question.test) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "Question test not found" },
+        { status: 404 }
+      );
+    }
     const isAdmin = user.roles.includes("ADMIN");
     const isCreator = question.test.contentItem.course.createdById === user.id;
     const isAssigned = await prisma.instructorAssignment.findFirst({
@@ -183,7 +197,7 @@ export async function PUT(
     if (validated.order !== undefined) updateData.order = validated.order;
 
     const updatedQuestion = await prisma.question.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 
@@ -219,9 +233,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -244,7 +259,7 @@ export async function DELETE(
     }
 
     const question = await prisma.question.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         test: {
           include: {
@@ -266,6 +281,12 @@ export async function DELETE(
     }
 
     // Check permissions
+    if (!question.test) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "Question test not found" },
+        { status: 404 }
+      );
+    }
     const isAdmin = user.roles.includes("ADMIN");
     const isCreator = question.test.contentItem.course.createdById === user.id;
     const isAssigned = await prisma.instructorAssignment.findFirst({
@@ -283,7 +304,7 @@ export async function DELETE(
     }
 
     await prisma.question.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

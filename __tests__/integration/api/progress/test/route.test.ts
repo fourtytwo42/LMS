@@ -446,101 +446,100 @@ describe("Progress Test API", () => {
     });
 
     it("should handle SHORT_ANSWER questions", async () => {
-      // Note: correctAnswer is Boolean? in schema, but route expects string
-      // This test is skipped until schema/route alignment is fixed
-      // const saQuestion = await prisma.question.create({
-      //   data: {
-      //     testId: testTest.id,
-      //     type: "SHORT_ANSWER",
-      //     questionText: "What is the capital of France?",
-      //     points: 1.0,
-      //     order: 4,
-      //     correctAnswer: "Paris", // Schema expects Boolean?, but route uses as string
-      //   },
-      // });
+      const saQuestion = await prisma.question.create({
+        data: {
+          testId: testTest.id,
+          type: "SHORT_ANSWER",
+          questionText: "What is the capital of France?",
+          points: 1.0,
+          order: 4,
+          correctAnswers: ["Paris"], // Use correctAnswers array
+        },
+      });
 
-      // Test skipped - schema/route mismatch for correctAnswer type
-      // const request = new NextRequest("http://localhost:3000/api/progress/test", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     cookie: `accessToken=${learnerToken}`,
-      //   },
-      //   body: JSON.stringify({
-      //     testId: testTest.id,
-      //     answers: [
-      //       {
-      //         questionId: testQuestion1.id,
-      //         selectedOptions: [1],
-      //       },
-      //       {
-      //         questionId: testQuestion2.id,
-      //         answerText: "true",
-      //       },
-      //       {
-      //         questionId: saQuestion.id,
-      //         answerText: "Paris", // Correct
-      //       },
-      //     ],
-      //     timeSpent: 120,
-      //   }),
-      // });
+      const request = new NextRequest("http://localhost:3000/api/progress/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          testId: testTest.id,
+          answers: [
+            {
+              questionId: testQuestion1.id,
+              selectedOptions: [1],
+            },
+            {
+              questionId: testQuestion2.id,
+              answerText: "true",
+            },
+            {
+              questionId: saQuestion.id,
+              answerText: "Paris", // Correct
+            },
+          ],
+          timeSpent: 120,
+        }),
+      });
 
-      // const response = await POST(request);
-      // expect(response.status).toBe(200);
-      // const data = await response.json();
-      // expect(data.attempt.passed).toBe(true);
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.attempt.passed).toBe(true);
+      const answer = data.answers.find((a: any) => a.questionId === saQuestion.id);
+      expect(answer.isCorrect).toBe(true);
 
-      // // Cleanup
-      // await prisma.question.delete({ where: { id: saQuestion.id } });
+      // Cleanup
+      await prisma.question.delete({ where: { id: saQuestion.id } });
     });
 
     it("should handle FILL_BLANK questions", async () => {
-      // Note: correctAnswer is Boolean? in schema, but route expects string
-      // This test is skipped until schema/route alignment is fixed
-      // const fbQuestion = await prisma.question.create({
-      //   data: {
-      //     testId: testTest.id,
-      //     type: "FILL_BLANK",
-      //     questionText: "The sky is ___",
-      //     points: 1.0,
-      //     order: 5,
-      //     correctAnswer: "blue", // Schema expects Boolean?, but route uses as string
-      //   },
-      // });
+      const fbQuestion = await prisma.question.create({
+        data: {
+          testId: testTest.id,
+          type: "FILL_BLANK",
+          questionText: "The sky is ___",
+          points: 1.0,
+          order: 5,
+          correctAnswers: ["blue"], // Use correctAnswers array
+        },
+      });
 
-      // Test skipped - schema/route mismatch for correctAnswer type
-      // const request = new NextRequest("http://localhost:3000/api/progress/test", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     cookie: `accessToken=${learnerToken}`,
-      //   },
-      //   body: JSON.stringify({
-      //     testId: testTest.id,
-      //     answers: [
-      //       {
-      //         questionId: testQuestion1.id,
-      //         selectedOptions: [1],
-      //       },
-      //       {
-      //         questionId: testQuestion2.id,
-      //         answerText: "true",
-      //       },
-      //       {
-      //         questionId: fbQuestion.id,
-      //         answerText: "blue", // Correct
-      //       },
-      //     ],
-      //     timeSpent: 120,
-      //   }),
-      // });
+      const request = new NextRequest("http://localhost:3000/api/progress/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${learnerToken}`,
+        },
+        body: JSON.stringify({
+          testId: testTest.id,
+          answers: [
+            {
+              questionId: testQuestion1.id,
+              selectedOptions: [1],
+            },
+            {
+              questionId: testQuestion2.id,
+              answerText: "true",
+            },
+            {
+              questionId: fbQuestion.id,
+              answerText: "blue", // Correct
+            },
+          ],
+          timeSpent: 120,
+        }),
+      });
 
-      // const response = await POST(request);
-      // expect(response.status).toBe(200);
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      const answer = data.answers.find((a: any) => a.questionId === fbQuestion.id);
+      expect(answer.isCorrect).toBe(true);
 
-      // // Cleanup
-      // await prisma.question.delete({ where: { id: fbQuestion.id } });
+      // Cleanup
+      await prisma.question.delete({ where: { id: fbQuestion.id } });
     });
 
     it("should handle questions with no answer provided", async () => {
@@ -616,12 +615,57 @@ describe("Progress Test API", () => {
     });
 
     it("should update existing completion when test is passed again", async () => {
+      // Create new content item for this test (Test has unique constraint on contentItemId)
+      const updateContentItem = await prisma.contentItem.create({
+        data: {
+          courseId: testCourse.id,
+          title: "Update Completion Test Content",
+          type: "TEST",
+          order: 7,
+        },
+      });
+
+      // Create a test for this content item
+      const updateTest = await prisma.test.create({
+        data: {
+          contentItemId: updateContentItem.id,
+          title: "Update Test",
+          passingScore: 0.5,
+        },
+      });
+
+      // Create questions for the test
+      const q1 = await prisma.question.create({
+        data: {
+          testId: updateTest.id,
+          type: "SINGLE_CHOICE",
+          questionText: "Question 1",
+          points: 1.0,
+          order: 1,
+          options: [
+            { text: "Wrong", correct: false },
+            { text: "Correct", correct: true },
+          ],
+        },
+      });
+
+      const q2 = await prisma.question.create({
+        data: {
+          testId: updateTest.id,
+          type: "TRUE_FALSE",
+          questionText: "Question 2",
+          points: 1.0,
+          order: 2,
+          correctAnswer: true,
+        },
+      });
+
       // Create existing completion
       const existingCompletion = await prisma.completion.create({
         data: {
           userId: learnerUser.id,
           courseId: testCourse.id,
-          contentItemId: testContentItem.id,
+          contentItemId: updateContentItem.id,
           completedAt: new Date(Date.now() - 1000), // 1 second ago
           score: 0.5,
         },
@@ -634,14 +678,14 @@ describe("Progress Test API", () => {
           cookie: `accessToken=${learnerToken}`,
         },
         body: JSON.stringify({
-          testId: testTest.id,
+          testId: updateTest.id,
           answers: [
             {
-              questionId: testQuestion1.id,
+              questionId: q1.id,
               selectedOptions: [1], // Correct
             },
             {
-              questionId: testQuestion2.id,
+              questionId: q2.id,
               answerText: "true", // Correct
             },
           ],
@@ -658,6 +702,11 @@ describe("Progress Test API", () => {
       });
       expect(updatedCompletion).toBeTruthy();
       expect(updatedCompletion!.score).toBeGreaterThan(0.5);
+
+      // Cleanup
+      await prisma.question.deleteMany({ where: { id: { in: [q1.id, q2.id] } } });
+      await prisma.test.delete({ where: { id: updateTest.id } });
+      await prisma.contentItem.delete({ where: { id: updateContentItem.id } });
     });
 
     it("should handle test with no max attempts", async () => {
@@ -857,11 +906,21 @@ describe("Progress Test API", () => {
       await prisma.question.delete({ where: { id: question.id } });
     });
 
-    it("should update existing completion when test is passed again", async () => {
+    it("should update existing completion when test is passed again (duplicate test)", async () => {
+      // Create new content item for this test (Test has unique constraint on contentItemId)
+      const updateContentItem2 = await prisma.contentItem.create({
+        data: {
+          courseId: testCourse.id,
+          title: "Update Completion Test Content 2",
+          type: "TEST",
+          order: 8,
+        },
+      });
+
       // Create a test that will pass
       const passingTest = await prisma.test.create({
         data: {
-          contentItemId: testContentItem.id,
+          contentItemId: updateContentItem2.id,
           title: "Passing Test",
           passingScore: 0.5,
         },
@@ -909,7 +968,7 @@ describe("Progress Test API", () => {
       const completion1 = await prisma.completion.findFirst({
         where: {
           userId: learnerUser.id,
-          contentItemId: testContentItem.id,
+          contentItemId: updateContentItem2.id,
         },
       });
       expect(completion1).toBeDefined();
@@ -943,7 +1002,7 @@ describe("Progress Test API", () => {
       const completions = await prisma.completion.findMany({
         where: {
           userId: learnerUser.id,
-          contentItemId: testContentItem.id,
+          contentItemId: updateContentItem2.id,
         },
       });
       expect(completions.length).toBe(1);
@@ -952,15 +1011,26 @@ describe("Progress Test API", () => {
       // Cleanup
       await prisma.testAnswer.deleteMany({ where: { attemptId: { in: [data1.attempt.id, data2.attempt.id] } } });
       await prisma.testAttempt.deleteMany({ where: { testId: passingTest.id } });
-      await prisma.completion.deleteMany({ where: { contentItemId: testContentItem.id } });
+      await prisma.completion.deleteMany({ where: { contentItemId: updateContentItem2.id } });
       await prisma.question.delete({ where: { id: question.id } });
       await prisma.test.delete({ where: { id: passingTest.id } });
+      await prisma.contentItem.delete({ where: { id: updateContentItem2.id } });
     });
 
     it("should handle test with all questions correct", async () => {
+      // Create new content item for this test (Test has unique constraint on contentItemId)
+      const perfectContentItem = await prisma.contentItem.create({
+        data: {
+          courseId: testCourse.id,
+          title: "Perfect Test Content",
+          type: "TEST",
+          order: 3,
+        },
+      });
+
       const perfectTest = await prisma.test.create({
         data: {
-          contentItemId: testContentItem.id,
+          contentItemId: perfectContentItem.id,
           title: "Perfect Test",
           passingScore: 0.7,
         },
@@ -1022,12 +1092,23 @@ describe("Progress Test API", () => {
       await prisma.testAttempt.deleteMany({ where: { testId: perfectTest.id } });
       await prisma.question.deleteMany({ where: { id: { in: [q1.id, q2.id] } } });
       await prisma.test.delete({ where: { id: perfectTest.id } });
+      await prisma.contentItem.delete({ where: { id: perfectContentItem.id } });
     });
 
     it("should handle test with all questions wrong", async () => {
+      // Create new content item for this test (Test has unique constraint on contentItemId)
+      const failingContentItem = await prisma.contentItem.create({
+        data: {
+          courseId: testCourse.id,
+          title: "Failing Test Content",
+          type: "TEST",
+          order: 4,
+        },
+      });
+
       const failingTest = await prisma.test.create({
         data: {
-          contentItemId: testContentItem.id,
+          contentItemId: failingContentItem.id,
           title: "Failing Test",
           passingScore: 0.7,
         },
@@ -1074,12 +1155,23 @@ describe("Progress Test API", () => {
       await prisma.testAttempt.deleteMany({ where: { testId: failingTest.id } });
       await prisma.question.delete({ where: { id: q1.id } });
       await prisma.test.delete({ where: { id: failingTest.id } });
+      await prisma.contentItem.delete({ where: { id: failingContentItem.id } });
     });
 
     it("should handle test with single question", async () => {
+      // Create new content item for this test (Test has unique constraint on contentItemId)
+      const singleContentItem = await prisma.contentItem.create({
+        data: {
+          courseId: testCourse.id,
+          title: "Single Question Test Content",
+          type: "TEST",
+          order: 5,
+        },
+      });
+
       const singleTest = await prisma.test.create({
         data: {
-          contentItemId: testContentItem.id,
+          contentItemId: singleContentItem.id,
           title: "Single Question Test",
           passingScore: 0.5,
         },
@@ -1125,6 +1217,7 @@ describe("Progress Test API", () => {
       await prisma.testAttempt.deleteMany({ where: { testId: singleTest.id } });
       await prisma.question.delete({ where: { id: question.id } });
       await prisma.test.delete({ where: { id: singleTest.id } });
+      await prisma.contentItem.delete({ where: { id: singleContentItem.id } });
     });
   });
 });

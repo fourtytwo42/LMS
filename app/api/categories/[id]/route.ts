@@ -12,9 +12,10 @@ const updateCategorySchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         _count: {
           select: {
@@ -80,9 +81,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -105,7 +107,7 @@ export async function PUT(
     }
 
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!category) {
@@ -123,7 +125,7 @@ export async function PUT(
       const existing = await prisma.category.findFirst({
         where: {
           name: validated.name,
-          NOT: { id: params.id },
+          NOT: { id: id },
         },
       });
 
@@ -140,7 +142,7 @@ export async function PUT(
 
     // If parentId is being updated, verify it exists and prevent circular references
     if (validated.parentId !== undefined) {
-      if (validated.parentId === params.id) {
+      if (validated.parentId === id) {
         return NextResponse.json(
           {
             error: "BAD_REQUEST",
@@ -165,7 +167,7 @@ export async function PUT(
         // Check for circular reference (parent's parent chain)
         let currentParentId = parent.parentId;
         while (currentParentId) {
-          if (currentParentId === params.id) {
+          if (currentParentId === id) {
             return NextResponse.json(
               {
                 error: "BAD_REQUEST",
@@ -192,7 +194,7 @@ export async function PUT(
     if (validated.order !== undefined) updateData.order = validated.order;
 
     const updatedCategory = await prisma.category.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         _count: {
@@ -241,9 +243,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -261,7 +264,7 @@ export async function DELETE(
     }
 
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         _count: {
           select: {
@@ -307,7 +310,7 @@ export async function DELETE(
     }
 
     await prisma.category.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

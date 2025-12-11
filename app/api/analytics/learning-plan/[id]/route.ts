@@ -4,10 +4,23 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await authenticate(request);
+    const { id } = await params;
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "Authentication required" },
@@ -17,7 +30,7 @@ export async function GET(
 
     // Check access
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         instructorAssignments: {
           where: { userId: user.id },
@@ -57,7 +70,7 @@ export async function GET(
 
     // Get enrollments
     const enrollments = await prisma.enrollment.findMany({
-      where: { learningPlanId: params.id },
+      where: { learningPlanId: id },
     });
 
     const enrollmentStats = {
@@ -78,7 +91,7 @@ export async function GET(
       learningPlan.courses.map(async (planCourse) => {
         const courseEnrollments = await prisma.enrollment.findMany({
           where: {
-            learningPlanId: params.id,
+            learningPlanId: id,
             courseId: planCourse.courseId,
           },
         });
@@ -86,7 +99,7 @@ export async function GET(
         const courseCompletions = await prisma.completion.count({
           where: {
             courseId: planCourse.courseId,
-            learningPlanId: params.id,
+            learningPlanId: id,
           },
         });
 
@@ -99,7 +112,7 @@ export async function GET(
         const completionsWithScores = await prisma.completion.findMany({
           where: {
             courseId: planCourse.courseId,
-            learningPlanId: params.id,
+            learningPlanId: id,
             score: { not: null },
           },
           select: { score: true },
@@ -121,7 +134,7 @@ export async function GET(
     );
 
     return NextResponse.json({
-      learningPlanId: params.id,
+      learningPlanId: id,
       enrollments: enrollmentStats,
       completionRate: Math.round(completionRate * 10) / 10,
       courses: courseAnalytics,

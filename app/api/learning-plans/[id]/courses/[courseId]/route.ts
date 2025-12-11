@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; courseId: string } }
+  { params }: { params: Promise<{ id: string; courseId: string }> }
 ) {
   try {
+    const { id, courseId } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -21,7 +22,7 @@ export async function DELETE(
     }
 
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!learningPlan) {
@@ -45,8 +46,8 @@ export async function DELETE(
     await prisma.learningPlanCourse.delete({
       where: {
         learningPlanId_courseId: {
-          learningPlanId: params.id,
-          courseId: params.courseId,
+          learningPlanId: id,
+          courseId: courseId,
         },
       },
     });

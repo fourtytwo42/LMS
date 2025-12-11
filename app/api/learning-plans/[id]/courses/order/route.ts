@@ -14,9 +14,10 @@ const reorderCoursesSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -38,7 +39,7 @@ export async function PUT(
 
     // Check learning plan access
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         instructorAssignments: {
           where: { userId: user.id },
@@ -70,7 +71,7 @@ export async function PUT(
       validated.courseOrders.map(({ courseId, order }) =>
         prisma.learningPlanCourse.updateMany({
           where: {
-            learningPlanId: params.id,
+            learningPlanId: id,
             courseId,
           },
           data: {

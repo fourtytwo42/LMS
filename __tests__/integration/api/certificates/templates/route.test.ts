@@ -12,12 +12,70 @@ describe("Certificate Templates API", () => {
   let instructorToken: string;
 
   beforeEach(async () => {
-    // Clean up any existing users first
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["admin@test.com", "instructor@test.com"] },
-      },
+    // Clean up in proper order (child records first)
+    const existingUsers = await prisma.user.findMany({
+      where: { email: { in: ["admin@test.com", "instructor@test.com"] } },
+      select: { id: true },
     });
+    const userIds = existingUsers.map((u) => u.id);
+
+    if (userIds.length > 0) {
+      // Delete courses created by these users
+      const courses = await prisma.course.findMany({
+        where: { createdById: { in: userIds } },
+        select: { id: true },
+      });
+      const courseIds = courses.map((c) => c.id);
+      if (courseIds.length > 0) {
+        const contentItems = await prisma.contentItem.findMany({
+          where: { courseId: { in: courseIds } },
+          select: { id: true },
+        });
+        const contentItemIds = contentItems.map((ci) => ci.id);
+        if (contentItemIds.length > 0) {
+          const tests = await prisma.test.findMany({
+            where: { contentItemId: { in: contentItemIds } },
+            select: { id: true },
+          });
+          const testIds = tests.map((t) => t.id);
+          if (testIds.length > 0) {
+            await prisma.testAnswer.deleteMany({
+              where: { attempt: { testId: { in: testIds } } },
+            });
+            await prisma.testAttempt.deleteMany({
+              where: { testId: { in: testIds } },
+            });
+            await prisma.question.deleteMany({
+              where: { testId: { in: testIds } },
+            });
+            await prisma.test.deleteMany({
+              where: { id: { in: testIds } },
+            });
+          }
+          await prisma.videoProgress.deleteMany({
+            where: { contentItemId: { in: contentItemIds } },
+          });
+          await prisma.completion.deleteMany({
+            where: { contentItemId: { in: contentItemIds } },
+          });
+          await prisma.contentItem.deleteMany({
+            where: { id: { in: contentItemIds } },
+          });
+        }
+        await prisma.completion.deleteMany({
+          where: { courseId: { in: courseIds } },
+        });
+        await prisma.enrollment.deleteMany({
+          where: { courseId: { in: courseIds } },
+        });
+        await prisma.course.deleteMany({
+          where: { id: { in: courseIds } },
+        });
+      }
+      await prisma.user.deleteMany({
+        where: { email: { in: ["admin@test.com", "instructor@test.com"] } },
+      });
+    }
     
     // Clean up roles only if no users have them
     const adminRole = await prisma.role.findUnique({ where: { name: "ADMIN" } });

@@ -16,12 +16,23 @@ describe("Progress Course [courseId] API", () => {
   let testEnrollment: { id: string };
 
   beforeEach(async () => {
-    // Clean up
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["learner-progress-course@test.com", "other-learner-progress-course@test.com"] },
-      },
+    // Clean up in proper order (child records first)
+    const existingUsers = await prisma.user.findMany({
+      where: { email: { in: ["learner-progress-course@test.com", "other-learner-progress-course@test.com"] } },
+      select: { id: true },
     });
+    const userIds = existingUsers.map((u) => u.id);
+
+    if (userIds.length > 0) {
+      await prisma.completion.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.enrollment.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.course.deleteMany({ where: { createdById: { in: userIds } } });
+      await prisma.user.deleteMany({
+        where: {
+          email: { in: ["learner-progress-course@test.com", "other-learner-progress-course@test.com"] },
+        },
+      });
+    }
 
     // Create learner
     const learnerPasswordHash = await hashPassword("LearnerPass123");
@@ -108,11 +119,22 @@ describe("Progress Course [courseId] API", () => {
   });
 
   afterEach(async () => {
-    await prisma.completion.deleteMany({ where: { courseId: testCourse.id } });
-    await prisma.videoProgress.deleteMany({ where: { contentItemId: { in: [testContentItem1.id, testContentItem2.id] } } });
-    await prisma.enrollment.deleteMany({ where: { id: testEnrollment.id } });
-    await prisma.contentItem.deleteMany({ where: { id: { in: [testContentItem1.id, testContentItem2.id] } } });
-    await prisma.course.deleteMany({ where: { id: testCourse.id } });
+    // Clean up in proper order with null checks
+    if (testCourse) {
+      await prisma.completion.deleteMany({ where: { courseId: testCourse.id } });
+    }
+    if (testContentItem1 && testContentItem2) {
+      await prisma.videoProgress.deleteMany({ where: { contentItemId: { in: [testContentItem1.id, testContentItem2.id] } } });
+    }
+    if (testEnrollment) {
+      await prisma.enrollment.deleteMany({ where: { id: testEnrollment.id } });
+    }
+    if (testContentItem1 && testContentItem2) {
+      await prisma.contentItem.deleteMany({ where: { id: { in: [testContentItem1.id, testContentItem2.id] } } });
+    }
+    if (testCourse) {
+      await prisma.course.deleteMany({ where: { id: testCourse.id } });
+    }
     await prisma.user.deleteMany({
       where: {
         email: { in: ["learner-progress-course@test.com", "other-learner-progress-course@test.com"] },
@@ -194,7 +216,9 @@ describe("Progress Course [courseId] API", () => {
           contentItemId: testContentItem1.id,
           watchTime: 300, // 5 minutes
           totalDuration: 600, // 10 minutes
-          lastWatchedAt: new Date(),
+          lastPosition: 300,
+          timesWatched: 1,
+          completed: false,
         },
       });
 

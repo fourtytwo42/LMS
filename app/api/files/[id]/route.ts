@@ -4,9 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -22,7 +23,7 @@ export async function GET(
 
     // Try to find as repository file first
     const repositoryFile = await prisma.repositoryFile.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -82,9 +83,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -107,7 +109,7 @@ export async function DELETE(
     }
 
     const repositoryFile = await prisma.repositoryFile.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -141,7 +143,7 @@ export async function DELETE(
 
     // Delete file from database (cascade will handle downloads)
     await prisma.repositoryFile.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     // TODO: Delete physical file from storage

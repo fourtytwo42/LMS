@@ -30,9 +30,10 @@ const createContentItemSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: courseId } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -43,9 +44,9 @@ export async function GET(
 
     // Check course access
     const course = await prisma.course.findUnique({
-      where: { id: params.courseId },
+      where: { id: courseId },
       include: {
-        instructors: true,
+        instructorAssignments: true,
       },
     });
 
@@ -57,12 +58,12 @@ export async function GET(
     }
 
     const isAdmin = user.roles.includes("ADMIN");
-    const isAssignedInstructor = course.instructors.some(
+    const isAssignedInstructor = course.instructorAssignments.some(
       (inst) => inst.userId === user.id
     );
     const isEnrolled = await prisma.enrollment.findFirst({
       where: {
-        courseId: params.courseId,
+        courseId: courseId,
         userId: user.id,
       },
     });
@@ -82,7 +83,7 @@ export async function GET(
     }
 
     const contentItems = await prisma.contentItem.findMany({
-      where: { courseId: params.courseId },
+      where: { courseId: courseId },
       include: {
         test: {
           include: {
@@ -108,7 +109,7 @@ export async function GET(
       });
       progressMap = progress.reduce((acc, p) => {
         acc[p.contentItemId] = {
-          progress: p.progress,
+          progress: p.totalDuration > 0 ? (p.watchTime / p.totalDuration) * 100 : 0,
           completed: p.completed,
         };
         return acc;
@@ -161,9 +162,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: courseId } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -174,9 +176,9 @@ export async function POST(
 
     // Check course and permissions
     const course = await prisma.course.findUnique({
-      where: { id: params.courseId },
+      where: { id: courseId },
       include: {
-        instructors: true,
+        instructorAssignments: true,
       },
     });
 
@@ -188,7 +190,7 @@ export async function POST(
     }
 
     const isAdmin = user.roles.includes("ADMIN");
-    const isAssignedInstructor = course.instructors.some(
+    const isAssignedInstructor = course.instructorAssignments.some(
       (inst) => inst.userId === user.id
     );
     const isCreator = course.createdById === user.id;
@@ -231,7 +233,7 @@ export async function POST(
 
     const newContentItem = await prisma.contentItem.create({
       data: {
-        courseId: params.courseId,
+        courseId: courseId,
         title: validated.title,
         description: validated.description,
         type: validated.type,

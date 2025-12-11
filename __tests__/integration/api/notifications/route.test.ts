@@ -140,6 +140,50 @@ describe("Notifications API", () => {
       const data = await response.json();
       expect(data.unreadCount).toBeGreaterThanOrEqual(0);
     });
+
+    it("should handle pagination", async () => {
+      // Create more notifications for pagination
+      await prisma.notification.createMany({
+        data: Array.from({ length: 5 }, (_, i) => ({
+          userId: testUser.id,
+          type: "COURSE",
+          title: `Notification ${i}`,
+          message: `Message ${i}`,
+          read: false,
+        })),
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/notifications?page=1&limit=3", {
+        headers: {
+          cookie: `accessToken=${userToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.notifications.length).toBeLessThanOrEqual(3);
+      expect(data.pagination.page).toBe(1);
+      expect(data.pagination.limit).toBe(3);
+      expect(data.pagination.total).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should handle read filter with no value (show all)", async () => {
+      const request = new NextRequest("http://localhost:3000/api/notifications", {
+        headers: {
+          cookie: `accessToken=${userToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Should return both read and unread notifications
+      expect(data.notifications.length).toBeGreaterThan(0);
+      expect(data.unreadCount).toBeGreaterThanOrEqual(0);
+    });
   });
 
   describe("PUT /api/notifications/read-all", () => {

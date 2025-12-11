@@ -4,9 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -29,7 +30,7 @@ export async function GET(
     }
 
     const contentItem = await prisma.contentRepository.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         uploadedBy: {
           select: {
@@ -77,9 +78,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -102,7 +104,7 @@ export async function DELETE(
     }
 
     const contentItem = await prisma.contentRepository.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!contentItem) {
@@ -121,7 +123,7 @@ export async function DELETE(
     }
 
     await prisma.contentRepository.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     // TODO: Delete physical file from storage

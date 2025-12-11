@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Search, CheckCircle, XCircle, Clock, UserPlus, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { CheckCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +49,6 @@ interface Pagination {
 }
 
 export default function EnrollmentsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);

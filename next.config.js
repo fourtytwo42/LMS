@@ -15,8 +15,6 @@ const nextConfig = {
   },
   // Skip static optimization to avoid prerendering issues with client components
   output: 'standalone',
-  // Disable static page generation for error pages
-  generateStaticParams: false,
   // Performance optimizations
   compress: true,
   poweredByHeader: false,

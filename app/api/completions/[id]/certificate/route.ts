@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -21,7 +22,7 @@ export async function POST(
     }
 
     const completion = await prisma.completion.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: true,
         learningPlan: true,
@@ -52,8 +53,8 @@ export async function POST(
       );
     }
 
-    // Check if certificate is enabled
-    const hasCertificate = completion.course?.hasCertificate || completion.learningPlan?.hasCertificate;
+    // Check if certificate is enabled (only learning plans have hasCertificate field)
+    const hasCertificate = completion.learningPlan?.hasCertificate;
     if (!hasCertificate) {
       return NextResponse.json(
         { error: "BAD_REQUEST", message: "Certificate not enabled for this course/plan" },
@@ -62,11 +63,11 @@ export async function POST(
     }
 
     // Generate certificate URL (in production, this would generate and store the PDF)
-    const certificateUrl = `/api/certificates/${params.id}`;
+    const certificateUrl = `/api/certificates/${id}`;
 
     // Update completion with certificate info
     const updatedCompletion = await prisma.completion.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         certificateUrl,
         certificateGeneratedAt: new Date(),

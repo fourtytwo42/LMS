@@ -36,7 +36,7 @@ type CreateContentItemForm = z.infer<typeof createContentItemSchema>;
 export default function NewContentItemPage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = params.courseId as string;
+  const courseId = params.id as string;
   const [saving, setSaving] = useState(false);
   const [contentType, setContentType] = useState<string>("VIDEO");
 
@@ -45,7 +45,7 @@ export default function NewContentItemPage() {
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm<CreateContentItemForm>({
+  } = useForm({
     resolver: zodResolver(createContentItemSchema),
     defaultValues: {
       type: "VIDEO",

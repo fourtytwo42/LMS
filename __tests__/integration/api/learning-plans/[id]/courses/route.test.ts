@@ -478,6 +478,133 @@ describe("Learning Plan Courses API", () => {
       const response = await PUT(request, { params: { id: "non-existent" } });
       expect(response.status).toBe(404);
     });
+
+    it("should return validation error for invalid courseOrders format in PUT", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/learning-plans/${testLearningPlan.id}/courses`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          courseOrders: "invalid", // Should be array
+        }),
+      });
+
+      const response = await PUT(request, { params: { id: testLearningPlan.id } });
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for missing courseOrders in PUT", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/learning-plans/${testLearningPlan.id}/courses`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const response = await PUT(request, { params: { id: testLearningPlan.id } });
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for invalid order (negative) in PUT", async () => {
+      // Add course to learning plan first
+      await prisma.learningPlanCourse.create({
+        data: {
+          learningPlanId: testLearningPlan.id,
+          courseId: testCourse.id,
+          order: 0,
+        },
+      });
+
+      const request = new NextRequest(`http://localhost:3000/api/learning-plans/${testLearningPlan.id}/courses`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          courseOrders: [
+            { courseId: testCourse.id, order: -1 }, // Invalid negative order
+          ],
+        }),
+      });
+
+      const response = await PUT(request, { params: { id: testLearningPlan.id } });
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for missing courseId in courseOrders", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/learning-plans/${testLearningPlan.id}/courses`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          courseOrders: [
+            { order: 0 }, // Missing courseId
+          ],
+        }),
+      });
+
+      const response = await PUT(request, { params: { id: testLearningPlan.id } });
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for invalid order type in POST", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/learning-plans/${testLearningPlan.id}/courses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          courseId: testCourse.id,
+          order: "invalid", // Should be number
+        }),
+      });
+
+      const response = await POST(request, { params: { id: testLearningPlan.id } });
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return validation error for negative order in POST", async () => {
+      const request = new NextRequest(`http://localhost:3000/api/learning-plans/${testLearningPlan.id}/courses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${adminToken}`,
+        },
+        body: JSON.stringify({
+          courseId: testCourse.id,
+          order: -1, // Invalid negative order
+        }),
+      });
+
+      const response = await POST(request, { params: { id: testLearningPlan.id } });
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+      expect(data.error).toBe("VALIDATION_ERROR");
+    });
   });
 });
 

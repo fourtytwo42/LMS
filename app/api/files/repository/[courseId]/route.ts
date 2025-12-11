@@ -4,9 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
+    const { courseId } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -25,7 +26,7 @@ export async function GET(
 
     // Check course access
     const course = await prisma.course.findUnique({
-      where: { id: params.courseId },
+      where: { id: courseId },
       include: {
         instructorAssignments: {
           where: { userId: user.id },
@@ -47,7 +48,7 @@ export async function GET(
       (await prisma.enrollment.findFirst({
         where: {
           userId: user.id,
-          courseId: params.courseId,
+          courseId: courseId,
           status: { in: ["ENROLLED", "IN_PROGRESS"] },
         },
       }));
@@ -61,7 +62,7 @@ export async function GET(
 
     // Get repository files
     const where: any = {
-      courseId: params.courseId,
+      courseId: courseId,
     };
 
     if (folderPath) {

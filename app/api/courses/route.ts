@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
           },
         },
         {
-          instructors: {
+          instructorAssignments: {
             some: {
               userId: user.id,
             },
@@ -118,7 +118,9 @@ export async function GET(request: NextRequest) {
     } else if (sort === "title") {
       orderBy = { title: "asc" };
     } else if (sort === "rating") {
-      orderBy = { rating: "desc" };
+      // Rating sorting not directly supported - would need to calculate from ratings relation
+      // For now, fall back to default sorting
+      orderBy = { createdAt: "desc" };
     }
 
     const [courses, total] = await Promise.all([
@@ -137,6 +139,7 @@ export async function GET(request: NextRequest) {
             select: {
               enrollments: true,
               contentItems: true,
+              ratings: true,
             },
           },
         },
@@ -158,8 +161,8 @@ export async function GET(request: NextRequest) {
         difficultyLevel: course.difficultyLevel,
         publicAccess: course.publicAccess,
         selfEnrollment: course.selfEnrollment,
-        rating: course.rating,
-        reviewCount: course.reviewCount,
+        rating: null, // Rating not directly stored on Course - would need to calculate from ratings relation
+        reviewCount: course._count?.ratings || 0,
         category: course.category,
         enrollmentCount: course._count.enrollments,
         contentItemCount: course._count.contentItems,

@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { completionId: string } }
+  { params }: { params: Promise<{ completionId: string }> }
 ) {
   try {
+    const { completionId } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -16,7 +17,7 @@ export async function GET(
     }
 
     const completion = await prisma.completion.findUnique({
-      where: { id: params.completionId },
+      where: { id: completionId },
       include: {
         user: {
           select: {
@@ -31,8 +32,6 @@ export async function GET(
             id: true,
             title: true,
             code: true,
-            hasCertificate: true,
-            certificateTemplate: true,
           },
         },
         learningPlan: {
@@ -63,8 +62,8 @@ export async function GET(
       );
     }
 
-    // Check if certificate is enabled
-    const hasCertificate = completion.course?.hasCertificate || completion.learningPlan?.hasCertificate;
+    // Check if certificate is enabled (only learning plans have hasCertificate field)
+    const hasCertificate = completion.learningPlan?.hasCertificate;
     if (!hasCertificate) {
       return NextResponse.json(
         { error: "BAD_REQUEST", message: "Certificate not available for this completion" },
@@ -91,7 +90,7 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": "text/html",
-        "Content-Disposition": `inline; filename="certificate-${params.completionId}.html"`,
+        "Content-Disposition": `inline; filename="certificate-${completionId}.html"`,
       },
     });
   } catch (error) {

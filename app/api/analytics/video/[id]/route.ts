@@ -4,10 +4,23 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await authenticate(request);
+    const { id } = await params;
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "Authentication required" },
@@ -17,7 +30,7 @@ export async function GET(
 
     // Get content item
     const contentItem = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -59,7 +72,7 @@ export async function GET(
 
     // Get video progress data
     const videoProgresses = await prisma.videoProgress.findMany({
-      where: { contentItemId: params.id },
+      where: { contentItemId: id },
     });
 
     const totalViews = videoProgresses.length;
@@ -127,7 +140,7 @@ export async function GET(
     });
 
     return NextResponse.json({
-      contentItemId: params.id,
+      contentItemId: id,
       totalViews,
       uniqueViewers,
       averageWatchTime: Math.round(averageWatchTime),

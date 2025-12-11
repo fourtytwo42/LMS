@@ -77,7 +77,7 @@ const updateSettingsSchema = z.object({
     .object({
       enabled: z.boolean().optional(),
       provider: z.string().optional(),
-      config: z.record(z.unknown()).optional(),
+      config: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
 });

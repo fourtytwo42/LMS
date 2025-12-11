@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { randomBytes } from "crypto";
-import { hashPassword } from "@/lib/auth/password";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email format"),

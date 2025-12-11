@@ -16,9 +16,10 @@ const updateTestSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -33,7 +34,7 @@ export async function GET(
     }
 
     const test = await prisma.test.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         contentItem: {
           include: {
@@ -87,7 +88,7 @@ export async function GET(
       };
 
       if (q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE") {
-        question.options = q.options.map((opt: any, index: number) => ({
+        question.options = (q.options as any[] || []).map((opt: any) => ({
           text: opt.text,
           ...(shouldHideAnswers ? {} : { correct: opt.correct }),
         }));
@@ -123,9 +124,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -148,7 +150,7 @@ export async function PUT(
     }
 
     const test = await prisma.test.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         contentItem: {
           include: {
@@ -199,7 +201,7 @@ export async function PUT(
       updateData.randomizeAnswers = validated.randomizeAnswers;
 
     const updatedTest = await prisma.test.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 

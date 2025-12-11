@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { contentItemId: string } }
+  { params }: { params: Promise<{ contentItemId: string }> }
 ) {
   try {
+    const { contentItemId } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -24,14 +25,14 @@ export async function GET(
       where: {
         userId_contentItemId: {
           userId: user.id,
-          contentItemId: params.contentItemId,
+          contentItemId: contentItemId,
         },
       },
     });
 
     if (!videoProgress) {
       return NextResponse.json({
-        contentItemId: params.contentItemId,
+        contentItemId: contentItemId,
         watchTime: 0,
         totalDuration: 0,
         lastPosition: 0,

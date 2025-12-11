@@ -141,7 +141,7 @@ export default function NotificationsPage() {
 
       <div className="flex gap-2">
         <Button
-          variant={filter === "all" ? "default" : "secondary"}
+          variant={filter === "all" ? "primary" : "secondary"}
           size="sm"
           onClick={() => {
             setFilter("all");
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
           All
         </Button>
         <Button
-          variant={filter === "unread" ? "default" : "secondary"}
+          variant={filter === "unread" ? "primary" : "secondary"}
           size="sm"
           onClick={() => {
             setFilter("unread");
@@ -161,7 +161,7 @@ export default function NotificationsPage() {
           Unread ({unreadCount})
         </Button>
         <Button
-          variant={filter === "read" ? "default" : "secondary"}
+          variant={filter === "read" ? "primary" : "secondary"}
           size="sm"
           onClick={() => {
             setFilter("read");

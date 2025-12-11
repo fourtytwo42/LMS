@@ -10,9 +10,10 @@ const updateOrderSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -27,7 +28,7 @@ export async function PUT(
     }
 
     const contentItem = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -69,7 +70,7 @@ export async function PUT(
     }
 
     const updatedItem = await prisma.contentItem.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 

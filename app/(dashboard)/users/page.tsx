@@ -237,7 +237,7 @@ export default function UsersPage() {
                       <td className="px-4 py-3 text-sm text-gray-700">
                         <div className="flex items-center gap-3">
                           <Avatar
-                            src={user.avatar}
+                            src={user.avatar || undefined}
                             name={`${user.firstName} ${user.lastName}`}
                             size="sm"
                           />

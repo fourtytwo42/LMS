@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
+    const { courseId } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -24,7 +25,7 @@ export async function POST(
     const enrollment = await prisma.enrollment.findFirst({
       where: {
         userId: user.id,
-        courseId: params.courseId,
+        courseId: courseId,
       },
     });
 
@@ -37,7 +38,7 @@ export async function POST(
 
     // Get course with content items
     const course = await prisma.course.findUnique({
-      where: { id: params.courseId },
+      where: { id: courseId },
       include: {
         contentItems: {
           orderBy: { order: "asc" },
@@ -56,7 +57,7 @@ export async function POST(
     const allCompletions = await prisma.completion.findMany({
       where: {
         userId: user.id,
-        courseId: params.courseId,
+        courseId: courseId,
       },
     });
 
@@ -73,7 +74,7 @@ export async function POST(
       const existingCompletion = await prisma.completion.findFirst({
         where: {
           userId: user.id,
-          courseId: params.courseId,
+          courseId: courseId,
           contentItemId: null, // Course-level completion
         },
       });
@@ -83,7 +84,7 @@ export async function POST(
         const completion = await prisma.completion.create({
           data: {
             userId: user.id,
-            courseId: params.courseId,
+            courseId: courseId,
             completedAt: new Date(),
           },
         });
@@ -97,34 +98,16 @@ export async function POST(
           },
         });
 
-        // Award badge if enabled
-        if (course.hasBadge) {
-          await prisma.completion.update({
-            where: { id: completion.id },
-            data: {
-              badgeAwarded: true,
-              badgeAwardedAt: new Date(),
-            },
-          });
-        }
-
-        // Generate certificate if enabled
-        if (course.hasCertificate) {
-          const certificateUrl = `/api/certificates/${completion.id}`;
-          await prisma.completion.update({
-            where: { id: completion.id },
-            data: {
-              certificateUrl,
-              certificateGeneratedAt: new Date(),
-            },
-          });
-        }
+        // Note: Badges and certificates are only available for learning plans, not individual courses
 
         return NextResponse.json({
           completed: true,
           completionId: completion.id,
-          certificateUrl: course.hasCertificate ? `/api/certificates/${completion.id}` : null,
-          badgeAwarded: course.hasBadge,
+          certificateUrl: null, // Certificates are only available for learning plans
+          badgeAwarded: false, // Badges are only available for learning plans
+          progress: course.contentItems.length > 0
+            ? 100
+            : 100, // Course with no content is considered 100% complete
         });
       }
     }
@@ -133,7 +116,7 @@ export async function POST(
       completed: allContentCompleted,
       progress: course.contentItems.length > 0
         ? (completedContentIds.size / course.contentItems.length) * 100
-        : 0,
+        : 100, // Course with no content is considered 100% complete
     });
   } catch (error) {
     console.error("Error checking course completion:", error);

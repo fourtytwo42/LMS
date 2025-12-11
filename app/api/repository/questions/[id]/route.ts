@@ -11,9 +11,10 @@ const createRepositorySchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -36,7 +37,7 @@ export async function GET(
     }
 
     const repository = await prisma.questionRepository.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         createdBy: {
           select: {
@@ -93,9 +94,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -118,7 +120,7 @@ export async function PUT(
     }
 
     const repository = await prisma.questionRepository.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!repository) {
@@ -140,7 +142,7 @@ export async function PUT(
     const validated = createRepositorySchema.parse(body);
 
     const updated = await prisma.questionRepository.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: validated.name,
         description: validated.description,
@@ -182,9 +184,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -207,7 +210,7 @@ export async function DELETE(
     }
 
     const repository = await prisma.questionRepository.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!repository) {
@@ -226,7 +229,7 @@ export async function DELETE(
     }
 
     await prisma.questionRepository.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

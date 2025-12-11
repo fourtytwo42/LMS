@@ -38,14 +38,14 @@ export default function EditLearningPlanPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [, setCategories] = useState<Array<{ id: string; name: string }>>([]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<UpdateLearningPlanForm>({
+  } = useForm({
     resolver: zodResolver(updateLearningPlanSchema),
   });
 

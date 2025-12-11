@@ -5,8 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { useAuthStore } from "@/store/auth-store";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface CourseAnalytics {
   courseId: string;
@@ -38,7 +37,6 @@ export default function CourseAnalyticsPage() {
   const router = useRouter();
   const params = useParams();
   const courseId = params.id as string;
-  const { user } = useAuthStore();
   const [analytics, setAnalytics] = useState<CourseAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);

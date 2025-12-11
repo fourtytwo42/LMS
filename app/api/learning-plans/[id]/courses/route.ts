@@ -19,9 +19,10 @@ const reorderCoursesSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -36,7 +37,7 @@ export async function POST(
     }
 
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!learningPlan) {
@@ -76,7 +77,7 @@ export async function POST(
     const existing = await prisma.learningPlanCourse.findUnique({
       where: {
         learningPlanId_courseId: {
-          learningPlanId: params.id,
+          learningPlanId: id,
           courseId: validated.courseId,
         },
       },
@@ -94,7 +95,7 @@ export async function POST(
 
     await prisma.learningPlanCourse.create({
       data: {
-        learningPlanId: params.id,
+        learningPlanId: id,
         courseId: validated.courseId,
         order: validated.order,
       },
@@ -126,9 +127,10 @@ export async function POST(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -143,7 +145,7 @@ export async function PUT(
     }
 
     const learningPlan = await prisma.learningPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!learningPlan) {
@@ -172,7 +174,7 @@ export async function PUT(
       validated.courseOrders.map((co) =>
         prisma.learningPlanCourse.updateMany({
           where: {
-            learningPlanId: params.id,
+            learningPlanId: id,
             courseId: co.courseId,
           },
           data: {

@@ -19,8 +19,8 @@ export async function createAuditLog(
         action,
         entityType,
         entityId: entityId || null,
-        changes: changes || {},
-        ipAddress: request?.headers.get("x-forwarded-for") || request?.ip || null,
+        changes: (changes || {}) as any,
+        ipAddress: request?.headers.get("x-forwarded-for") || null,
         userAgent: request?.headers.get("user-agent") || null,
       },
     });

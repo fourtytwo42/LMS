@@ -24,9 +24,10 @@ const updateContentItemSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -41,7 +42,7 @@ export async function GET(
     }
 
     const contentItem = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -140,9 +141,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await authenticate(request);
     if (!user) {
       return NextResponse.json(
@@ -152,7 +154,7 @@ export async function PUT(
     }
 
     const contentItem = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -223,7 +225,7 @@ export async function PUT(
       updateData.externalType = validated.externalType;
 
     const updatedItem = await prisma.contentItem.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 
@@ -261,9 +263,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -278,7 +281,7 @@ export async function DELETE(
     }
 
     const contentItem = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           include: {
@@ -314,7 +317,7 @@ export async function DELETE(
     }
 
     await prisma.contentItem.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ message: "Content item deleted successfully" });

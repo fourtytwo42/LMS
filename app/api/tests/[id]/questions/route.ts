@@ -22,15 +22,17 @@ const createQuestionSchema = z.object({
     )
     .optional(),
   correctAnswer: z.union([z.string(), z.boolean()]).optional(),
+  correctAnswers: z.array(z.string()).optional(), // For SHORT_ANSWER and FILL_BLANK
   explanation: z.string().optional(),
   order: z.number().int().min(0).optional(),
 });
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -53,7 +55,7 @@ export async function GET(
     }
 
     const test = await prisma.test.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         contentItem: {
           include: {
@@ -113,9 +115,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -138,7 +141,7 @@ export async function POST(
     }
 
     const test = await prisma.test.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         contentItem: {
           include: {
@@ -188,6 +191,7 @@ export async function POST(
 
     if (
       (validated.type === "SHORT_ANSWER" || validated.type === "FILL_BLANK") &&
+      !validated.correctAnswers &&
       !validated.correctAnswer
     ) {
       return NextResponse.json(
@@ -198,22 +202,46 @@ export async function POST(
 
     // Get max order to set default
     const maxOrder = await prisma.question.findFirst({
-      where: { testId: params.id },
+      where: { testId: id },
       orderBy: { order: "desc" },
       select: { order: true },
     });
 
+    // Prepare data based on question type
+    const questionData: any = {
+      testId: id,
+      type: validated.type,
+      questionText: validated.questionText,
+      points: validated.points,
+      options: validated.options || [],
+      explanation: validated.explanation || null,
+      order: validated.order ?? (maxOrder ? maxOrder.order + 1 : 0),
+    };
+
+    // Set correctAnswer or correctAnswers based on question type
+    if (validated.type === "TRUE_FALSE") {
+      // TRUE_FALSE uses correctAnswer (Boolean)
+      questionData.correctAnswer = validated.correctAnswer ?? null;
+      questionData.correctAnswers = [];
+    } else if (validated.type === "SHORT_ANSWER" || validated.type === "FILL_BLANK") {
+      // SHORT_ANSWER and FILL_BLANK use correctAnswers (String[])
+      questionData.correctAnswer = null;
+      // Convert single string to array if provided as correctAnswer (for backward compatibility)
+      if (validated.correctAnswers && validated.correctAnswers.length > 0) {
+        questionData.correctAnswers = validated.correctAnswers;
+      } else if (validated.correctAnswer && typeof validated.correctAnswer === "string") {
+        questionData.correctAnswers = [validated.correctAnswer];
+      } else {
+        questionData.correctAnswers = [];
+      }
+    } else {
+      // SINGLE_CHOICE and MULTIPLE_CHOICE don't use these fields
+      questionData.correctAnswer = null;
+      questionData.correctAnswers = [];
+    }
+
     const question = await prisma.question.create({
-      data: {
-        testId: params.id,
-        type: validated.type,
-        questionText: validated.questionText,
-        points: validated.points,
-        options: validated.options || [],
-        correctAnswer: validated.correctAnswer || null,
-        explanation: validated.explanation || null,
-        order: validated.order ?? (maxOrder ? maxOrder.order + 1 : 0),
-      },
+      data: questionData,
     });
 
     return NextResponse.json(

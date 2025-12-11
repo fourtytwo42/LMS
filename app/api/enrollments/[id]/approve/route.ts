@@ -4,9 +4,10 @@ import { authenticate } from "@/lib/auth/middleware";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -21,7 +22,7 @@ export async function POST(
     }
 
     const enrollment = await prisma.enrollment.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         course: {
           select: {
@@ -122,7 +123,7 @@ export async function POST(
 
     // Approve enrollment
     const updatedEnrollment = await prisma.enrollment.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: "ENROLLED",
         approvedById: user.id,

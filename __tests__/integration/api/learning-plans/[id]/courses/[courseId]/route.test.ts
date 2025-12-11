@@ -133,21 +133,32 @@ describe("Learning Plan Course Delete API", () => {
   });
 
   afterEach(async () => {
-    await prisma.learningPlanCourse.deleteMany({
-      where: {
-        learningPlanId: testLearningPlan.id,
-      },
-    });
-    await prisma.learningPlan.deleteMany({
-      where: {
-        id: testLearningPlan.id,
-      },
-    });
-    await prisma.course.deleteMany({
-      where: {
-        id: testCourse.id,
-      },
-    });
+    // Use optional chaining and nullish coalescing for safe cleanup
+    // Best practice: Always check if variables exist before using them
+    try {
+      if (testLearningPlan?.id) {
+        await prisma.learningPlanCourse.deleteMany({
+          where: {
+            learningPlanId: testLearningPlan.id,
+          },
+        });
+        await prisma.learningPlan.deleteMany({
+          where: {
+            id: testLearningPlan.id,
+          },
+        });
+      }
+      if (testCourse?.id) {
+        await prisma.course.deleteMany({
+          where: {
+            id: testCourse.id,
+          },
+        });
+      }
+    } catch (error) {
+      // Log but don't throw - cleanup errors shouldn't fail tests
+      console.error("Cleanup error in afterEach:", error);
+    }
     await prisma.user.deleteMany({
       where: {
         email: { in: ["admin-lp-del@test.com", "instructor-lp-del@test.com", "other-instructor-lp-del@test.com"] },

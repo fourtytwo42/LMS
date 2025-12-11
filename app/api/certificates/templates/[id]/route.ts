@@ -90,9 +90,10 @@ const updateTemplateSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -115,7 +116,7 @@ export async function GET(
     }
 
     const templates = getTemplates();
-    const template = templates.find((t) => t.id === params.id);
+    const template = templates.find((t) => t.id === id);
 
     if (!template) {
       return NextResponse.json(
@@ -138,9 +139,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -163,7 +165,7 @@ export async function PUT(
     }
 
     const templates = getTemplates();
-    const templateIndex = templates.findIndex((t) => t.id === params.id);
+    const templateIndex = templates.findIndex((t) => t.id === id);
 
     if (templateIndex === -1) {
       return NextResponse.json(
@@ -220,9 +222,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     let user;
     try {
       user = await authenticate(request);
@@ -245,7 +248,7 @@ export async function DELETE(
     }
 
     const templates = getTemplates();
-    const templateIndex = templates.findIndex((t) => t.id === params.id);
+    const templateIndex = templates.findIndex((t) => t.id === id);
 
     if (templateIndex === -1) {
       return NextResponse.json(

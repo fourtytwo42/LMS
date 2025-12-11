@@ -364,7 +364,169 @@ describe("Enrollments API", () => {
       expect(data.enrollments.every((e: any) => e.userId === learnerUser.id)).toBe(true);
     });
 
-    it("should handle pagination with page 0", async () => {
+    it("should filter by learningPlanId", async () => {
+      // Create enrollment for learning plan
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          learningPlanId: testLearningPlan.id,
+          status: "ENROLLED",
+        },
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/enrollments?learningPlanId=${testLearningPlan.id}`,
+        {
+          headers: {
+            cookie: `accessToken=${adminToken}`,
+          },
+        }
+      );
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.enrollments.every((e: any) => e.learningPlanId === testLearningPlan.id)).toBe(true);
+    });
+
+    it("should show instructor enrollments for assigned courses", async () => {
+      // Create another instructor's course
+      const otherInstructor = await prisma.user.create({
+        data: {
+          email: "other-instructor@test.com",
+          passwordHash: await hashPassword("Test123"),
+          firstName: "Other",
+          lastName: "Instructor",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "INSTRUCTOR" },
+                  create: { name: "INSTRUCTOR", description: "Instructor", permissions: [] },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const assignedCourse = await prisma.course.create({
+        data: {
+          title: "Assigned Course",
+          description: "Course assigned to instructor",
+          status: "PUBLISHED",
+          type: "E-LEARNING",
+          createdById: otherInstructor.id,
+        },
+      });
+
+      // Assign instructor to course
+      await prisma.instructorAssignment.create({
+        data: {
+          courseId: assignedCourse.id,
+          userId: instructorUser.id,
+          assignedById: otherInstructor.id,
+        },
+      });
+
+      // Create enrollment for assigned course
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          courseId: assignedCourse.id,
+          status: "ENROLLED",
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Instructor should see enrollments for assigned course
+      expect(data.enrollments.some((e: any) => e.courseId === assignedCourse.id)).toBe(true);
+
+      // Cleanup
+      await prisma.enrollment.deleteMany({ where: { courseId: assignedCourse.id } });
+      await prisma.instructorAssignment.deleteMany({ where: { courseId: assignedCourse.id } });
+      await prisma.course.delete({ where: { id: assignedCourse.id } });
+      await prisma.user.delete({ where: { id: otherInstructor.id } });
+    });
+
+    it("should show instructor enrollments for assigned learning plans", async () => {
+      // Create another instructor's learning plan
+      const otherInstructor = await prisma.user.create({
+        data: {
+          email: "other-instructor-lp@test.com",
+          passwordHash: await hashPassword("Test123"),
+          firstName: "Other",
+          lastName: "Instructor",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "INSTRUCTOR" },
+                  create: { name: "INSTRUCTOR", description: "Instructor", permissions: [] },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const assignedPlan = await prisma.learningPlan.create({
+        data: {
+          title: "Assigned Learning Plan",
+          description: "Plan assigned to instructor",
+          createdById: otherInstructor.id,
+        },
+      });
+
+      // Assign instructor to learning plan
+      await prisma.instructorAssignment.create({
+        data: {
+          learningPlanId: assignedPlan.id,
+          userId: instructorUser.id,
+          assignedById: otherInstructor.id,
+        },
+      });
+
+      // Create enrollment for assigned learning plan
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          learningPlanId: assignedPlan.id,
+          status: "ENROLLED",
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Instructor should see enrollments for assigned learning plan
+      expect(data.enrollments.some((e: any) => e.learningPlanId === assignedPlan.id)).toBe(true);
+
+      // Cleanup
+      await prisma.enrollment.deleteMany({ where: { learningPlanId: assignedPlan.id } });
+      await prisma.instructorAssignment.deleteMany({ where: { learningPlanId: assignedPlan.id } });
+      await prisma.learningPlan.delete({ where: { id: assignedPlan.id } });
+      await prisma.user.delete({ where: { id: otherInstructor.id } });
+    });
+
+    it("should handle pagination with page 0 (normalized to 1)", async () => {
       const request = new NextRequest("http://localhost:3000/api/enrollments?page=0", {
         headers: {
           cookie: `accessToken=${adminToken}`,
@@ -375,7 +537,8 @@ describe("Enrollments API", () => {
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data.pagination.page).toBe(0);
+      // Page 0 is normalized to 1 (minimum page)
+      expect(data.pagination.page).toBe(1);
     });
 
     it("should handle pagination with negative page", async () => {
@@ -407,6 +570,187 @@ describe("Enrollments API", () => {
       expect(data.enrollments).toBeDefined();
       expect(Array.isArray(data.enrollments)).toBe(true);
       // Should return empty array for page beyond available data
+    });
+
+    it("should handle filter combination: userId + courseId + status", async () => {
+      // Clean up any existing enrollments first to avoid conflicts
+      await prisma.enrollment.deleteMany({
+        where: {
+          courseId: testCourse.id,
+        },
+      });
+
+      // Create enrollment matching all filters
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          courseId: testCourse.id,
+          status: "ENROLLED",
+        },
+      });
+
+      // Create enrollment matching only some filters (should be filtered out)
+      await prisma.enrollment.create({
+        data: {
+          userId: adminUser.id, // Different user
+          courseId: testCourse.id,
+          status: "ENROLLED",
+        },
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/enrollments?userId=${learnerUser.id}&courseId=${testCourse.id}&status=ENROLLED`,
+        {
+          headers: {
+            cookie: `accessToken=${adminToken}`,
+          },
+        }
+      );
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Should only return enrollments matching all filters
+      expect(data.enrollments.every((e: any) => 
+        e.userId === learnerUser.id && 
+        e.courseId === testCourse.id && 
+        e.status === "ENROLLED"
+      )).toBe(true);
+    });
+
+    it("should handle filter combination: courseId + status", async () => {
+      // Clean up any existing enrollments first to avoid conflicts
+      await prisma.enrollment.deleteMany({
+        where: {
+          courseId: testCourse.id,
+        },
+      });
+
+      // Create enrollments with different statuses
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          courseId: testCourse.id,
+          status: "ENROLLED",
+        },
+      });
+
+      await prisma.enrollment.create({
+        data: {
+          userId: adminUser.id,
+          courseId: testCourse.id,
+          status: "COMPLETED",
+        },
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/enrollments?courseId=${testCourse.id}&status=ENROLLED`,
+        {
+          headers: {
+            cookie: `accessToken=${adminToken}`,
+          },
+        }
+      );
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Should only return ENROLLED enrollments for the course
+      expect(data.enrollments.every((e: any) => 
+        e.courseId === testCourse.id && 
+        e.status === "ENROLLED"
+      )).toBe(true);
+    });
+
+    it("should handle instructor seeing their own enrollments (OR branch)", async () => {
+      // Clean up any existing enrollments first to avoid conflicts
+      await prisma.enrollment.deleteMany({
+        where: {
+          userId: instructorUser.id,
+          courseId: testCourse.id,
+        },
+      });
+
+      // Create enrollment for instructor themselves
+      await prisma.enrollment.create({
+        data: {
+          userId: instructorUser.id,
+          courseId: testCourse.id,
+          status: "ENROLLED",
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments", {
+        headers: {
+          cookie: `accessToken=${instructorToken}`,
+        },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Instructor should see their own enrollment (OR branch includes { userId: user.id })
+      expect(data.enrollments.some((e: any) => e.userId === instructorUser.id)).toBe(true);
+    });
+
+    it("should handle empty results when no enrollments match filters", async () => {
+      const request = new NextRequest(
+        `http://localhost:3000/api/enrollments?status=NONEXISTENT_STATUS`,
+        {
+          headers: {
+            cookie: `accessToken=${adminToken}`,
+          },
+        }
+      );
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.enrollments).toBeDefined();
+      expect(Array.isArray(data.enrollments)).toBe(true);
+      // Should return empty array if no enrollments match
+      expect(data.pagination.total).toBe(0);
+    });
+
+    it("should handle filter with learningPlanId + status", async () => {
+      // Clean up any existing enrollments first to avoid conflicts
+      await prisma.enrollment.deleteMany({
+        where: {
+          learningPlanId: testLearningPlan.id,
+        },
+      });
+
+      // Create enrollment for learning plan
+      await prisma.enrollment.create({
+        data: {
+          userId: learnerUser.id,
+          learningPlanId: testLearningPlan.id,
+          status: "ENROLLED",
+        },
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/enrollments?learningPlanId=${testLearningPlan.id}&status=ENROLLED`,
+        {
+          headers: {
+            cookie: `accessToken=${adminToken}`,
+          },
+        }
+      );
+
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      // Should only return ENROLLED enrollments for the learning plan
+      expect(data.enrollments.every((e: any) => 
+        e.learningPlanId === testLearningPlan.id && 
+        e.status === "ENROLLED"
+      )).toBe(true);
     });
   });
 
@@ -454,6 +798,175 @@ describe("Enrollments API", () => {
       const data = await response.json();
       expect(data.enrollment).toBeDefined();
       expect(data.enrollment.learningPlanId).toBe(testLearningPlan.id);
+    });
+
+    it("should reject learning plan enrollment for non-creator, non-assigned instructor", async () => {
+      // Create another instructor's learning plan
+      const otherInstructor = await prisma.user.create({
+        data: {
+          email: "other-instructor-enroll@test.com",
+          passwordHash: await hashPassword("Test123"),
+          firstName: "Other",
+          lastName: "Instructor",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "INSTRUCTOR" },
+                  create: { name: "INSTRUCTOR", description: "Instructor", permissions: [] },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const otherPlan = await prisma.learningPlan.create({
+        data: {
+          title: "Other Learning Plan",
+          description: "Plan not assigned to instructor",
+          createdById: otherInstructor.id,
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          userId: learnerUser.id,
+          learningPlanId: otherPlan.id,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(403);
+
+      const data = await response.json();
+      expect(data.error).toBe("FORBIDDEN");
+
+      // Cleanup
+      await prisma.learningPlan.delete({ where: { id: otherPlan.id } });
+      await prisma.user.delete({ where: { id: otherInstructor.id } });
+    });
+
+    it("should reject course enrollment for non-creator, non-assigned instructor", async () => {
+      // Create another instructor's course
+      const otherInstructor = await prisma.user.create({
+        data: {
+          email: "other-instructor-course@test.com",
+          passwordHash: await hashPassword("Test123"),
+          firstName: "Other",
+          lastName: "Instructor",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "INSTRUCTOR" },
+                  create: { name: "INSTRUCTOR", description: "Instructor", permissions: [] },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const otherCourse = await prisma.course.create({
+        data: {
+          title: "Other Course",
+          description: "Course not assigned to instructor",
+          status: "PUBLISHED",
+          type: "E-LEARNING",
+          createdById: otherInstructor.id,
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          userId: learnerUser.id,
+          courseId: otherCourse.id,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(403);
+
+      const data = await response.json();
+      expect(data.error).toBe("FORBIDDEN");
+
+      // Cleanup
+      await prisma.course.delete({ where: { id: otherCourse.id } });
+      await prisma.user.delete({ where: { id: otherInstructor.id } });
+    });
+
+    it("should allow assigned instructor to enroll users in learning plan", async () => {
+      // Create another instructor's learning plan
+      const otherInstructor = await prisma.user.create({
+        data: {
+          email: "other-instructor-assigned@test.com",
+          passwordHash: await hashPassword("Test123"),
+          firstName: "Other",
+          lastName: "Instructor",
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: "INSTRUCTOR" },
+                  create: { name: "INSTRUCTOR", description: "Instructor", permissions: [] },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const assignedPlan = await prisma.learningPlan.create({
+        data: {
+          title: "Assigned Learning Plan",
+          description: "Plan assigned to instructor",
+          createdById: otherInstructor.id,
+        },
+      });
+
+      // Assign instructor to learning plan
+      await prisma.instructorAssignment.create({
+        data: {
+          learningPlanId: assignedPlan.id,
+          userId: instructorUser.id,
+          assignedById: otherInstructor.id,
+        },
+      });
+
+      const request = new NextRequest("http://localhost:3000/api/enrollments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: `accessToken=${instructorToken}`,
+        },
+        body: JSON.stringify({
+          userId: learnerUser.id,
+          learningPlanId: assignedPlan.id,
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(201);
+
+      const data = await response.json();
+      expect(data.enrollment.learningPlanId).toBe(assignedPlan.id);
+
+      // Cleanup
+      await prisma.enrollment.deleteMany({ where: { learningPlanId: assignedPlan.id } });
+      await prisma.instructorAssignment.deleteMany({ where: { learningPlanId: assignedPlan.id } });
+      await prisma.learningPlan.delete({ where: { id: assignedPlan.id } });
+      await prisma.user.delete({ where: { id: otherInstructor.id } });
     });
 
     it("should reject duplicate enrollment", async () => {

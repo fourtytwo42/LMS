@@ -15,7 +15,19 @@ const STORAGE_BASE = process.env.STORAGE_PATH || join(process.cwd(), "storage");
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await authenticate(request);
+    let user;
+    try {
+      user = await authenticate(request);
+    } catch (error: any) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return NextResponse.json(
+          { error: error.errorCode || "UNAUTHORIZED", message: error.message || "Authentication required" },
+          { status: error.statusCode || 401 }
+        );
+      }
+      throw error;
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", message: "Authentication required" },

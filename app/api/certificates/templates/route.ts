@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
-import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
 // Certificate templates stored in database (could also be file-based)

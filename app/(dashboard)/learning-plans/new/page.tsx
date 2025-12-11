@@ -36,7 +36,7 @@ export default function NewLearningPlanPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateLearningPlanForm>({
+  } = useForm({
     resolver: zodResolver(createLearningPlanSchema),
     defaultValues: {
       publicAccess: false,
