@@ -35,6 +35,15 @@ npx prisma db seed
 npm run dev
 ```
 
+**Using PM2 for Development:**
+```bash
+# PM2 is configured for development mode by default
+pm2 start ecosystem.config.js
+pm2 logs lms
+```
+
+**Note:** The `ecosystem.config.js` uses `npm run dev` for development, not `npm start`. This ensures hot reloading and doesn't require a build step.
+
 ## Project Structure
 
 ```

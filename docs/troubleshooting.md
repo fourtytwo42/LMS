@@ -155,6 +155,25 @@ ls -la .next
 npx prisma studio
 ```
 
+**Issue:** Login succeeds but redirects back to login page.
+
+**Solutions:**
+1. Check if cookies are being set (use browser DevTools → Application → Cookies)
+2. Verify cookie settings in `app/api/auth/login/route.ts`:
+   - `secure: false` for development (localhost)
+   - `sameSite: "lax"` for better compatibility
+   - `httpOnly: true` for security
+3. Check middleware is not blocking requests
+4. Verify PM2 is using development mode:
+```javascript
+// ecosystem.config.js
+args: "run dev",  // Not "start" for development
+env: {
+  NODE_ENV: "development",
+}
+```
+5. Use `window.location.href` instead of `router.push()` for login redirect to ensure full page reload
+
 ### File Upload Fails
 
 **Issue:** File uploads return errors.
@@ -235,6 +254,35 @@ max_memory_restart: "500M"
 2. Clear browser cache
 3. Check browser console for errors
 4. Verify CSS file is being served
+5. Verify PostCSS config uses Tailwind v4 syntax:
+```javascript
+// postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+6. Check `app/globals.css` uses `@import "tailwindcss";`
+
+### Input Text Not Visible (White on White)
+
+**Issue:** Input fields have white text on white background, making text invisible.
+
+**Solution:**
+The Input component should have explicit text colors. Verify `src/components/ui/input.tsx` includes:
+```typescript
+className={cn(
+  "text-gray-900 bg-white placeholder:text-gray-400",
+  // ... other classes
+)}
+```
+
+If issue persists:
+1. Clear browser cache and hard refresh
+2. Verify Tailwind CSS is compiling correctly
+3. Check for CSS conflicts in browser DevTools
 
 ### JavaScript Errors
 
@@ -261,6 +309,30 @@ pm2 monit
 ```
 
 4. Review application logs
+
+**Issue:** PM2 shows "Could not find a production build" error.
+
+**Solution:**
+For development, use `npm run dev` instead of `npm start`:
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: "lms",
+    script: "npm",
+    args: "run dev",  // Use "run dev" for development
+    env: {
+      NODE_ENV: "development",  // Not "production"
+    },
+  }],
+};
+```
+
+For production, build first:
+```bash
+npm run build
+# Then use "start" in production
+```
 
 ### SSL Certificate Issues
 

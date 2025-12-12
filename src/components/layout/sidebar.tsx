@@ -90,7 +90,10 @@ export function Sidebar() {
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                  <Icon className={cn(
+                    "h-5 w-5 flex-shrink-0",
+                    isActive ? "text-blue-700" : "text-gray-600"
+                  )} aria-hidden="true" />
                   <span className="truncate">{item.label}</span>
                 </Link>
               </li>

@@ -97,6 +97,8 @@ npm run build
 
 # Verify build succeeded
 ls -la .next
+
+# Note: The postbuild script ensures prerender-manifest.json exists
 ```
 
 ### 6. Create Storage Directories
@@ -112,7 +114,7 @@ mkdir -p /var/lms/storage/{videos,pdfs,ppts,repository,avatars,certificates,thum
 
 ### 7. PM2 Configuration
 
-The project includes `ecosystem.config.js`:
+The project includes `ecosystem.config.js`. **For production**, use:
 
 ```javascript
 module.exports = {
@@ -120,11 +122,11 @@ module.exports = {
     {
       name: "lms",
       script: "npm",
-      args: "start",
+      args: "start",  // Use "start" for production (requires build)
       env: {
         NODE_ENV: "production",
       },
-      cwd: "/home/hendo420/lms",
+      cwd: "/path/to/lms",
       log_file: "logs/pm2-combined.log",
       error_file: "logs/pm2-error.log",
       out_file: "logs/pm2-out.log",
@@ -136,6 +138,18 @@ module.exports = {
   ],
 };
 ```
+
+**For development**, use:
+```javascript
+{
+  args: "run dev",  // Use "run dev" for development
+  env: {
+    NODE_ENV: "development",
+  },
+}
+```
+
+**Important:** Production requires `npm run build` before using `npm start`. Development uses `npm run dev` which doesn't require a build.
 
 **Start with PM2:**
 ```bash

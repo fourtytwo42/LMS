@@ -74,21 +74,35 @@ export async function POST(request: NextRequest) {
     // For development/testing, never use Secure flag (requires HTTPS)
     // Force secure to false for localhost/development
     const useSecure = false; // Always false for E2E tests and localhost
+    const isLocalhost = request.headers.get("host")?.includes("localhost") || 
+                        request.headers.get("host")?.includes("127.0.0.1");
     
+    // Set cookies with explicit settings for localhost
     response.cookies.set("accessToken", accessToken, {
       httpOnly: true,
       secure: useSecure,
-      sameSite: "lax", // Changed from strict to lax for better compatibility with localhost
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 3, // 3 days
       path: "/",
+      // Don't set domain for localhost - let browser handle it
     });
 
     response.cookies.set("refreshToken", refreshToken, {
       httpOnly: true,
       secure: useSecure,
-      sameSite: "lax", // Changed from strict to lax for better compatibility with localhost
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30, // 30 days
       path: "/",
+      // Don't set domain for localhost - let browser handle it
+    });
+    
+    // Log cookie settings for debugging
+    console.log("Login API - Setting cookies:", {
+      accessToken: accessToken.substring(0, 20) + "...",
+      secure: useSecure,
+      sameSite: "lax",
+      isLocalhost,
+      host: request.headers.get("host"),
     });
 
     return response;

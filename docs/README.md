@@ -44,7 +44,7 @@ The LMS is an enterprise-grade learning management system built with:
 
 **Version:** 1.0.0  
 **Status:** Production Ready  
-**Last Updated:** December 11, 2025
+**Last Updated:** December 12, 2025
 
 ### Features
 - ✅ User management with role-based access control
@@ -56,6 +56,8 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ Notifications system
 - ✅ File repository system
 - ✅ Comprehensive test coverage (80%+)
+- ✅ Demo accounts for quick testing
+- ✅ E2E testing with Playwright (75+ tests passing)
 
 ## Quick Links
 

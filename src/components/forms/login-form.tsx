@@ -45,14 +45,6 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Ensure component is mounted (client-side only)
-  useEffect(() => {
-    console.log("LoginForm mounted on client");
-    // Test if JavaScript is working
-    if (typeof window !== "undefined") {
-      console.log("Window object available - JavaScript is working");
-    }
-  }, []);
 
   const {
     control,
@@ -104,18 +96,54 @@ export function LoginForm() {
         return;
       }
 
+      // Update auth store
       login(result.user);
-      router.push("/dashboard");
+      
+      // Log success
+      console.log("Login successful, user:", result.user);
+      console.log("Response status:", response.status);
+      
+      // Note: Set-Cookie header is not accessible to JavaScript for security reasons
+      // But cookies should still be set automatically by the browser
+      console.log("Cookies should be set automatically by browser (httpOnly cookies)");
+      
+      // Test if we can make an authenticated request to verify cookies are set
+      try {
+        console.log("Testing if cookies are set by making a test API call...");
+        const testResponse = await fetch("/api/analytics/overview", {
+          method: "GET",
+          credentials: "include", // Important: include cookies
+        });
+        console.log("Test API call status:", testResponse.status);
+        if (testResponse.ok) {
+          console.log("✅ Cookies are working! API call succeeded.");
+        } else {
+          console.warn("⚠️ Cookies might not be set. API call failed with status:", testResponse.status);
+        }
+      } catch (testErr) {
+        console.error("❌ Error testing cookies:", testErr);
+      }
+      
+      // Wait a moment to ensure cookies are set
+      console.log("Waiting 1 second before redirect...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Use window.location for a full page reload to ensure cookies are available
+      console.log("Redirecting to dashboard...");
+      window.location.href = "/dashboard";
     } catch (err) {
+      // Log the full error before setting error message
+      console.error("Login error:", err);
+      if (err instanceof Error) {
+        console.error("Error message:", err.message);
+        console.error("Error stack:", err.stack);
+      }
       setError("An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
   };
 
   const handleDemoAccountClick = (account: DemoAccount) => {
-    console.log("Demo account clicked:", account);
-    
     // Update form state first - this is what Controller uses
     setValue("email", account.email, { 
       shouldValidate: false, 
@@ -141,9 +169,6 @@ export function LoginForm() {
     });
     
     setError(null);
-    
-    console.log("Values set - email:", account.email, "password:", account.password);
-    console.log("After setValue - email watch:", watch("email"), "password watch:", watch("password"));
   };
 
   return (
@@ -159,11 +184,8 @@ export function LoginForm() {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                alert(`Button clicked for: ${account.email}`);
-                console.log("Button clicked for:", account.email);
                 handleDemoAccountClick(account);
               }}
-              onMouseDown={() => console.log("Mouse down on:", account.email)}
               className="rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm transition-colors hover:border-blue-500 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 cursor-pointer"
             >
               <div className="font-medium text-gray-900">{account.name}</div>
@@ -191,7 +213,6 @@ export function LoginForm() {
           render={({ field }) => {
             // Use field.value directly from Controller
             const inputValue = field.value ?? "";
-            console.log("Email input render - field.value:", field.value, "email state:", email, "inputValue:", inputValue);
             return (
               <Input
                 id="email"
@@ -200,9 +221,7 @@ export function LoginForm() {
                 placeholder="you@example.com"
                 value={inputValue}
                 onChange={(e) => {
-                  const newValue = e.target.value;
-                  console.log("Email onChange - newValue:", newValue);
-                  setEmail(newValue);
+                  setEmail(e.target.value);
                   field.onChange(e);
                 }}
                 onBlur={field.onBlur}
@@ -224,7 +243,6 @@ export function LoginForm() {
           render={({ field }) => {
             // Use field.value directly from Controller
             const inputValue = field.value ?? "";
-            console.log("Password input render - field.value:", field.value, "password state:", password, "inputValue:", inputValue);
             return (
               <Input
                 id="password"
@@ -233,9 +251,7 @@ export function LoginForm() {
                 placeholder="••••••••"
                 value={inputValue}
                 onChange={(e) => {
-                  const newValue = e.target.value;
-                  console.log("Password onChange - newValue:", newValue);
-                  setPassword(newValue);
+                  setPassword(e.target.value);
                   field.onChange(e);
                 }}
                 onBlur={field.onBlur}

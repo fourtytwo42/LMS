@@ -20,11 +20,17 @@ export function middleware(request: NextRequest) {
   if (isProtectedRoute && !token) {
     // Debug: log all cookies to see what's available
     const allCookies = request.cookies.getAll();
-    console.log("Middleware - All cookies:", allCookies.map(c => c.name));
+    console.log("❌ Middleware - No accessToken found for protected route:", pathname);
+    console.log("   All cookies:", allCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`));
     
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+  
+  // Log successful token check
+  if (isProtectedRoute && token) {
+    console.log("✅ Middleware - accessToken found for:", pathname);
   }
 
   // If accessing auth route with valid token, redirect to dashboard
