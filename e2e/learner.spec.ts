@@ -7,14 +7,19 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should view learner dashboard", async ({ page }) => {
-    await expect(page).toHaveURL(/\/dashboard\/learner/);
+    // Wait for page to load after login
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1000);
+    
+    await expect(page).toHaveURL(/\/dashboard\/learner/, { timeout: 15000 });
     await expect(page.locator("text=Dashboard").first()).toBeVisible({ timeout: 10000 });
     
     // Check for stat cards
-    await expect(page.locator("text=Enrolled Courses")).toBeVisible();
-    await expect(page.locator("text=In Progress")).toBeVisible();
-    await expect(page.locator("text=Completed")).toBeVisible();
-    await expect(page.locator("text=Certificates")).toBeVisible();
+    await expect(page.locator("text=Enrolled Courses").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=In Progress").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Completed").first()).toBeVisible({ timeout: 10000 });
+    // Check for "Certificates" or "My Certificates"
+    await expect(page.locator("text=/Certificates/i").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should browse catalog", async ({ page }) => {

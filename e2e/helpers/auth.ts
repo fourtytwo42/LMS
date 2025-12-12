@@ -91,29 +91,31 @@ export async function loginAs(page: Page, userType: "admin" | "instructor" | "le
         tokenValue = tokenMatch[1];
         // Manually set cookie without Secure flag for localhost testing
         // Try both with and without domain for localhost compatibility
-        try {
-          await page.context().addCookies([{
-            name: "accessToken",
-            value: tokenValue,
-            domain: "localhost",
-            path: "/",
-            httpOnly: true,
-            secure: false, // Explicitly false for HTTP
-            sameSite: "Lax",
-          }]);
-        } catch (e) {
-          // If that fails, try without domain
+        if (tokenValue) {
           try {
             await page.context().addCookies([{
               name: "accessToken",
               value: tokenValue,
+              domain: "localhost",
               path: "/",
               httpOnly: true,
-              secure: false,
+              secure: false, // Explicitly false for HTTP
               sameSite: "Lax",
             }]);
-          } catch (e2) {
-            console.log("Failed to set cookie:", e2);
+          } catch (e) {
+            // If that fails, try without domain
+            try {
+              await page.context().addCookies([{
+                name: "accessToken",
+                value: tokenValue,
+                path: "/",
+                httpOnly: true,
+                secure: false,
+                sameSite: "Lax",
+              }]);
+            } catch (e2) {
+              console.log("Failed to set cookie:", e2);
+            }
           }
         }
         break;
@@ -124,8 +126,9 @@ export async function loginAs(page: Page, userType: "admin" | "instructor" | "le
   // If we couldn't extract from header, try to get from response body
   if (!tokenValue) {
     try {
-      const responseBody = await response.json();
+      await response.json();
       // Token might be in response, but usually it's only in Set-Cookie
+      // Note: We don't use the response body here, but we need to consume it
     } catch {
       // Response might not be JSON
     }

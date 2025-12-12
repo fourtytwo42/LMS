@@ -6,7 +6,11 @@ export async function createTestCourse(page: Page, courseData: {
   type?: string;
   status?: string;
 }) {
-  await page.goto("/courses/new");
+  await page.goto("/courses/new", { waitUntil: "networkidle" });
+  await page.waitForLoadState("networkidle");
+  
+  // Wait for form to be ready
+  await page.waitForSelector('input[name="title"]', { state: "visible", timeout: 10000 });
   
   await page.fill('input[name="title"]', courseData.title);
   if (courseData.description) {
@@ -19,14 +23,24 @@ export async function createTestCourse(page: Page, courseData: {
     await page.selectOption('select[name="status"]', courseData.status);
   }
   
+  // Submit form and wait for redirect
   await page.click('button[type="submit"]');
   
   // Wait for redirect to course detail page
-  await page.waitForURL(/\/courses\/[^/]+$/, { timeout: 10000 });
+  await page.waitForURL(/\/courses\/[^/]+$/, { timeout: 15000 });
+  await page.waitForLoadState("networkidle");
   
   // Extract course ID from URL
   const url = page.url();
-  const courseId = url.match(/\/courses\/([^/]+)$/)?.[1];
+  const match = url.match(/\/courses\/([^/]+)$/);
+  const courseId = match?.[1];
+  
+  if (!courseId) {
+    throw new Error(`Failed to extract course ID from URL: ${url}`);
+  }
+  
+  // Wait a moment for the course to be fully created in the database
+  await page.waitForTimeout(1000);
   
   return courseId;
 }

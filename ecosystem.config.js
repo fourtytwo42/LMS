@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "lms",
       script: "npm",
-      args: "start",
+      args: "run dev",
       cwd: "/home/hendo420/lms",
       instances: 1,
       exec_mode: "fork",
