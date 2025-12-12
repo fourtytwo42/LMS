@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="w-full">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -129,7 +129,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="w-full py-6 sm:py-8">
+    <div className="w-full space-y-6 sm:space-y-8">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
         <p className="text-gray-600 text-sm sm:text-base">
@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
           const Icon = stat.icon;
           return (
             <Link key={stat.title} href={stat.href}>
-              <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
             const Icon = action.icon;
             return (
               <Link key={action.label} href={action.href}>
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5 text-gray-600" />
                     <span className="font-medium text-gray-900">{action.label}</span>
@@ -180,7 +180,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Recent Activity or Additional Info */}
-      <Card className="p-5 sm:p-6">
+      <Card>
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">System Overview</h2>
         <div className="space-y-2.5 sm:space-y-3 text-sm text-gray-600">
           <p>• Manage all users, courses, and learning plans from this dashboard</p>

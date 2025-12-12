@@ -127,7 +127,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="p-5 sm:p-6 lg:col-span-2">
+        <Card>
           <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900">Edit Profile</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
@@ -188,7 +188,7 @@ export default function ProfilePage() {
           </form>
         </Card>
 
-        <Card className="p-5 sm:p-6">
+        <Card>
           <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900">Profile Info</h2>
           <div className="space-y-5 sm:space-y-6">
             <div className="flex justify-center">

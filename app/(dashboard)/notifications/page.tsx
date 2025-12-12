@@ -175,7 +175,7 @@ export default function NotificationsPage() {
       {loading ? (
         <div className="py-8 text-center text-gray-500">Loading notifications...</div>
       ) : notifications.length === 0 ? (
-        <Card className="p-8 text-center">
+        <Card>
           <p className="text-gray-500">No notifications found</p>
         </Card>
       ) : (

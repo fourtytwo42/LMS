@@ -80,7 +80,7 @@ export default function ContentItemPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="w-full space-y-6">
         <div className="text-center">Loading content...</div>
       </div>
     );
@@ -88,7 +88,7 @@ export default function ContentItemPage() {
 
   if (error || !contentItem) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="w-full space-y-6">
         <div className="text-center text-red-600">{error || "Content not found"}</div>
         <Button
           variant="secondary"
@@ -104,8 +104,8 @@ export default function ContentItemPage() {
 
   if (!contentItem.unlocked) {
     return (
-      <div className="container mx-auto py-8">
-        <Card className="p-8 text-center">
+      <div className="w-full space-y-6">
+        <Card className="text-center">
           <Lock className="mx-auto h-16 w-16 text-gray-400 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Content Locked</h2>
           <p className="text-gray-600 mb-4">

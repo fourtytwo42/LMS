@@ -68,11 +68,11 @@ export default function AnalyticsPage() {
   }, [isAdmin, router]);
 
   if (loading) {
-    return <div className="container mx-auto py-8">Loading analytics...</div>;
+    return <div className="w-full py-8 text-center">Loading analytics...</div>;
   }
 
   if (!data) {
-    return <div className="container mx-auto py-8">Failed to load analytics</div>;
+    return <div className="w-full py-8 text-center text-red-600">Failed to load analytics</div>;
   }
 
   const enrollmentStatusData = [
@@ -98,26 +98,26 @@ export default function AnalyticsPage() {
       <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
           <p className="mt-2 text-3xl font-bold">{data.users.total}</p>
         </Card>
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Total Courses</h3>
           <p className="mt-2 text-3xl font-bold">{data.courses.total}</p>
         </Card>
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Learning Plans</h3>
           <p className="mt-2 text-3xl font-bold">{data.learningPlans.total}</p>
         </Card>
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Total Enrollments</h3>
           <p className="mt-2 text-3xl font-bold">{data.enrollments.total}</p>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="p-6">
+        <Card>
           <h2 className="mb-4 text-xl font-semibold">Enrollment Trends</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={data.trends.enrollments}>
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6">
+        <Card>
           <h2 className="mb-4 text-xl font-semibold">Enrollment Status</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6">
+        <Card>
           <h2 className="mb-4 text-xl font-semibold">Course Status</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={courseStatusData}>
@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6">
+        <Card>
           <h2 className="mb-4 text-xl font-semibold">User Roles</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>

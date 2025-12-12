@@ -94,7 +94,7 @@ export default function CategoriesPage() {
         )}
       </div>
 
-      <Card className="p-6">
+      <Card>
         {categories.length === 0 ? (
           <div className="py-8 text-center text-gray-500">
             No categories found

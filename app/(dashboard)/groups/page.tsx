@@ -79,7 +79,7 @@ export default function GroupsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <Card key={group.id} className="p-6">
+            <Card key={group.id}>
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold">{group.name}</h3>

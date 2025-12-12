@@ -149,7 +149,7 @@ export default function EnrollmentsPage() {
         <h1 className="text-3xl font-bold">Enrollments</h1>
       </div>
 
-      <Card className="p-4">
+      <Card>
         <div className="mb-4 flex gap-4">
           <Select
             value={statusFilter}

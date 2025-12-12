@@ -153,7 +153,7 @@ export default function CoursesPage() {
         )}
       </div>
 
-      <Card className="p-4 sm:p-5">
+      <Card>
         <div className="mb-4 sm:mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <Input
@@ -204,7 +204,7 @@ export default function CoursesPage() {
           <>
             <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
-                <Card key={course.id} className="p-4 sm:p-5 hover:shadow-lg transition-shadow">
+                <Card key={course.id} className="hover:shadow-lg transition-shadow">
                   <div className="mb-4">
                     {course.thumbnail ? (
                       <img

@@ -115,7 +115,7 @@ export default function LearningPlansPage() {
         )}
       </div>
 
-      <Card className="p-4">
+      <Card>
         <div className="mb-4 flex gap-4">
           <div className="flex-1">
             <Input

@@ -166,20 +166,20 @@ export default function CatalogPage() {
 
   if (loading || isAuthLoading) {
     return (
-      <div className="container mx-auto py-8 text-center">Loading catalog...</div>
+      <div className="w-full py-8 text-center">Loading catalog...</div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto py-8 text-center text-red-500">
+      <div className="w-full py-8 text-center text-red-500">
         Error: {error}
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 sm:py-8 px-4 sm:px-6">
+    <div className="w-full space-y-6 sm:space-y-8">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Course Catalog</h1>
         <p className="text-sm sm:text-base text-gray-600">Browse and enroll in available courses and learning plans</p>
@@ -239,7 +239,7 @@ export default function CatalogPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCourses.map((course) => (
-                <Card key={course.id} className="p-5 sm:p-6 hover:shadow-lg transition-shadow">
+                <Card key={course.id} className="hover:shadow-lg transition-shadow">
                   {course.thumbnail && (
                     <img
                       src={course.thumbnail}

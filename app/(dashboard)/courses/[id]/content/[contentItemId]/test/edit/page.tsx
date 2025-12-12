@@ -151,11 +151,11 @@ export default function TestEditPage() {
   }
 
   if (loading) {
-    return <div className="container mx-auto py-8">Loading...</div>;
+    return <div className="w-full py-8 text-center">Loading...</div>;
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="w-full space-y-6">
       <Button
         variant="ghost"
         onClick={() => router.push(`/courses/${courseId}`)}
@@ -165,7 +165,7 @@ export default function TestEditPage() {
         Back to Course
       </Button>
 
-      <Card className="p-6">
+      <Card>
         <h1 className="mb-6 text-3xl font-bold">
           {test ? "Edit Test" : "Create Test"}
         </h1>

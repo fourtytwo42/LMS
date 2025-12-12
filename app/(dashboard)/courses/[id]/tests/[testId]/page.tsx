@@ -156,17 +156,17 @@ export default function TestPage() {
   };
 
   if (loading) {
-    return <div className="container mx-auto py-8">Loading test...</div>;
+    return <div className="w-full py-8 text-center">Loading test...</div>;
   }
 
   if (!test) {
-    return <div className="container mx-auto py-8">Test not found</div>;
+    return <div className="w-full py-8 text-center text-red-600">Test not found</div>;
   }
 
   if (results) {
     return (
-      <div className="container mx-auto py-8">
-        <Card className="p-6">
+      <div className="w-full space-y-6">
+        <Card>
           <div className="mb-6 text-center">
             {results.attempt.passed ? (
               <CheckCircle className="mx-auto h-16 w-16 text-green-600" />
@@ -249,7 +249,7 @@ export default function TestPage() {
 
   if (!takingTest) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="w-full space-y-6">
         <Button
           variant="ghost"
           onClick={() => router.push(`/courses/${courseId}`)}
@@ -259,7 +259,7 @@ export default function TestPage() {
           Back to Course
         </Button>
 
-        <Card className="p-6">
+        <Card>
           <h1 className="mb-4 text-3xl font-bold">{test.title}</h1>
           {test.description && (
             <p className="mb-6 text-gray-600">{test.description}</p>
@@ -321,7 +321,7 @@ export default function TestPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <Card className="p-6">
+      <Card>
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold">{test.title}</h1>
           {timeRemaining !== null && (

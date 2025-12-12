@@ -92,11 +92,11 @@ export default function CourseAnalyticsPage() {
   };
 
   if (loading) {
-    return <div className="container mx-auto py-8">Loading analytics...</div>;
+    return <div className="w-full py-8 text-center">Loading analytics...</div>;
   }
 
   if (!analytics) {
-    return <div className="container mx-auto py-8">Failed to load analytics</div>;
+    return <div className="w-full py-8 text-center text-red-600">Failed to load analytics</div>;
   }
 
   const enrollmentData = [
@@ -131,26 +131,26 @@ export default function CourseAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Total Enrollments</h3>
           <p className="mt-2 text-3xl font-bold">{analytics.enrollments.total}</p>
         </Card>
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Completion Rate</h3>
           <p className="mt-2 text-3xl font-bold">{analytics.completionRate.toFixed(1)}%</p>
         </Card>
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Average Score</h3>
           <p className="mt-2 text-3xl font-bold">{analytics.averageScore.toFixed(1)}%</p>
         </Card>
-        <Card className="p-6">
+        <Card>
           <h3 className="text-sm font-medium text-gray-500">Avg Time (min)</h3>
           <p className="mt-2 text-3xl font-bold">{analytics.averageTimeToComplete.toFixed(0)}</p>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="p-6">
+        <Card>
           <h2 className="mb-4 text-xl font-semibold">Enrollment Status</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={enrollmentData}>
@@ -163,7 +163,7 @@ export default function CourseAnalyticsPage() {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6">
+        <Card>
           <h2 className="mb-4 text-xl font-semibold">Content Item Performance</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={contentItemData}>

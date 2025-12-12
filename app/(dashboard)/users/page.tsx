@@ -170,7 +170,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <Card className="p-4">
+      <Card>
         <div className="mb-4 flex gap-4">
           <div className="flex-1">
             <Input
