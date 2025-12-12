@@ -5,6 +5,7 @@ import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 import { Footer } from "./footer";
 import { AuthProvider } from "../auth/auth-provider";
+import { CSSDebug } from "../debug/css-debug";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -13,6 +14,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <AuthProvider>
+      <CSSDebug />
       <div className="flex min-h-screen flex-col bg-gray-50">
         <Header />
         <div className="flex flex-1 flex-col md:flex-row bg-gray-50">

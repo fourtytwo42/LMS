@@ -1,0 +1,263 @@
+---
+description: Guidelines for debugging and fixing UI/CSS issues, especially Tailwind CSS class application problems
+globs:
+  - "**/*.{css,tsx,ts,jsx,js}"
+  - "app/globals.css"
+  - "src/components/**/*"
+alwaysApply: true
+---
+
+# UI/CSS Debugging and Fixing Guide
+
+This rule provides a systematic approach to debugging and fixing UI/CSS issues, particularly when Tailwind CSS classes aren't being applied correctly.
+
+## Common Issue: Tailwind Classes Not Applying
+
+### Symptoms
+- Tailwind utility classes (e.g., `p-6`, `p-8`, `text-blue-600`) are defined in code but not visually applied
+- Elements have `0px` padding/margin when classes should apply spacing
+- CSS classes are present in HTML but styles don't render
+- Console shows classes exist but computed styles show default values
+
+### Debugging Process
+
+#### Step 1: Verify CSS Generation
+**Check if Tailwind is generating the classes:**
+
+```bash
+# Check if classes exist in generated CSS
+curl -s "http://localhost:3000/_next/static/chunks/*.css" | grep -E "\.p-6|\.p-8"
+
+# Or check build output
+find .next -name "*.css" -exec grep -l "\.p-6" {} \;
+```
+
+**Expected:** Classes should be present in the CSS output like:
+```css
+.p-6{padding:calc(var(--spacing)*6)}
+.p-8{padding:calc(var(--spacing)*8)}
+```
+
+#### Step 2: Use Browser Tools
+**Navigate to the page and inspect:**
+
+1. **Use browser MCP tools** to navigate and inspect:
+   - Navigate to the problematic page
+   - Take a snapshot to see the current state
+   - Check console messages for CSS debug info
+   - Inspect network requests for CSS files
+
+2. **Check computed styles:**
+   - Inspect an element that should have padding
+   - Verify the class is in the HTML (`className` attribute)
+   - Check computed styles in browser DevTools
+   - Look for CSS variables (e.g., `--spacing: .25rem`)
+
+#### Step 3: Check for CSS Reset Conflicts
+**Most common issue: Global CSS resets overriding Tailwind classes**
+
+**Problem Pattern:**
+```css
+/* ❌ BAD - This overrides ALL padding, including Tailwind classes */
+* {
+  padding: 0;
+  margin: 0;
+}
+```
+
+**Solution:**
+```css
+/* ✅ GOOD - Only reset margin, let Tailwind handle padding */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  /* Don't reset padding - let Tailwind classes handle it */
+}
+```
+
+**Check these files:**
+- `app/globals.css` - Look for universal selectors (`*`) with padding/margin resets
+- Any global CSS files that might have resets
+- Component-level CSS that might override utilities
+
+#### Step 4: Verify CSS Variable Resolution
+**Tailwind v4 uses CSS variables, ensure they're defined:**
+
+```css
+/* Check if --spacing variable exists */
+:root {
+  --spacing: .25rem;
+}
+```
+
+**In browser console:**
+```javascript
+getComputedStyle(document.documentElement).getPropertyValue('--spacing')
+// Should return: ".25rem"
+```
+
+#### Step 5: Check Specificity Issues
+**Ensure Tailwind classes have proper specificity:**
+
+- Tailwind utility classes should have higher specificity than resets
+- Check for inline styles overriding classes
+- Verify no `!important` rules are conflicting
+- Check if component CSS is overriding utilities
+
+### Fix Pattern: CSS Reset Conflicts
+
+**When Tailwind classes exist but don't apply, check for:**
+
+1. **Universal selector resets:**
+   ```css
+   * { padding: 0; }  /* ❌ Removes all padding */
+   ```
+
+2. **Element-specific resets:**
+   ```css
+   div { padding: 0; }  /* ❌ Removes padding from all divs */
+   ```
+
+3. **Component-level overrides:**
+   ```css
+   .card { padding: 0 !important; }  /* ❌ Overrides utility classes */
+   ```
+
+**Fix by:**
+- Removing padding resets from universal selectors
+- Using more specific selectors for resets (e.g., `html, body` instead of `*`)
+- Letting Tailwind utility classes handle spacing
+
+### Example Fix
+
+**Before (Broken):**
+```css
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;  /* ❌ This overrides all Tailwind padding classes */
+}
+```
+
+**After (Fixed):**
+```css
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  /* Don't reset padding - let Tailwind classes handle it */
+}
+```
+
+### Debugging Checklist
+
+When CSS classes aren't applying:
+
+- [ ] **CSS Generation:** Are classes present in generated CSS files?
+- [ ] **HTML Classes:** Are classes present in the HTML `className` attribute?
+- [ ] **Computed Styles:** What do browser DevTools show for computed styles?
+- [ ] **CSS Variables:** Are Tailwind CSS variables defined and resolving?
+- [ ] **Reset Conflicts:** Is there a global CSS reset overriding utilities?
+- [ ] **Specificity:** Are there conflicting styles with higher specificity?
+- [ ] **Build Process:** Has the CSS been rebuilt after changes?
+- [ ] **Browser Cache:** Has the browser cache been cleared (hard refresh)?
+
+### Using CSS Debug Component
+
+**The project includes a `CSSDebug` component for automated debugging:**
+
+```tsx
+// Already included in dashboard layout
+import { CSSDebug } from "@/components/debug/css-debug";
+
+// It automatically logs:
+// - Tailwind CSS loaded status
+// - Class detection in stylesheets
+// - CSS variable values
+// - Computed styles for test elements
+// - Actual card element padding values
+```
+
+**Check browser console for:**
+```
+🎨 CSS Debug Information
+- Tailwind CSS Loaded: true/false
+- Tailwind Classes Found: true/false
+- Spacing CSS Variable: .25rem
+- Test Padding: 24px (expected) vs 0px (if broken)
+- First Card Padding: [actual values]
+```
+
+### Common Solutions
+
+1. **Remove padding from universal reset:**
+   ```css
+   * { padding: 0; }  /* Remove this line */
+   ```
+
+2. **Ensure Tailwind content paths are correct:**
+   ```css
+   @import "tailwindcss";
+   /* @source directives or tailwind.config.ts content paths */
+   ```
+
+3. **Rebuild CSS after changes:**
+   ```bash
+   rm -rf .next
+   npm run build
+   pm2 restart lms
+   ```
+
+4. **Clear browser cache:**
+   - Hard refresh: `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
+   - Or use incognito/private browsing mode
+
+### Prevention
+
+**To prevent this issue:**
+
+1. **Avoid universal padding resets:**
+   ```css
+   /* ❌ Don't do this */
+   * { padding: 0; }
+   
+   /* ✅ Do this instead */
+   html, body { padding: 0; }
+   ```
+
+2. **Use Tailwind's reset (included by default):**
+   - Tailwind includes its own reset via `@import "tailwindcss"`
+   - Don't add additional resets that conflict
+
+3. **Be specific with resets:**
+   ```css
+   /* ✅ Specific resets are fine */
+   html, body {
+     margin: 0;
+     padding: 0;
+   }
+   
+   /* ✅ But don't reset on * */
+   ```
+
+### Integration with Other Rules
+
+- Follow [test-until-all-pass.mdc](mdc:.cursor/rules/test-until-all-pass.mdc) when fixing CSS issues
+- Use [use-scratch-pad.mdc](mdc:.cursor/rules/use-scratch-pad.mdc) to track debugging steps
+- Update [debugging-tracker.mdc](mdc:.cursor/rules/debugging-tracker.mdc) for persistent CSS issues
+
+### Quick Reference
+
+**When Tailwind classes don't apply:**
+1. ✅ Check CSS generation (classes exist in CSS files)
+2. ✅ Check HTML (classes present in className)
+3. ✅ Check computed styles (browser DevTools)
+4. ✅ Check for CSS reset conflicts (universal selectors)
+5. ✅ Check CSS variables (--spacing defined)
+6. ✅ Rebuild and hard refresh
+
+**Most common fix:**
+Remove `padding: 0` from universal selector (`*`) in global CSS files.

@@ -3,7 +3,7 @@
 * {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
+  /* Don't reset padding - let Tailwind classes handle it */
 }
 
 html {
@@ -75,18 +75,7 @@ button {
   transition: all 0.2s ease-in-out;
 }
 
-/* Improve card spacing */
-.card,
-[class*="card"] {
-  padding: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .card,
-  [class*="card"] {
-    padding: 2rem;
-  }
-}
+/* Card spacing is handled by Tailwind classes - removed to avoid conflicts */
 
 @layer utilities {
   .text-balance {

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { loginSchema, type LoginInput } from "@/lib/utils/validation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 ];
 
 export function LoginForm() {
-  const router = useRouter();
   const { login } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
