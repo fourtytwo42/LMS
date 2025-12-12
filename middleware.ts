@@ -16,7 +16,12 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
   // If accessing protected route without token, redirect to login
+  // But first check if token exists but wasn't read correctly
   if (isProtectedRoute && !token) {
+    // Debug: log all cookies to see what's available
+    const allCookies = request.cookies.getAll();
+    console.log("Middleware - All cookies:", allCookies.map(c => c.name));
+    
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);

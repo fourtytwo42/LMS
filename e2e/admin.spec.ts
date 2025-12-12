@@ -8,19 +8,32 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should view admin dashboard", async ({ page }) => {
-    await expect(page).toHaveURL(/\/dashboard\/admin/);
-    await expect(page.locator("text=Dashboard")).toBeVisible();
+    // Wait for page to load after login and role redirect
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2000); // Give time for role redirect
+    
+    // Check we're on the admin dashboard (may be /dashboard or /dashboard/admin)
+    const url = page.url();
+    expect(url).toMatch(/\/dashboard/);
+    
+    // If not on /dashboard/admin yet, wait for redirect
+    if (!url.includes("/dashboard/admin")) {
+      await page.waitForURL(/\/dashboard\/admin/, { timeout: 10000 });
+    }
+    
+    await expect(page.locator("text=Dashboard").first()).toBeVisible({ timeout: 10000 });
     
     // Check for admin-specific stats
-    await expect(page.locator("text=Total Users").or(page.locator("text=Users"))).toBeVisible();
-    await expect(page.locator("text=Total Courses").or(page.locator("text=Courses"))).toBeVisible();
+    await expect(page.locator("text=Total Users").first()).toBeVisible();
+    await expect(page.locator("text=Total Courses").first()).toBeVisible();
   });
 
   test("should view all users", async ({ page }) => {
-    await page.goto("/users");
+    await page.goto("/users", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
-    // Check users page loads
-    await expect(page.locator("text=Users").or(page.locator("h1"))).toBeVisible();
+    // Check users page loads - use more specific selector
+    await expect(page.locator("text=Users").first()).toBeVisible({ timeout: 10000 });
     
     // Check for user list or table
     const users = page.locator('[data-testid="user"], .user-item, table tbody tr');
@@ -34,7 +47,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should create a new user", async ({ page }) => {
-    await page.goto("/users/new");
+    await page.goto("/users/new", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Fill in user form
     const timestamp = Date.now();
@@ -57,7 +71,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should edit an existing user", async ({ page }) => {
-    await page.goto("/users");
+    await page.goto("/users", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Find a user to edit
@@ -84,7 +99,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should delete a user", async ({ page }) => {
-    await page.goto("/users");
+    await page.goto("/users", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Find delete button
@@ -106,10 +122,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should manage courses", async ({ page }) => {
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check courses page loads
-    await expect(page.locator("text=Courses").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Courses").first()).toBeVisible({ timeout: 10000 });
     
     // Check for create course button
     const createButton = page.locator('a[href="/courses/new"], button:has-text("Create")');
@@ -119,7 +136,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should create a course", async ({ page }) => {
-    await page.goto("/courses/new");
+    await page.goto("/courses/new", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Fill in course form
     await page.fill('input[name="title"]', `Admin Course ${Date.now()}`);
@@ -133,10 +151,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should manage learning plans", async ({ page }) => {
-    await page.goto("/learning-plans");
+    await page.goto("/learning-plans", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check learning plans page loads
-    await expect(page.locator("text=Learning Plan").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Learning Plan").first()).toBeVisible();
     
     // Check for create button
     const createButton = page.locator('a[href="/learning-plans/new"], button:has-text("Create")');
@@ -146,7 +165,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should create a learning plan", async ({ page }) => {
-    await page.goto("/learning-plans/new");
+    await page.goto("/learning-plans/new", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Fill in learning plan form
     await page.fill('input[name="title"], input[name="name"]', `Learning Plan ${Date.now()}`);
@@ -159,10 +179,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should manage groups", async ({ page }) => {
-    await page.goto("/groups");
+    await page.goto("/groups", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check groups page loads
-    await expect(page.locator("text=Group").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Group").first()).toBeVisible();
     
     // Check for create button
     const createButton = page.locator('a[href="/groups/new"], button:has-text("Create")');
@@ -172,7 +193,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should create a group", async ({ page }) => {
-    await page.goto("/groups/new");
+    await page.goto("/groups/new", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Fill in group form
     await page.fill('input[name="name"]', `Test Group ${Date.now()}`);
@@ -185,10 +207,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should manage categories", async ({ page }) => {
-    await page.goto("/categories");
+    await page.goto("/categories", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check categories page loads
-    await expect(page.locator("text=Categor").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Categor").first()).toBeVisible();
     
     // Check for create button
     const createButton = page.locator('a[href="/categories/new"], button:has-text("Create")');
@@ -198,7 +221,8 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should create a category", async ({ page }) => {
-    await page.goto("/categories/new");
+    await page.goto("/categories/new", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Fill in category form
     await page.fill('input[name="name"]', `Category ${Date.now()}`);
@@ -211,10 +235,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should view all enrollments", async ({ page }) => {
-    await page.goto("/enrollments");
+    await page.goto("/enrollments", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check enrollments page loads
-    await expect(page.locator("text=Enrollment").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Enrollment").first()).toBeVisible();
     
     // Check for filters or search
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]');
@@ -222,18 +247,20 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should view system analytics", async ({ page }) => {
-    await page.goto("/analytics");
+    await page.goto("/analytics", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check analytics page loads
-    await expect(page.locator("text=Analytics").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Analytics").first()).toBeVisible();
     
     // Check for analytics overview
-    await expect(page.locator("text=Overview").or(page.locator("h2"))).toBeVisible();
+    await expect(page.locator("text=Overview").first()).toBeVisible();
   });
 
   test("should view user analytics", async ({ page }) => {
     // First get a user
-    await page.goto("/users");
+    await page.goto("/users", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     const userLink = page.locator('a[href^="/users/"]:not([href="/users/new"])').first();
@@ -255,10 +282,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should view and update profile", async ({ page }) => {
-    await page.goto("/profile");
+    await page.goto("/profile", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check profile page loads
-    await expect(page.locator("text=Profile").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Profile").first()).toBeVisible();
     
     // Update profile
     await page.fill('input[name="firstName"]', "Admin");
@@ -272,10 +300,11 @@ test.describe("ADMIN Role - Client Functions", () => {
   });
 
   test("should view notifications", async ({ page }) => {
-    await page.goto("/notifications");
+    await page.goto("/notifications", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check notifications page loads
-    await expect(page.locator("text=Notification").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Notification").first()).toBeVisible();
   });
 
   test("should logout", async ({ page }) => {

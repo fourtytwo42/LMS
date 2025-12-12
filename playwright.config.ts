@@ -10,6 +10,8 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
+    // Allow insecure cookies for localhost testing
+    ignoreHTTPSErrors: true,
   },
   projects: [
     {

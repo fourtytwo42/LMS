@@ -59,7 +59,10 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@lms.com" },
-    update: {},
+    update: {
+      passwordHash: adminPassword,
+      emailVerified: true,
+    },
     create: {
       email: "admin@lms.com",
       passwordHash: adminPassword,
@@ -80,10 +83,24 @@ async function main() {
       },
     },
   });
+  
+  // Ensure admin has ADMIN role (in case user existed without role)
+  const adminHasRole = admin.roles.some(ur => ur.role.name === "ADMIN");
+  if (!adminHasRole) {
+    await prisma.userRole.create({
+      data: {
+        userId: admin.id,
+        roleId: adminRole.id,
+      },
+    });
+  }
 
   const instructor = await prisma.user.upsert({
     where: { email: "instructor@lms.com" },
-    update: {},
+    update: {
+      passwordHash: instructorPassword,
+      emailVerified: true,
+    },
     create: {
       email: "instructor@lms.com",
       passwordHash: instructorPassword,
@@ -104,10 +121,24 @@ async function main() {
       },
     },
   });
+  
+  // Ensure instructor has INSTRUCTOR role
+  const instructorHasRole = instructor.roles.some(ur => ur.role.name === "INSTRUCTOR");
+  if (!instructorHasRole) {
+    await prisma.userRole.create({
+      data: {
+        userId: instructor.id,
+        roleId: instructorRole.id,
+      },
+    });
+  }
 
   const learner = await prisma.user.upsert({
     where: { email: "learner@lms.com" },
-    update: {},
+    update: {
+      passwordHash: learnerPassword,
+      emailVerified: true,
+    },
     create: {
       email: "learner@lms.com",
       passwordHash: learnerPassword,
@@ -128,6 +159,17 @@ async function main() {
       },
     },
   });
+  
+  // Ensure learner has LEARNER role
+  const learnerHasRole = learner.roles.some(ur => ur.role.name === "LEARNER");
+  if (!learnerHasRole) {
+    await prisma.userRole.create({
+      data: {
+        userId: learner.id,
+        roleId: learnerRole.id,
+      },
+    });
+  }
 
   console.log("Seed data created:", {
     roles: [learnerRole.name, instructorRole.name, adminRole.name],

@@ -35,19 +35,23 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should view profile page", async ({ page }) => {
-        await page.goto("/profile");
+        await page.goto("/profile", { waitUntil: "networkidle" });
+        await page.waitForLoadState("networkidle");
+        await page.waitForTimeout(2000);
         
-        // Check profile page loads
-        await expect(page.locator("text=Profile").or(page.locator("h1"))).toBeVisible();
+        // Check profile page loads - use more specific selector
+        await expect(page.locator("text=Profile").first()).toBeVisible({ timeout: 15000 });
         
-        // Check for user information
-        await expect(page.locator('input[name="firstName"]')).toBeVisible();
-        await expect(page.locator('input[name="lastName"]')).toBeVisible();
-        await expect(page.locator('input[name="email"]')).toBeVisible();
+        // Check for user information - email is disabled input, so check by value attribute or label
+        await expect(page.locator('input[name="firstName"]').first()).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('input[name="lastName"]').first()).toBeVisible({ timeout: 15000 });
+        // Email is a disabled input, check for label or the input itself
+        await expect(page.locator('label:has-text("Email")').first()).toBeVisible({ timeout: 15000 });
       });
 
       test("should update profile information", async ({ page }) => {
-        await page.goto("/profile");
+        await page.goto("/profile", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         
         // Update first name
         const firstNameInput = page.locator('input[name="firstName"]');
@@ -74,10 +78,12 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should view notifications", async ({ page }) => {
-        await page.goto("/notifications");
+        await page.goto("/notifications", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("networkidle");
         
-        // Check notifications page loads
-        await expect(page.locator("text=Notification").or(page.locator("h1"))).toBeVisible();
+        // Check notifications page loads - wait for content
+        await expect(page.locator("text=Notification").first()).toBeVisible({ timeout: 10000 });
         
         // Check for notification list
         const notifications = page.locator('[data-testid="notification"], .notification-item');
@@ -85,7 +91,8 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should mark notification as read", async ({ page }) => {
-        await page.goto("/notifications");
+        await page.goto("/notifications", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         await page.waitForLoadState("networkidle");
         
         // Find an unread notification
@@ -108,10 +115,15 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should browse catalog", async ({ page }) => {
-        await page.goto("/catalog");
+        await page.goto("/catalog", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("networkidle");
         
-        // Check catalog page loads
-        await expect(page.locator("text=Catalog").or(page.locator("h1"))).toBeVisible();
+        // Wait for loading to complete
+        await page.waitForSelector('text=Loading catalog...', { state: "hidden", timeout: 30000 }).catch(() => {});
+        
+        // Check catalog page loads - use more specific selector
+        await expect(page.locator("text=Catalog").first()).toBeVisible({ timeout: 10000 });
         
         // Check for search functionality
         const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]');
@@ -126,7 +138,8 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should search in catalog", async ({ page }) => {
-        await page.goto("/catalog");
+        await page.goto("/catalog", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         await page.waitForLoadState("networkidle");
         
         const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]');
@@ -143,7 +156,8 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should filter catalog by category", async ({ page }) => {
-        await page.goto("/catalog");
+        await page.goto("/catalog", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         await page.waitForLoadState("networkidle");
         
         // Look for category filter
@@ -171,7 +185,8 @@ test.describe("Shared Features - All User Types", () => {
 
       test("should use demo account buttons on login page", async ({ page }) => {
         await logout(page);
-        await page.goto("/login");
+        await page.goto("/login", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         
         // Check for demo account buttons
         const demoButtons = page.locator('button:has-text("Admin"), button:has-text("Instructor"), button:has-text("Learner")');
@@ -220,7 +235,8 @@ test.describe("Shared Features - All User Types", () => {
       });
 
       test("should handle form validation errors", async ({ page }) => {
-        await page.goto("/profile");
+        await page.goto("/profile", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         
         // Try to submit empty required fields
         const firstNameInput = page.locator('input[name="firstName"]');
@@ -243,40 +259,55 @@ test.describe("Shared Features - All User Types", () => {
 
       test("should handle loading states", async ({ page }) => {
         // Navigate to a page that loads data
-        await page.goto("/courses");
+        await page.goto("/courses", { waitUntil: "networkidle" });
+        await page.waitForLoadState("networkidle");
         
         // Check for loading indicators (may appear briefly)
-        const loadingIndicator = page.locator('text=/loading/i, [aria-busy="true"], .animate-pulse');
-        // Loading may or may not be visible depending on speed
-        expect(await loadingIndicator.count()).toBeGreaterThanOrEqual(0);
+        // Use separate locators to avoid regex syntax issues
+        const loadingText = page.locator('text=/loading/i').first();
+        const loadingBusy = page.locator('[aria-busy="true"]').first();
+        const loadingPulse = page.locator('.animate-pulse').first();
         
-        // Wait for page to fully load
+        // Loading may or may not be visible depending on speed
+        // Just verify page loads successfully
         await page.waitForLoadState("networkidle");
+        await expect(page.locator("text=Courses").first()).toBeVisible({ timeout: 15000 });
       });
 
       test("should handle error states", async ({ page }) => {
         // Try to access a non-existent resource
-        await page.goto("/courses/non-existent-id");
+        await page.goto("/courses/non-existent-id", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         await page.waitForLoadState("networkidle");
         
         // Should show 404 or error message
-        const errorMessage = page.locator('text=/not found|404|error/i').or(page.locator('h1:has-text("404")'));
+        const errorMessage = page.locator('text=/not found|404|error/i').first().or(page.locator('h1:has-text("404")').first());
         // Error may or may not be shown depending on implementation
         expect(await errorMessage.count()).toBeGreaterThanOrEqual(0);
       });
 
       test("should maintain session across page navigation", async ({ page }) => {
-        // Already logged in from beforeEach, just navigate to dashboard
-        await page.goto("/dashboard");
-        await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+        // Already logged in from beforeEach, determine role-specific dashboard
+        let roleDashboard = "/dashboard/learner";
+        if (userType === "admin") {
+          roleDashboard = "/dashboard/admin";
+        } else if (userType === "instructor") {
+          roleDashboard = "/dashboard/instructor";
+        }
+        
+        // Navigate to dashboard
+        await page.goto(roleDashboard, { waitUntil: "networkidle" });
+        await expect(page).toHaveURL(new RegExp(roleDashboard.replace("/", "\\/")), { timeout: 15000 });
         
         // Navigate to another page
-        await page.goto("/profile");
-        await expect(page).toHaveURL(/\/profile/);
+        await page.goto("/profile", { waitUntil: "networkidle" });
+        await page.waitForLoadState("networkidle");
+        await expect(page).toHaveURL(/\/profile/, { timeout: 15000 });
         
         // Navigate back - should still be authenticated
-        await page.goto("/dashboard");
-        await expect(page).toHaveURL(/\/dashboard/);
+        await page.goto(roleDashboard, { waitUntil: "networkidle" });
+        await page.waitForLoadState("networkidle");
+        await expect(page).toHaveURL(new RegExp(roleDashboard.replace("/", "\\/")), { timeout: 15000 });
         
         // Should not be redirected to login
         await expect(page).not.toHaveURL(/\/login/);
@@ -287,7 +318,8 @@ test.describe("Shared Features - All User Types", () => {
         await expect(page).toHaveURL(/\/login/);
         
         // Try to access protected route
-        await page.goto("/dashboard");
+        await page.goto("/dashboard", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
         
         // Should be redirected back to login
         await expect(page).toHaveURL(/\/login/);

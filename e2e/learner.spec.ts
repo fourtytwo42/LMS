@@ -8,7 +8,7 @@ test.describe("LEARNER Role - Client Functions", () => {
 
   test("should view learner dashboard", async ({ page }) => {
     await expect(page).toHaveURL(/\/dashboard\/learner/);
-    await expect(page.locator("text=Dashboard")).toBeVisible();
+    await expect(page.locator("text=Dashboard").first()).toBeVisible({ timeout: 10000 });
     
     // Check for stat cards
     await expect(page.locator("text=Enrolled Courses")).toBeVisible();
@@ -18,10 +18,11 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should browse catalog", async ({ page }) => {
-    await page.goto("/catalog");
+    await page.goto("/catalog", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check catalog page loads
-    await expect(page.locator("text=Catalog").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Catalog").first()).toBeVisible();
     
     // Check for search/filter functionality
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]');
@@ -32,10 +33,11 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should view courses list", async ({ page }) => {
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check courses page loads
-    await expect(page.locator("text=Courses").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Courses").first()).toBeVisible();
     
     // Check for course cards or list
     const courseCards = page.locator('[data-testid="course-card"], .course-card, article');
@@ -46,7 +48,8 @@ test.describe("LEARNER Role - Client Functions", () => {
 
   test("should view course details", async ({ page }) => {
     // First, get a course ID from the courses page
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Try to find a course link
@@ -67,7 +70,8 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should self-enroll in a course from catalog", async ({ page }) => {
-    await page.goto("/catalog");
+    await page.goto("/catalog", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Look for enroll button
@@ -92,7 +96,8 @@ test.describe("LEARNER Role - Client Functions", () => {
 
   test("should view course content", async ({ page }) => {
     // Navigate to a course first
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     const courseLink = page.locator('a[href^="/courses/"]').first();
@@ -120,7 +125,8 @@ test.describe("LEARNER Role - Client Functions", () => {
 
   test("should take a test", async ({ page }) => {
     // Navigate to a course with a test
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     const courseLink = page.locator('a[href^="/courses/"]').first();
@@ -154,7 +160,8 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should view progress", async ({ page }) => {
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Progress should be visible on course cards or detail pages
@@ -164,10 +171,11 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should view certificates", async ({ page }) => {
-    await page.goto("/certificates");
+    await page.goto("/certificates", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check certificates page loads
-    await expect(page.locator("text=Certificate").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Certificate").first()).toBeVisible();
     
     // Certificates may or may not exist
     const certificateCards = page.locator('[data-testid="certificate"], .certificate-card');
@@ -175,10 +183,11 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should view and update profile", async ({ page }) => {
-    await page.goto("/profile");
+    await page.goto("/profile", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check profile page loads
-    await expect(page.locator("text=Profile").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Profile").first()).toBeVisible();
     
     // Check for profile fields
     await expect(page.locator('input[name="firstName"]')).toBeVisible();
@@ -203,10 +212,11 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should view notifications", async ({ page }) => {
-    await page.goto("/notifications");
+    await page.goto("/notifications", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check notifications page loads
-    await expect(page.locator("text=Notification").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Notification").first()).toBeVisible();
     
     // Notifications may or may not exist
     const notifications = page.locator('[data-testid="notification"], .notification-item');
@@ -214,7 +224,8 @@ test.describe("LEARNER Role - Client Functions", () => {
   });
 
   test("should mark notification as read", async ({ page }) => {
-    await page.goto("/notifications");
+    await page.goto("/notifications", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Look for unread notification

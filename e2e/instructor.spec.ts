@@ -9,14 +9,15 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
 
   test("should view instructor dashboard", async ({ page }) => {
     await expect(page).toHaveURL(/\/dashboard\/instructor/);
-    await expect(page.locator("text=Dashboard")).toBeVisible();
+    await expect(page.locator("text=Dashboard").first()).toBeVisible({ timeout: 10000 });
     
     // Check for instructor-specific stats
-    await expect(page.locator("text=My Courses").or(page.locator("text=Courses"))).toBeVisible();
+    await expect(page.locator("text=My Courses").first()).toBeVisible();
   });
 
   test("should create a new course", async ({ page }) => {
-    await page.goto("/courses/new");
+    await page.goto("/courses/new", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Fill in course form
     await page.fill('input[name="title"]', `Test Course ${Date.now()}`);
@@ -38,7 +39,8 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
 
   test("should edit an existing course", async ({ page }) => {
     // First, navigate to courses list
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Find a course to edit (look for edit button or link)
@@ -71,7 +73,8 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
 
   test("should add content to a course", async ({ page }) => {
     // Create or navigate to a course
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     const courseLink = page.locator('a[href^="/courses/"]:not([href*="/edit"])').first();
@@ -111,7 +114,8 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
 
   test("should create a test", async ({ page }) => {
     // Navigate to a course
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     const courseLink = page.locator('a[href^="/courses/"]:not([href*="/edit"])').first();
@@ -139,10 +143,11 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
   });
 
   test("should view enrollments", async ({ page }) => {
-    await page.goto("/enrollments");
+    await page.goto("/enrollments", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check enrollments page loads
-    await expect(page.locator("text=Enrollment").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Enrollment").first()).toBeVisible();
     
     // Check for enrollment list or table
     const enrollments = page.locator('[data-testid="enrollment"], .enrollment-item, table tbody tr');
@@ -150,7 +155,8 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
   });
 
   test("should approve enrollment request", async ({ page }) => {
-    await page.goto("/enrollments");
+    await page.goto("/enrollments", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     // Look for pending enrollment with approve button
@@ -171,10 +177,11 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
   });
 
   test("should view analytics", async ({ page }) => {
-    await page.goto("/analytics");
+    await page.goto("/analytics", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check analytics page loads
-    await expect(page.locator("text=Analytics").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Analytics").first()).toBeVisible();
     
     // Check for analytics charts or data
     const charts = page.locator('canvas, svg, [data-testid="chart"]');
@@ -183,7 +190,8 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
 
   test("should view course analytics", async ({ page }) => {
     // First get a course
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     await page.waitForLoadState("networkidle");
     
     const courseLink = page.locator('a[href^="/courses/"]:not([href*="/edit"])').first();
@@ -205,10 +213,11 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
   });
 
   test("should view courses list", async ({ page }) => {
-    await page.goto("/courses");
+    await page.goto("/courses", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check courses page loads
-    await expect(page.locator("text=Courses").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Courses").first()).toBeVisible();
     
     // Check for create course button (instructors can create)
     const createButton = page.locator('a[href="/courses/new"], button:has-text("Create"), button:has-text("New Course")');
@@ -218,27 +227,30 @@ test.describe("INSTRUCTOR Role - Client Functions", () => {
   });
 
   test("should browse catalog", async ({ page }) => {
-    await page.goto("/catalog");
+    await page.goto("/catalog", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check catalog page loads
-    await expect(page.locator("text=Catalog").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Catalog").first()).toBeVisible();
   });
 
   test("should view and update profile", async ({ page }) => {
-    await page.goto("/profile");
+    await page.goto("/profile", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check profile page loads
-    await expect(page.locator("text=Profile").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Profile").first()).toBeVisible();
     
     // Check for profile fields
     await expect(page.locator('input[name="firstName"]')).toBeVisible();
   });
 
   test("should view notifications", async ({ page }) => {
-    await page.goto("/notifications");
+    await page.goto("/notifications", { waitUntil: "networkidle" });
+    await page.waitForLoadState("networkidle");
     
     // Check notifications page loads
-    await expect(page.locator("text=Notification").or(page.locator("h1"))).toBeVisible();
+    await expect(page.locator("text=Notification").first()).toBeVisible();
   });
 
   test("should logout", async ({ page }) => {

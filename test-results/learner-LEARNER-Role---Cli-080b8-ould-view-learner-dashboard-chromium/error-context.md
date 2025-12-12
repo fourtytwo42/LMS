@@ -2,44 +2,107 @@
 
 ```yaml
 - generic [active] [ref=e1]:
-  - alert [ref=e2]
-  - generic [ref=e4]:
-    - generic [ref=e5]:
-      - heading "LMS" [level=1] [ref=e6]
-      - paragraph [ref=e7]: Learning Management System
-    - generic [ref=e8]:
-      - heading "Log in to your account" [level=2] [ref=e9]
-      - generic [ref=e10]:
-        - generic [ref=e11]:
-          - paragraph [ref=e12]: Demo Accounts (Click to fill)
-          - generic [ref=e13]:
-            - button "Admin User ADMIN admin@lms.com" [ref=e14] [cursor=pointer]:
-              - generic [ref=e15]: Admin User
-              - generic [ref=e16]: ADMIN
-              - generic [ref=e17]: admin@lms.com
-            - button "Instructor Demo INSTRUCTOR instructor@lms.com" [ref=e18] [cursor=pointer]:
-              - generic [ref=e19]: Instructor Demo
-              - generic [ref=e20]: INSTRUCTOR
-              - generic [ref=e21]: instructor@lms.com
-            - button "Learner Demo LEARNER learner@lms.com" [ref=e22] [cursor=pointer]:
-              - generic [ref=e23]: Learner Demo
-              - generic [ref=e24]: LEARNER
-              - generic [ref=e25]: learner@lms.com
-        - generic [ref=e26]:
-          - generic [ref=e27]:
-            - generic [ref=e28]: Email
-            - textbox "Email" [ref=e31]:
-              - /placeholder: you@example.com
-          - generic [ref=e32]:
-            - generic [ref=e33]: Password
-            - textbox "Password" [ref=e36]:
-              - /placeholder: ••••••••
-          - button "Log in" [ref=e38]
-      - generic [ref=e39]:
-        - link "Forgot password?" [ref=e41] [cursor=pointer]:
-          - /url: /forgot-password
-        - generic [ref=e42]:
-          - text: Don't have an account?
-          - link "Register" [ref=e43] [cursor=pointer]:
-            - /url: /register
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Learner Demo" [ref=e13]:
+            - generic [ref=e14]: LD
+            - generic [ref=e15]: Learner Demo
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation [ref=e22]:
+          - list [ref=e23]:
+            - listitem [ref=e24]:
+              - link "Dashboard" [ref=e25] [cursor=pointer]:
+                - /url: /dashboard
+                - img [ref=e26]
+                - generic [ref=e31]: Dashboard
+            - listitem [ref=e32]:
+              - link "Catalog" [ref=e33] [cursor=pointer]:
+                - /url: /catalog
+                - img [ref=e34]
+                - generic [ref=e36]: Catalog
+            - listitem [ref=e37]:
+              - link "My Courses" [ref=e38] [cursor=pointer]:
+                - /url: /courses
+                - img [ref=e39]
+                - generic [ref=e41]: My Courses
+            - listitem [ref=e42]:
+              - link "Certificates" [ref=e43] [cursor=pointer]:
+                - /url: /certificates
+                - img [ref=e44]
+                - generic [ref=e46]: Certificates
+            - listitem [ref=e47]:
+              - link "Notifications" [ref=e48] [cursor=pointer]:
+                - /url: /notifications
+                - img [ref=e49]
+                - generic [ref=e52]: Notifications
+            - listitem [ref=e53]:
+              - link "Profile" [ref=e54] [cursor=pointer]:
+                - /url: /profile
+                - img [ref=e55]
+                - generic [ref=e60]: Profile
+      - main [ref=e61]:
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - heading "My Dashboard" [level=1] [ref=e65]
+            - paragraph [ref=e66]: Welcome back, Learner Demo! Continue your learning journey.
+          - generic [ref=e67]:
+            - link "Enrolled Courses 0" [ref=e68] [cursor=pointer]:
+              - /url: /courses
+              - generic [ref=e70]:
+                - generic [ref=e71]:
+                  - paragraph [ref=e72]: Enrolled Courses
+                  - paragraph [ref=e73]: "0"
+                - img [ref=e75]
+            - link "In Progress 0" [ref=e77] [cursor=pointer]:
+              - /url: /courses?status=active
+              - generic [ref=e79]:
+                - generic [ref=e80]:
+                  - paragraph [ref=e81]: In Progress
+                  - paragraph [ref=e82]: "0"
+                - img [ref=e84]
+            - link "Completed 0" [ref=e87] [cursor=pointer]:
+              - /url: /courses?status=completed
+              - generic [ref=e89]:
+                - generic [ref=e90]:
+                  - paragraph [ref=e91]: Completed
+                  - paragraph [ref=e92]: "0"
+                - img [ref=e94]
+            - link "Certificates 0" [ref=e97] [cursor=pointer]:
+              - /url: /certificates
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - paragraph [ref=e101]: Certificates
+                  - paragraph [ref=e102]: "0"
+                - img [ref=e104]
+          - generic [ref=e107]:
+            - heading "Quick Actions" [level=2] [ref=e108]
+            - generic [ref=e109]:
+              - link "Browse Catalog" [ref=e110] [cursor=pointer]:
+                - /url: /catalog
+                - generic [ref=e112]:
+                  - img [ref=e113]
+                  - generic [ref=e115]: Browse Catalog
+              - link "My Courses" [ref=e116] [cursor=pointer]:
+                - /url: /courses
+                - generic [ref=e118]:
+                  - img [ref=e119]
+                  - generic [ref=e122]: My Courses
+              - link "My Certificates" [ref=e123] [cursor=pointer]:
+                - /url: /certificates
+                - generic [ref=e125]:
+                  - img [ref=e126]
+                  - generic [ref=e129]: My Certificates
+    - contentinfo [ref=e130]:
+      - paragraph [ref=e132]: © 2025 LMS. All rights reserved.
+  - alert [ref=e133]
 ```

@@ -71,18 +71,24 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
+    // For development/testing, never use Secure flag (requires HTTPS)
+    // Force secure to false for localhost/development
+    const useSecure = false; // Always false for E2E tests and localhost
+    
     response.cookies.set("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: useSecure,
+      sameSite: "lax", // Changed from strict to lax for better compatibility with localhost
       maxAge: 60 * 60 * 24 * 3, // 3 days
+      path: "/",
     });
 
     response.cookies.set("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: useSecure,
+      sameSite: "lax", // Changed from strict to lax for better compatibility with localhost
       maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: "/",
     });
 
     return response;

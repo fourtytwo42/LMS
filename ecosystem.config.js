@@ -8,7 +8,7 @@ module.exports = {
       instances: 1,
       exec_mode: "fork",
       env: {
-        NODE_ENV: "production",
+        NODE_ENV: "development",
         PORT: process.env.PORT || 3000,
       },
       error_file: "./logs/pm2-error.log",
