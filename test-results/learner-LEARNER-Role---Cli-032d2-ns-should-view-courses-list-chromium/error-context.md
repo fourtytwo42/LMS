@@ -1,0 +1,72 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Learner Demo" [ref=e13]:
+            - generic [ref=e14]: LD
+            - generic [ref=e15]: Learner Demo
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation [ref=e22]:
+          - list [ref=e23]:
+            - listitem [ref=e24]:
+              - link "Dashboard" [ref=e25] [cursor=pointer]:
+                - /url: /dashboard
+                - img [ref=e26]
+                - generic [ref=e31]: Dashboard
+            - listitem [ref=e32]:
+              - link "Catalog" [ref=e33] [cursor=pointer]:
+                - /url: /catalog
+                - img [ref=e34]
+                - generic [ref=e36]: Catalog
+            - listitem [ref=e37]:
+              - link "My Courses" [ref=e38] [cursor=pointer]:
+                - /url: /courses
+                - img [ref=e39]
+                - generic [ref=e41]: My Courses
+            - listitem [ref=e42]:
+              - link "Certificates" [ref=e43] [cursor=pointer]:
+                - /url: /certificates
+                - img [ref=e44]
+                - generic [ref=e46]: Certificates
+            - listitem [ref=e47]:
+              - link "Notifications" [ref=e48] [cursor=pointer]:
+                - /url: /notifications
+                - img [ref=e49]
+                - generic [ref=e52]: Notifications
+            - listitem [ref=e53]:
+              - link "Profile" [ref=e54] [cursor=pointer]:
+                - /url: /profile
+                - img [ref=e55]
+                - generic [ref=e60]: Profile
+      - main [ref=e61]:
+        - generic [ref=e63]:
+          - generic [ref=e65]:
+            - heading "Courses" [level=1] [ref=e66]
+            - paragraph [ref=e67]: Manage and view all courses
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - generic [ref=e72]:
+                - img [ref=e74]
+                - textbox "Search courses..." [ref=e77]
+              - combobox [ref=e79]:
+                - option "All Types" [selected]
+                - option "E-Learning"
+                - option "Blended"
+                - option "In-Person"
+            - generic [ref=e80]: No courses found
+    - contentinfo [ref=e81]:
+      - paragraph [ref=e83]: © 2025 LMS. All rights reserved.
+  - alert [ref=e84]
+```

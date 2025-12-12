@@ -1,0 +1,51 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Admin User" [ref=e13]:
+            - generic [ref=e14]: AU
+            - generic [ref=e15]: Admin User
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation:
+          - list
+      - main [ref=e22]:
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - heading "User Management" [level=1] [ref=e26]
+            - generic [ref=e27]:
+              - button "Import" [ref=e30]:
+                - img [ref=e31]
+                - text: Import
+              - button "Export" [ref=e34]:
+                - img [ref=e35]
+                - text: Export
+              - button "New User" [ref=e38]:
+                - img [ref=e39]
+                - text: New User
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - generic [ref=e44]:
+                - img [ref=e46]
+                - textbox "Search by name or email..." [ref=e49]
+              - combobox [ref=e51]:
+                - option "All Roles" [selected]
+                - option "Learner"
+                - option "Instructor"
+                - option "Admin"
+            - generic [ref=e52]: No users found
+    - contentinfo [ref=e53]:
+      - paragraph [ref=e55]: © 2025 LMS. All rights reserved.
+  - alert [ref=e56]
+```

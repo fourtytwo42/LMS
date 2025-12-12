@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Admin User" [ref=e13]:
+            - generic [ref=e14]: AU
+            - generic [ref=e15]: Admin User
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation:
+          - list
+      - main [ref=e22]:
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - heading "My Profile" [level=1] [ref=e26]
+            - paragraph [ref=e27]: Manage your profile information and preferences
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - heading "Edit Profile" [level=2] [ref=e30]
+              - generic [ref=e31]:
+                - generic [ref=e32]:
+                  - generic [ref=e33]:
+                    - generic [ref=e34]: First Name
+                    - textbox [ref=e37]: Admin
+                  - generic [ref=e38]:
+                    - generic [ref=e39]: Last Name
+                    - textbox [ref=e42]: User
+                - generic [ref=e43]:
+                  - generic [ref=e44]: Email
+                  - textbox [disabled] [ref=e47]: admin@lms.com
+                  - paragraph [ref=e48]: Email cannot be changed
+                - generic [ref=e49]:
+                  - generic [ref=e50]: Bio
+                  - textbox [ref=e51]
+                - generic [ref=e52]:
+                  - generic [ref=e53]: Avatar URL
+                  - textbox "https://example.com/avatar.jpg" [ref=e56]
+                - button "Save Changes" [ref=e58]:
+                  - img [ref=e59]
+                  - text: Save Changes
+            - generic [ref=e63]:
+              - heading "Profile Info" [level=2] [ref=e64]
+              - generic [ref=e65]:
+                - generic [ref=e67]: AU
+                - generic [ref=e68]:
+                  - generic [ref=e69]: Upload Avatar
+                  - button "Choose File" [ref=e72]:
+                    - img [ref=e73]
+                    - text: Choose File
+                - generic [ref=e77]: Roles
+    - contentinfo [ref=e78]:
+      - paragraph [ref=e80]: © 2025 LMS. All rights reserved.
+  - alert [ref=e81]
+```

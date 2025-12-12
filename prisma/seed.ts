@@ -52,14 +52,17 @@ async function main() {
     },
   });
 
-  // Create admin user
-  const hashedPassword = await bcrypt.hash("admin123", 10);
+  // Create demo users for all roles
+  const adminPassword = await bcrypt.hash("admin123", 10);
+  const instructorPassword = await bcrypt.hash("instructor123", 10);
+  const learnerPassword = await bcrypt.hash("learner123", 10);
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@lms.com" },
     update: {},
     create: {
       email: "admin@lms.com",
-      passwordHash: hashedPassword,
+      passwordHash: adminPassword,
       firstName: "Admin",
       lastName: "User",
       emailVerified: true,
@@ -78,9 +81,57 @@ async function main() {
     },
   });
 
+  const instructor = await prisma.user.upsert({
+    where: { email: "instructor@lms.com" },
+    update: {},
+    create: {
+      email: "instructor@lms.com",
+      passwordHash: instructorPassword,
+      firstName: "Instructor",
+      lastName: "Demo",
+      emailVerified: true,
+      roles: {
+        create: {
+          roleId: instructorRole.id,
+        },
+      },
+    },
+    include: {
+      roles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  const learner = await prisma.user.upsert({
+    where: { email: "learner@lms.com" },
+    update: {},
+    create: {
+      email: "learner@lms.com",
+      passwordHash: learnerPassword,
+      firstName: "Learner",
+      lastName: "Demo",
+      emailVerified: true,
+      roles: {
+        create: {
+          roleId: learnerRole.id,
+        },
+      },
+    },
+    include: {
+      roles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
   console.log("Seed data created:", {
     roles: [learnerRole.name, instructorRole.name, adminRole.name],
-    admin: admin.email,
+    users: [admin.email, instructor.email, learner.email],
   });
 }
 

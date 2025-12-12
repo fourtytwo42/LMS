@@ -1,0 +1,289 @@
+---
+description: Automatically update project documentation whenever code changes are made
+globs: **/*
+alwaysApply: true
+---
+
+# Keep Project Documentation Updated
+
+This rule ensures that project documentation is automatically updated whenever code changes are made, keeping documentation in sync with the actual implementation.
+
+## Core Principle
+
+**Every code change must be reflected in project documentation.** When you make changes to the codebase, you must also update the relevant project documentation files to maintain accuracy and keep the project docs as the single source of truth.
+
+## When to Update Documentation
+
+Update project documentation when you:
+
+1. **Add new features or functionality**
+   - New API endpoints
+   - New pages or components
+   - New database models or fields
+   - New configuration options
+
+2. **Modify existing features**
+   - Changed API endpoints
+   - Updated component behavior
+   - Modified database schema
+   - Changed configuration
+
+3. **Fix bugs or issues**
+   - Document the fix if it affects user-facing behavior
+   - Update troubleshooting sections if relevant
+
+4. **Change architecture or patterns**
+   - New design patterns
+   - Changed file structure
+   - Updated dependencies or versions
+   - Modified build/deployment process
+
+5. **Update status or progress**
+   - Mark features as complete
+   - Update implementation status
+   - Note blockers or issues
+
+## Finding Project Documentation
+
+### Step 1: Locate Project Files
+
+Project documentation is typically located in:
+- `brain/projects/[project-name]/[project-name].md` - Main project file
+- `brain/projects/[project-name]/[project-name]-architecture.md` - Architecture details
+- `brain/projects/[project-name]/[project-name]-implementation.md` - Implementation details
+- `brain/projects/[project-name]/[project-name]-api.md` - API documentation
+- Other artifact files as needed
+
+### Step 2: Identify What Changed
+
+Before updating docs, identify:
+- What files were modified
+- What functionality was added/changed/removed
+- What impact this has on the system
+- What sections of documentation need updating
+
+### Step 3: Update Relevant Sections
+
+Update the appropriate sections in project documentation:
+- **Status section** - Mark features as complete, in progress, or planned
+- **Architecture section** - Update component structure, data flow, patterns
+- **Implementation section** - Update setup steps, code patterns, file structure
+- **API section** - Update endpoint specifications, request/response formats
+- **Decisions section** - Document why changes were made
+
+## Update Process
+
+### 1. After Making Code Changes
+
+**Immediately after completing code changes:**
+
+```markdown
+1. Identify which project this change belongs to
+2. Locate the project's main documentation file
+3. Update the relevant sections:
+   - Status: Mark completed items
+   - Architecture: Update if structure changed
+   - Implementation: Update if patterns changed
+   - API: Update if endpoints changed
+4. Add notes about the change in appropriate sections
+```
+
+### 2. Update Status Section
+
+**Always update the status section when:**
+- Completing a feature
+- Starting work on a new feature
+- Encountering blockers
+- Changing priorities
+
+**Example:**
+```markdown
+## Status
+
+**Current Phase:** Development
+**Last Updated:** [Date]
+
+### Completed
+- ✅ User authentication system
+- ✅ Course management API
+- ✅ Dashboard pages with navigation
+
+### In Progress
+- 🔄 Test coverage improvements (80% → 90%)
+- 🔄 Frontend styling and responsive design
+
+### Next Steps
+- [ ] Complete test coverage
+- [ ] Add analytics dashboard
+```
+
+### 3. Update Architecture Section
+
+**Update when:**
+- Adding new components or modules
+- Changing data flow
+- Introducing new patterns
+- Modifying system structure
+
+**Example:**
+```markdown
+## Architecture
+
+### Components Added
+- `DashboardLayout` - Main dashboard wrapper with sidebar navigation
+- `AdminDashboard` - Admin-specific dashboard with stats
+- `InstructorDashboard` - Instructor dashboard with course management
+- `LearnerDashboard` - Learner dashboard with progress tracking
+
+### Navigation Structure
+- Sidebar navigation with role-based menu items
+- Header with user info and notifications
+- Footer with copyright information
+```
+
+### 4. Update Implementation Section
+
+**Update when:**
+- Changing setup steps
+- Modifying configuration
+- Updating dependencies
+- Changing file structure
+
+**Example:**
+```markdown
+## Implementation
+
+### Recent Changes
+- Updated Tailwind CSS to v4 with `@import "tailwindcss"` syntax
+- Fixed PostCSS configuration for Tailwind v4
+- Enhanced dashboard pages with comprehensive stats and quick actions
+- Added role-based navigation menu items
+
+### Configuration Updates
+- `postcss.config.js` - Updated to use `@tailwindcss/postcss`
+- `app/globals.css` - Changed to Tailwind v4 import syntax
+- `app/(auth)/layout.tsx` - Added proper padding and constraints
+```
+
+### 5. Update API Documentation
+
+**Update when:**
+- Adding new endpoints
+- Modifying existing endpoints
+- Changing request/response formats
+- Updating authentication requirements
+
+**Example:**
+```markdown
+## API Endpoints
+
+### GET /api/analytics/overview
+**Status:** ✅ Implemented
+**Description:** Returns system-wide analytics overview
+**Response:** Includes user counts, course counts, enrollment stats
+```
+
+## Documentation Update Checklist
+
+After making code changes, verify:
+
+- [ ] **Status updated** - Features marked as complete/in-progress
+- [ ] **Architecture updated** - New components/modules documented
+- [ ] **Implementation updated** - Setup steps, patterns, structure
+- [ ] **API updated** - Endpoint specifications current
+- [ ] **Decisions documented** - Why changes were made
+- [ ] **Examples updated** - Code examples reflect current implementation
+- [ ] **Dependencies updated** - Package versions, requirements
+- [ ] **Configuration updated** - Config files, environment variables
+
+## Examples
+
+### Example 1: Adding a New Feature
+
+**Code Change:** Added certificate generation feature
+
+**Documentation Update:**
+```markdown
+## Status
+### Completed
+- ✅ Certificate generation system
+  - Certificate templates management
+  - PDF generation
+  - Certificate issuance on course completion
+
+## Architecture
+### New Components
+- `CertificateTemplate` model
+- Certificate generation service
+- PDF rendering component
+
+## API
+### POST /api/certificates/templates
+Creates a new certificate template...
+```
+
+### Example 2: Fixing a Bug
+
+**Code Change:** Fixed CSS not loading issue
+
+**Documentation Update:**
+```markdown
+## Implementation
+### Recent Fixes
+- Fixed Tailwind CSS v4 configuration
+  - Updated `globals.css` to use `@import "tailwindcss"`
+  - Fixed PostCSS config for Tailwind v4
+  - Added proper base styles for page constraints
+```
+
+### Example 3: Updating Dependencies
+
+**Code Change:** Updated Next.js to 16.0.8
+
+**Documentation Update:**
+```markdown
+## Implementation
+### Dependencies
+- Next.js: 16.0.8 (updated from 15.x)
+  - Note: Dynamic route params are now async (Promise-based)
+  - All route handlers updated to await params
+```
+
+## Best Practices
+
+1. **Update Immediately** - Don't wait, update docs right after making changes
+2. **Be Specific** - Include details about what changed and why
+3. **Use Examples** - Show code examples when relevant
+4. **Link Related Changes** - Reference related documentation sections
+5. **Update Status First** - Always update status section to track progress
+6. **Document Decisions** - Explain why changes were made
+7. **Keep Examples Current** - Ensure code examples match actual implementation
+
+## Integration with Other Rules
+
+- Follow [project-implementation-guide.mdc](mdc:.cursor/rules/project-implementation-guide.mdc) for finding and reading project docs
+- Follow [project-artifacts.mdc](mdc:.cursor/rules/project-artifacts.mdc) for artifact structure
+- Follow [conversation-capture.mdc](mdc:.cursor/rules/conversation-capture.mdc) for capturing achievements
+
+## Enforcement
+
+This rule should be followed for **every code change**. When you:
+- Add new files → Update architecture and implementation docs
+- Modify existing files → Update relevant sections
+- Fix bugs → Update implementation or troubleshooting sections
+- Change configuration → Update implementation docs
+- Add features → Update status, architecture, and API docs
+
+**Never skip documentation updates.** Keeping docs in sync is critical for project maintainability.
+
+## Quick Reference
+
+**After making changes:**
+1. ✅ Identify which project was affected
+2. ✅ Locate project documentation files
+3. ✅ Update status section
+4. ✅ Update relevant architecture/implementation/API sections
+5. ✅ Document decisions and rationale
+6. ✅ Verify examples are current
+
+**Remember:** Documentation that's out of date is worse than no documentation. Keep it current!

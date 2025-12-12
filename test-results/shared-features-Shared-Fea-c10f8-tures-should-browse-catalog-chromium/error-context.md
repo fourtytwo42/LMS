@@ -1,0 +1,63 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Instructor Demo" [ref=e13]:
+            - generic [ref=e14]: ID
+            - generic [ref=e15]: Instructor Demo
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation [ref=e22]:
+          - list [ref=e23]:
+            - listitem [ref=e24]:
+              - link "Dashboard" [ref=e25] [cursor=pointer]:
+                - /url: /dashboard
+                - img [ref=e26]
+                - generic [ref=e31]: Dashboard
+            - listitem [ref=e32]:
+              - link "Courses" [ref=e33] [cursor=pointer]:
+                - /url: /courses
+                - img [ref=e34]
+                - generic [ref=e36]: Courses
+            - listitem [ref=e37]:
+              - link "Enrollments" [ref=e38] [cursor=pointer]:
+                - /url: /enrollments
+                - img [ref=e39]
+                - generic [ref=e44]: Enrollments
+            - listitem [ref=e45]:
+              - link "Catalog" [ref=e46] [cursor=pointer]:
+                - /url: /catalog
+                - img [ref=e47]
+                - generic [ref=e49]: Catalog
+            - listitem [ref=e50]:
+              - link "Analytics" [ref=e51] [cursor=pointer]:
+                - /url: /analytics
+                - img [ref=e52]
+                - generic [ref=e54]: Analytics
+            - listitem [ref=e55]:
+              - link "Notifications" [ref=e56] [cursor=pointer]:
+                - /url: /notifications
+                - img [ref=e57]
+                - generic [ref=e60]: Notifications
+            - listitem [ref=e61]:
+              - link "Profile" [ref=e62] [cursor=pointer]:
+                - /url: /profile
+                - img [ref=e63]
+                - generic [ref=e68]: Profile
+      - main [ref=e69]:
+        - generic [ref=e71]: Loading catalog...
+    - contentinfo [ref=e72]:
+      - paragraph [ref=e74]: © 2025 LMS. All rights reserved.
+  - alert [ref=e75]
+```

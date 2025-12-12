@@ -1,0 +1,125 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Instructor Demo" [ref=e13]:
+            - generic [ref=e14]: ID
+            - generic [ref=e15]: Instructor Demo
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation [ref=e22]:
+          - list [ref=e23]:
+            - listitem [ref=e24]:
+              - link "Dashboard" [ref=e25] [cursor=pointer]:
+                - /url: /dashboard
+                - img [ref=e26]
+                - generic [ref=e31]: Dashboard
+            - listitem [ref=e32]:
+              - link "Courses" [ref=e33] [cursor=pointer]:
+                - /url: /courses
+                - img [ref=e34]
+                - generic [ref=e36]: Courses
+            - listitem [ref=e37]:
+              - link "Enrollments" [ref=e38] [cursor=pointer]:
+                - /url: /enrollments
+                - img [ref=e39]
+                - generic [ref=e44]: Enrollments
+            - listitem [ref=e45]:
+              - link "Catalog" [ref=e46] [cursor=pointer]:
+                - /url: /catalog
+                - img [ref=e47]
+                - generic [ref=e49]: Catalog
+            - listitem [ref=e50]:
+              - link "Analytics" [ref=e51] [cursor=pointer]:
+                - /url: /analytics
+                - img [ref=e52]
+                - generic [ref=e54]: Analytics
+            - listitem [ref=e55]:
+              - link "Notifications" [ref=e56] [cursor=pointer]:
+                - /url: /notifications
+                - img [ref=e57]
+                - generic [ref=e60]: Notifications
+            - listitem [ref=e61]:
+              - link "Profile" [ref=e62] [cursor=pointer]:
+                - /url: /profile
+                - img [ref=e63]
+                - generic [ref=e68]: Profile
+      - main [ref=e69]:
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - button "Back" [ref=e73]:
+              - img [ref=e74]
+              - text: Back
+            - heading "Create New Course" [level=1] [ref=e76]
+          - generic [ref=e77]:
+            - heading "Course Information" [level=2] [ref=e78]
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - generic [ref=e81]:
+                  - generic [ref=e82]: Code
+                  - textbox "COURSE-001 (optional)" [ref=e85]
+                - generic [ref=e86]:
+                  - generic [ref=e87]: Type *
+                  - combobox [ref=e89]:
+                    - option "E-Learning" [selected]
+                    - option "Blended"
+                    - option "In-Person"
+              - generic [ref=e90]:
+                - generic [ref=e91]: Title *
+                - generic [ref=e92]:
+                  - textbox "Enter course title" [active] [ref=e94]
+                  - alert [ref=e95]: Title is required
+              - generic [ref=e96]:
+                - generic [ref=e97]: Short Description
+                - textbox "Brief description (max 130 characters)" [ref=e100]
+              - generic [ref=e101]:
+                - generic [ref=e102]: Description
+                - textbox "Full course description" [ref=e103]: This is a test course description
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - generic [ref=e106]: Estimated Time (minutes)
+                  - generic [ref=e107]:
+                    - spinbutton [ref=e109]
+                    - alert [ref=e110]: "Invalid input: expected number, received NaN"
+                - generic [ref=e111]:
+                  - generic [ref=e112]: Difficulty Level
+                  - generic [ref=e113]:
+                    - combobox [ref=e114]:
+                      - option "Select difficulty" [selected]
+                      - option "Beginner"
+                      - option "Intermediate"
+                      - option "Advanced"
+                    - paragraph [ref=e115]: "Invalid option: expected one of \"BEGINNER\"|\"INTERMEDIATE\"|\"ADVANCED\""
+              - generic [ref=e116]:
+                - generic [ref=e117]:
+                  - checkbox "Public Access" [ref=e118]
+                  - generic [ref=e119]: Public Access
+                - generic [ref=e120]:
+                  - checkbox "Allow Self-Enrollment" [ref=e121]
+                  - generic [ref=e122]: Allow Self-Enrollment
+                - generic [ref=e123]:
+                  - checkbox "Sequential Content Required" [checked] [ref=e124]
+                  - generic [ref=e125]: Sequential Content Required
+                - generic [ref=e126]:
+                  - checkbox "Allow Skipping Content" [ref=e127]
+                  - generic [ref=e128]: Allow Skipping Content
+              - generic [ref=e129]:
+                - button "Cancel" [ref=e130]
+                - button "Create Course" [ref=e131]:
+                  - img [ref=e132]
+                  - text: Create Course
+    - contentinfo [ref=e136]:
+      - paragraph [ref=e138]: © 2025 LMS. All rights reserved.
+  - alert [ref=e139]
+```

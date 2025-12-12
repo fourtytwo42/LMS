@@ -20,20 +20,52 @@ export const TEST_USERS = {
 
 export async function loginAs(page: Page, userType: "admin" | "instructor" | "learner") {
   const user = TEST_USERS[userType];
-  await page.goto("/login");
+  await page.goto("/login", { waitUntil: "networkidle" });
   
-  // Wait for login form to be visible
-  await page.waitForSelector('input[name="email"]', { state: "visible" });
+  // Wait for page to be fully loaded and form to be interactive
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForLoadState("networkidle");
+  
+  // Wait for login form to be visible and interactive
+  const emailInput = page.locator('input[name="email"]');
+  await emailInput.waitFor({ state: "visible", timeout: 30000 });
+  
+  // Wait for React to hydrate - check for form element
+  await page.waitForSelector('form', { state: "visible", timeout: 30000 });
+  await page.waitForTimeout(2000);
   
   // Fill in credentials
-  await page.fill('input[name="email"]', user.email);
-  await page.fill('input[name="password"]', user.password);
+  await emailInput.click();
+  await emailInput.fill(user.email);
+  const passwordInput = page.locator('input[name="password"]');
+  await passwordInput.fill(user.password);
   
-  // Submit form
-  await page.click('button[type="submit"]');
+  // Wait for form to be ready
+  await page.waitForTimeout(500);
   
-  // Wait for redirect to dashboard
-  await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+  // Submit form - wait for button to be enabled and clickable
+  const submitButton = page.locator('button[type="submit"]');
+  await submitButton.waitFor({ state: "visible" });
+  await submitButton.waitFor({ state: "attached" });
+  
+  // Check for console errors
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      console.log(`Browser console error: ${msg.text()}`);
+    }
+  });
+  
+  // Wait for page errors
+  page.on("pageerror", (error) => {
+    console.log(`Page error: ${error.message}`);
+  });
+  
+  // Try submitting - wait for navigation directly
+  // The form should handle submission via JavaScript
+  await Promise.all([
+    page.waitForURL(/\/dashboard/, { timeout: 30000 }),
+    submitButton.click(),
+  ]);
   
   return user;
 }

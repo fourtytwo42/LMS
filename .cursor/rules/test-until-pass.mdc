@@ -1,0 +1,168 @@
+---
+description: Enforce test-and-fix workflow until all tests pass - never stop until 100% success
+globs:
+alwaysApply: true
+---
+# Test Until All Tests Pass
+
+This rule enforces a strict workflow: **test, fix, repeat until all tests pass**.
+
+## Core Principle
+
+**Never stop until all tests pass.** When working on code changes, you must:
+1. Run tests after making changes
+2. Identify and fix all failures
+3. Re-run tests to verify fixes
+4. Continue iterating until **100% of tests pass**
+
+## When This Rule Applies
+
+This rule applies when:
+- Making code changes that affect functionality
+- Fixing bugs or errors
+- Implementing new features
+- Refactoring existing code
+- User explicitly requests testing ("test", "run tests", "make sure tests pass", etc.)
+
+## Workflow
+
+### Step 1: Make Changes
+- Implement the requested changes
+- Fix compilation errors
+- Ensure code compiles successfully
+
+### Step 2: Run Tests
+- Execute the test suite immediately after changes
+- Use the appropriate test command for the project:
+  - `npx tsx web/app/scripts/test-prepare-execute.ts` for E2E tests
+  - `anchor test` for Anchor program tests
+  - `npm test` or `cargo test` for unit tests
+- Capture full test output, including error messages and logs
+
+### Step 3: Analyze Failures
+- Identify all failing tests
+- Read error messages carefully
+- Check program logs for runtime errors
+- Understand the root cause of each failure
+
+### Step 4: Fix Issues
+- Address each failing test systematically
+- Fix compilation errors first
+- Then fix runtime errors
+- Then fix logic errors
+- Add debug logs if needed to understand failures
+
+### Step 5: Re-test
+- Re-run the test suite after each fix
+- Verify that fixes don't break previously passing tests
+- Continue until all tests pass
+
+### Step 6: Verify Success
+- Confirm **all tests pass** (0 failures)
+- Check that no tests were skipped unintentionally
+- Verify the changes work as expected
+
+## Iteration Pattern
+
+```
+Make Changes → Run Tests → Analyze Failures → Fix Issues → Re-test → [Repeat if failures remain] → All Tests Pass ✅
+```
+
+**Do not stop the iteration until all tests pass.**
+
+## Error Handling
+
+### Compilation Errors
+- Fix all compilation errors before running tests
+- Use `anchor build` or `cargo build` to verify compilation
+- Address type errors, borrow checker errors, and syntax errors
+
+### Runtime Errors
+- Check program logs for detailed error messages
+- Use `msg!` logs in Solana programs for debugging
+- Verify account data, ownership, and PDA derivations
+- Check error codes and their meanings
+
+### Test Failures
+- Read the full error message and stack trace
+- Check transaction logs for Solana program errors
+- Verify account ordering and instruction data
+- Ensure all required accounts are provided
+
+## Debugging Strategy
+
+When tests fail:
+1. **Read the error message** - Understand what went wrong
+2. **Check program logs** - Look for `msg!` output in Solana programs
+3. **Verify assumptions** - Check that accounts, data, and state are correct
+4. **Add debug logs** - Use `msg!` to trace execution flow
+5. **Fix incrementally** - Fix one issue at a time, test after each fix
+
+## Success Criteria
+
+Tests are considered passing when:
+- ✅ All test cases execute successfully
+- ✅ No test failures reported
+- ✅ No unexpected errors or panics
+- ✅ All assertions pass
+- ✅ Program executes without errors
+
+## Example Workflow
+
+```bash
+# 1. Make changes
+# ... edit code ...
+
+# 2. Build and verify compilation
+anchor build --program-name ptf_pool --ignore-keys
+solana program deploy target/deploy/ptf_pool.so
+
+# 3. Run tests
+npx tsx web/app/scripts/test-prepare-execute.ts
+
+# 4. If tests fail:
+# - Read error messages
+# - Check program logs
+# - Fix issues
+# - Re-deploy if needed
+# - Re-run tests
+
+# 5. Repeat until all tests pass
+```
+
+## Important Notes
+
+- **Don't skip tests** - Even if you think the changes are minor, run tests
+- **Don't stop at first failure** - Fix all failures, not just the first one
+- **Don't ignore warnings** - Address warnings that could indicate issues
+- **Don't assume fixes work** - Always verify with tests after making changes
+- **Be thorough** - Check all test cases, not just the obvious ones
+
+## Integration with Other Rules
+
+- Follow [use-scratch-pad.mdc](mdc:.cursor/rules/use-scratch-pad.mdc) to track test failures and fixes
+- Use [debugging-tracker.mdc](mdc:.cursor/rules/debugging-tracker.mdc) for persistent test failures
+- Update [maintain-debugging-tracker.mdc](mdc:.cursor/rules/maintain-debugging-tracker.mdc) when debugging test issues
+
+## User Communication
+
+When tests fail:
+- Clearly explain what failed
+- Show the error message and relevant logs
+- Explain your plan to fix it
+- Continue fixing until all tests pass
+
+When all tests pass:
+- Confirm success clearly
+- Summarize what was fixed
+- Note any important changes made
+
+## Enforcement
+
+This rule should be followed strictly. When the user requests testing or when making code changes:
+- **Always run tests** after changes
+- **Always fix failures** before considering the task complete
+- **Never stop** until all tests pass
+- **Never skip** the testing step
+
+The goal is **zero test failures** - nothing less is acceptable.

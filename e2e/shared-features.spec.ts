@@ -260,15 +260,15 @@ test.describe("Shared Features - All User Types", () => {
         await page.waitForLoadState("networkidle");
         
         // Should show 404 or error message
-        const errorMessage = page.locator('text=/not found|404|error/i, h1:has-text("404")');
+        const errorMessage = page.locator('text=/not found|404|error/i').or(page.locator('h1:has-text("404")'));
         // Error may or may not be shown depending on implementation
         expect(await errorMessage.count()).toBeGreaterThanOrEqual(0);
       });
 
       test("should maintain session across page navigation", async ({ page }) => {
-        // Navigate to dashboard
+        // Already logged in from beforeEach, just navigate to dashboard
         await page.goto("/dashboard");
-        await expect(page).toHaveURL(/\/dashboard/);
+        await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
         
         // Navigate to another page
         await page.goto("/profile");

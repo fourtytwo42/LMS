@@ -1,0 +1,275 @@
+---
+description: Track debugging attempts and solutions to avoid repeating failed approaches
+globs: **/*
+alwaysApply: true
+---
+
+# Debugging Tracker
+
+This file tracks debugging attempts for persistent issues to avoid repeating failed approaches.
+
+## Current Issue: Null Pointer Dereference in execute_shield CPI Call
+
+**Issue**: Access violation at address 0x0 when calling `ptf_verifier_groth16::cpi::verify_groth16` from `execute_shield_impl`.
+
+**Symptoms**:
+- AccountInfo is obtained successfully (key, owner, data_len are valid)
+- CPI accounts are created successfully
+- CPI context is created successfully
+- The CPI call fails with "Access violation in unknown section at address 0x0 of size 8"
+
+**Location**: `programs/pool/src/lib.rs` - `execute_shield_impl` function
+
+## Attempted Solutions
+
+### Attempt 1: Direct Account Creation
+**Date**: Latest session
+**Approach**: Create `Account` from `AccountInfo` using `Account::try_from()` and call `to_account_info()` on it.
+**Code Pattern**:
+```rust
+let verifying_key_account: Account<'info, VerifyingKeyAccount> = Account::try_from(verifying_key_info)?;
+let verifying_key_account_info = verifying_key_account.to_account_info();
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: AccountInfo is valid, but CPI call still fails. Issue likely in CPI macro conversion.
+
+### Attempt 2: Unsafe Transmute Pattern
+**Date**: Latest session
+**Approach**: Use `unsafe { mem::transmute }` to extend lifetime, matching `execute_transfer_from` pattern.
+**Code Pattern**:
+```rust
+let verifying_key_account_temp: Account<'_, VerifyingKeyAccount> = Account::try_from(verifying_key_info)?;
+let verifying_key_account: Account<'info, VerifyingKeyAccount> = unsafe { mem::transmute(verifying_key_account_temp) };
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Same issue - AccountInfo valid but CPI fails.
+
+### Attempt 3: Immediate to_account_info() Call
+**Date**: Latest session
+**Approach**: Create Account and immediately call `to_account_info()` without storing Account in variable.
+**Code Pattern**:
+```rust
+let verifying_key_account_info = Account::<'info, VerifyingKeyAccount>::try_from(verifying_key_info)?
+    .to_account_info();
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Account gets dropped, AccountInfo reference becomes invalid.
+
+### Attempt 4: AccountInfo Direct Pass
+**Date**: Latest session
+**Approach**: Pass AccountInfo directly to CPI struct, let CPI macro handle conversion.
+**Code Pattern**:
+```rust
+let cpi_accounts = ptf_verifier_groth16::cpi::accounts::VerifyGroth16 {
+    verifier_state: verifying_key_info, // Direct AccountInfo
+};
+```
+**Result**: ❌ Failed - Compilation error: CPI struct expects `Account`, not `AccountInfo`
+
+### Attempt 5: UncheckedAccount Conversion
+**Date**: Latest session
+**Approach**: Use `UncheckedAccount` and convert to AccountInfo.
+**Code Pattern**:
+```rust
+let verifying_key_unchecked = UncheckedAccount::try_from(verifying_key_info);
+let verifying_key_account_info = verifying_key_unchecked.to_account_info();
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Same issue - CPI macro conversion fails.
+
+### Attempt 6: AccountLoader Pattern
+**Date**: Latest session
+**Approach**: Use `AccountLoader` pattern like `pool_state` and `commitment_tree`.
+**Code Pattern**:
+```rust
+let verifying_key_loader: AccountLoader<'info, VerifyingKeyAccount> = AccountLoader::try_from(verifying_key_info)?;
+let verifying_key_account_info = verifying_key_loader.to_account_info();
+```
+**Result**: ❌ Failed - Compilation error: `VerifyingKeyAccount` doesn't implement `ZeroCopy`
+
+### Attempt 7: Box::leak Pattern
+**Date**: Latest session
+**Approach**: Use `Box::leak` to ensure AccountInfo lives long enough (like `verifier_program` in `execute_shield_core`).
+**Code Pattern**:
+```rust
+let verifying_key_info_box = Box::new(verifying_key_info.to_account_info());
+let verifying_key_info_leaked: &'info AccountInfo<'info> = unsafe { mem::transmute(Box::leak(verifying_key_info_box)) };
+```
+**Result**: ❌ Failed - Can't call `to_account_info()` on `&AccountInfo` (it's already AccountInfo)
+
+### Attempt 8: Extended Lifetime with Keep-Alive Variables
+**Date**: Latest session
+**Approach**: Keep both AccountInfo and Account alive with explicit `_keep_alive` variables.
+**Code Pattern**:
+```rust
+let verifying_key_info_stable = verifying_key_info;
+let verifying_key_account: Account<'info, VerifyingKeyAccount> = Account::try_from(verifying_key_info_stable)?;
+let _keep_alive_info = verifying_key_info_stable;
+let verifying_key_account_local = verifying_key_account;
+let _keep_alive_account = &verifying_key_account_local;
+let verifying_key_account_info = verifying_key_account_local.to_account_info();
+let _keep_alive_for_cpi = &verifying_key_account_local;
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: All references are kept alive, but CPI call still fails.
+
+### Attempt 9: Additional Validation
+**Date**: Latest session
+**Approach**: Add validation for AccountInfo structure (data_len >= 104, owner check).
+**Code Pattern**:
+```rust
+require!(verifying_key_info.data_len() >= 104, PoolError::AccountDataTooShort);
+require_keys_eq!(*verifying_key_info.owner, ptf_verifier_groth16::ID, PoolError::InvalidAccountOwner);
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Validation passes, but CPI call still fails.
+
+### Attempt 10: Use Context Account Pattern
+**Date**: Current session
+**Approach**: Create Account right after extraction in `execute_shield`, pass as Account to `execute_shield_impl` (matches `execute_private_transfer` pattern).
+**Code Pattern**:
+```rust
+// In execute_shield, after extraction:
+let verifying_key_account: Account<'info, VerifyingKeyAccount> = Account::try_from(verifying_key_info_stable)?;
+// Pass to execute_shield_impl:
+execute_shield_impl(..., &verifying_key_account_stable, ...);
+// In execute_shield_impl:
+let cpi_accounts = ptf_verifier_groth16::cpi::accounts::VerifyGroth16 {
+    verifier_state: verifying_key.to_account_info(), // Account from parameter
+};
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Account is created successfully, CPI accounts are created, but CPI call still fails. The issue is not with Account creation - it must be something else in the CPI call or context creation.
+
+### Attempt 11: Ensure Account Deserialization
+**Date**: Current session
+**Approach**: Access Account fields before CPI call to ensure Account is properly deserialized (matches execute_private_transfer pattern).
+**Code Pattern**:
+```rust
+// Access Account field to ensure deserialization
+let _verifying_key_id = verifying_key.verifying_key_id;
+let cpi_accounts = ptf_verifier_groth16::cpi::accounts::VerifyGroth16 {
+    verifier_state: verifying_key.to_account_info(),
+};
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Account deserialization works, but CPI call still fails. The issue must be in the CPI macro's internal conversion or the verifier program itself.
+
+### Attempt 12: Additional AccountInfo Validation
+**Date**: Current session
+**Approach**: Add comprehensive validation of AccountInfo before CPI call (key, owner, data_len, lamports).
+**Code Pattern**:
+```rust
+let verifying_key_account_info = verifying_key.to_account_info();
+// Validate AccountInfo is properly formatted
+require!(verifying_key_account_info.data_len() > 0, PoolError::AccountDataTooShort);
+require!(verifying_key_account_info.key() != Pubkey::default(), PoolError::AccountDataCorrupt);
+require!(verifying_key_account_info.owner != &Pubkey::default(), PoolError::AccountDataCorrupt);
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: All validations pass, but CPI call still fails. The issue is definitely in the CPI macro's internal conversion or the verifier program.
+
+### Attempt 13: Access All Account Fields for CPI Constraint
+**Date**: Current session
+**Approach**: Access all Account fields used in CPI constraint validation (circuit_tag, version, bump) to ensure Account is fully deserialized.
+**Code Pattern**:
+```rust
+let _circuit_tag = verifying_key.circuit_tag;
+let _version = verifying_key.version;
+let _bump = verifying_key.bump;
+let cpi_accounts = ptf_verifier_groth16::cpi::accounts::VerifyGroth16 {
+    verifier_state: verifying_key.to_account_info(),
+};
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Account fields are accessible, but CPI call still fails. The issue must be in the CPI macro's internal AccountInfo to Account conversion, not in Account deserialization.
+
+### Attempt 14: Create Account Right Before CPI Call
+**Date**: Current session
+**Approach**: Pass AccountInfo directly to `execute_shield_impl`, create Account right before CPI call instead of earlier in the function.
+**Code Pattern**:
+```rust
+// In execute_shield, pass AccountInfo:
+let verifying_key_info_stable: &'info AccountInfo<'info> = unsafe { mem::transmute(verifying_key_info) };
+execute_shield_impl(..., verifying_key_info_stable, ...);
+// In execute_shield_impl, create Account right before CPI:
+let verifying_key_account: Account<'info, VerifyingKeyAccount> = Account::try_from(verifying_key_info)?;
+let verifying_key_account_info = verifying_key_account.to_account_info();
+let cpi_accounts = ptf_verifier_groth16::cpi::accounts::VerifyGroth16 {
+    verifier_state: verifying_key_account_info,
+};
+```
+**Result**: ❌ Failed - Access violation persists
+**Analysis**: Creating Account right before CPI call doesn't help. The issue is definitely in the CPI macro's internal AccountInfo to Account conversion when it validates the PDA constraint.
+
+### Attempt 15: Raw CPI Invocation (Bypass CPI Macro)
+**Date**: Current session
+**Approach**: Use raw `invoke` to bypass CPI macro entirely, manually construct instruction data.
+**Code Pattern**:
+```rust
+// Manually serialize instruction data
+let verify_discriminator: [u8; 8] = [228, 26, 135, 7, 19, 253, 172, 97];
+instruction_data.extend_from_slice(&verify_discriminator);
+instruction_data.extend_from_slice(&pool_state.verifying_key_id);
+// Serialize Vec<u8> as length + bytes
+let proof_len = args.proof.len() as u32;
+instruction_data.extend_from_slice(&proof_len.to_le_bytes());
+instruction_data.extend_from_slice(&args.proof);
+// Create instruction and invoke
+let instruction = Instruction { program_id, accounts, data };
+invoke(&instruction, &account_infos)?;
+```
+**Result**: ⚠️ Partial Success - Raw invoke succeeds ("verify_groth16 completed" in logs), but access violation occurs AFTER invoke returns
+**Analysis**: The raw invoke successfully bypasses the CPI macro and calls the verifier program. However, an access violation occurs after the invoke completes, suggesting the issue might be in cleanup code or the deposit CPI call that happens after verify_groth16.
+
+## Key Observations
+
+1. **AccountInfo is Valid**: All logs show AccountInfo has valid key, owner, and data_len
+2. **CPI Accounts Created**: The CPI accounts struct is created successfully
+3. **CPI Context Created**: The CPI context is created successfully
+4. **Failure Point**: The failure occurs inside the `verify_groth16` CPI call itself
+5. **Working Pattern**: `execute_private_transfer` works because `verifying_key` is already an `Account` from context, not manually created
+
+## Working Reference
+
+**File**: `programs/pool/src/lib.rs` - `execute_private_transfer` function (line ~5518)
+**Pattern**:
+```rust
+// verifying_key is passed as &Account<'info, VerifyingKeyAccount> (from context)
+let cpi_accounts = ptf_verifier_groth16::cpi::accounts::VerifyGroth16 {
+    verifier_state: verifying_key.to_account_info(), // Works because Account comes from context
+};
+```
+
+## Next Steps to Try
+
+### Option 1: Pass Account Directly to CPI
+**Hypothesis**: CPI macro might accept `Account` directly, not just `AccountInfo`.
+**Approach**: Try passing the `Account` directly without calling `to_account_info()`.
+**Risk**: CPI struct definition shows it expects `Account`, but macro might convert internally.
+
+### Option 2: Use Context Account Pattern
+**Hypothesis**: The issue is that manually created Accounts don't have the same internal structure as context Accounts.
+**Approach**: Modify `execute_shield` to accept `verifying_key` as an `Account` from context instead of extracting from `remaining_accounts`.
+**Risk**: Requires changing function signature and how accounts are passed.
+
+### Option 3: Investigate CPI Macro Internals
+**Hypothesis**: The CPI macro is trying to deserialize Account from AccountInfo and failing.
+**Approach**: Check Anchor source code or documentation for how CPI macro handles AccountInfo to Account conversion.
+**Risk**: May require understanding Anchor internals.
+
+### Option 4: Use Different CPI Pattern
+**Hypothesis**: Maybe we need to use a different CPI invocation pattern.
+**Approach**: Check if there's a way to invoke CPI without using the accounts struct, or use raw CPI.
+**Risk**: May break type safety.
+
+### Option 5: Check Verifier Program Expectations
+**Hypothesis**: The verifier program might be expecting a specific Account structure.
+**Approach**: Check `ptf_verifier_groth16` program to see how it expects the Account.
+**Risk**: May require changes to verifier program.
+
+## Notes
+
+- Stack overflow issue has been resolved ✅
+- All AccountInfo references are valid ✅
+- The issue is specifically with CPI macro conversion or verifier program expectations ❌

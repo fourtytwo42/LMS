@@ -1,0 +1,42 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "LMS" [level=1] [ref=e6]:
+          - link "LMS" [ref=e7] [cursor=pointer]:
+            - /url: /dashboard
+        - navigation "User menu" [ref=e8]:
+          - button "Notifications" [ref=e9]:
+            - img [ref=e10]
+          - generic "Logged in as Admin User" [ref=e13]:
+            - generic [ref=e14]: AU
+            - generic [ref=e15]: Admin User
+          - button "Logout" [ref=e16]:
+            - img [ref=e17]
+    - generic [ref=e20]:
+      - complementary "Main navigation" [ref=e21]:
+        - navigation:
+          - list
+      - main [ref=e22]:
+        - generic [ref=e24]:
+          - generic [ref=e26]:
+            - heading "Courses" [level=1] [ref=e27]
+            - paragraph [ref=e28]: Manage and view all courses
+          - generic [ref=e29]:
+            - generic [ref=e30]:
+              - generic [ref=e33]:
+                - img [ref=e35]
+                - textbox "Search courses..." [ref=e38]
+              - combobox [ref=e40]:
+                - option "All Types" [selected]
+                - option "E-Learning"
+                - option "Blended"
+                - option "In-Person"
+            - generic [ref=e41]: No courses found
+    - contentinfo [ref=e42]:
+      - paragraph [ref=e44]: © 2025 LMS. All rights reserved.
+  - alert [ref=e45]
+```

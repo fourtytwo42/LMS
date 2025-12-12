@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node -e \"const fs=require('fs');const path='.next/prerender-manifest.json';if(!fs.existsSync(path)){fs.writeFileSync(path,JSON.stringify({version:4,routes:{},dynamicRoutes:{},notFoundRoutes:[],preview:{previewModeId:'development-id',previewModeSigningKey:'development-key',previewModeEncryptionKey:'development-key'}},null,2));}\"",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",

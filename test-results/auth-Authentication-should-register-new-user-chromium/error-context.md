@@ -1,0 +1,43 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "LMS" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Learning Management System
+    - generic [ref=e7]:
+      - heading "Create your account" [level=2] [ref=e8]
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: First Name
+          - generic [ref=e12]:
+            - textbox "First Name" [active] [ref=e14]:
+              - /placeholder: John
+            - alert [ref=e15]: First name is required
+        - generic [ref=e16]:
+          - generic [ref=e17]: Last Name
+          - generic [ref=e18]:
+            - textbox "Last Name" [ref=e20]:
+              - /placeholder: Doe
+            - alert [ref=e21]: Last name is required
+        - generic [ref=e22]:
+          - generic [ref=e23]: Email
+          - generic [ref=e24]:
+            - textbox "Email" [ref=e26]:
+              - /placeholder: you@example.com
+            - alert [ref=e27]: Invalid email address
+        - generic [ref=e28]:
+          - generic [ref=e29]: Password
+          - generic [ref=e30]:
+            - textbox "Password" [ref=e32]:
+              - /placeholder: ••••••••
+            - alert [ref=e33]: Password must be at least 8 characters
+          - paragraph [ref=e34]: Must be at least 8 characters with uppercase, lowercase, and number
+        - button "Register" [ref=e36]
+      - generic [ref=e37]:
+        - text: Already have an account?
+        - link "Log in" [ref=e38] [cursor=pointer]:
+          - /url: /login
+  - alert [ref=e39]
+```

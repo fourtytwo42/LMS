@@ -7,7 +7,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, icon, ...props }, ref) => {
+  ({ className, error, icon, value, onChange, ...props }, ref) => {
+    // Ensure value is always a string (never undefined)
+    const inputValue = value ?? "";
+    
     return (
       <div className="w-full">
         <div className="relative">
@@ -18,6 +21,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            {...props}
             className={cn(
               "w-full rounded-lg border px-4 py-2.5 text-base",
               "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
@@ -30,7 +34,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
             aria-invalid={error ? "true" : "false"}
             aria-describedby={error ? `${props.id}-error` : undefined}
-            {...props}
+            value={inputValue}
+            onChange={onChange}
           />
         </div>
         {error && (

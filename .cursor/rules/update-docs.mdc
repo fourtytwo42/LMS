@@ -1,0 +1,182 @@
+---
+description: Automatically updates documentation in /docs folder when code changes are made
+globs: "**/*"
+alwaysApply: true
+---
+
+# Update Documentation Rule
+
+This rule ensures that documentation in the `/docs` folder is automatically updated whenever code changes are made to keep documentation synchronized with the codebase.
+
+## Trigger
+
+This rule is triggered automatically after any code modification that affects:
+- API endpoints
+- Database schema
+- Configuration
+- Features
+- Architecture
+- Dependencies
+
+## Action
+
+Upon activation, the AI assistant will:
+
+1. **Identify Changes:** Analyze what was modified (API routes, components, database schema, etc.)
+
+2. **Determine Affected Documentation:**
+   - API changes → Update `docs/api-reference.md`
+   - Database changes → Update `docs/database-schema.md`
+   - Architecture changes → Update `docs/architecture.md`
+   - Configuration changes → Update `docs/configuration.md`
+   - Feature additions → Update relevant user guides and feature lists
+   - Dependency updates → Update `docs/architecture.md` and `docs/installation.md`
+
+3. **Update Documentation Files:**
+   - **API Reference** (`docs/api-reference.md`):
+     - Add new endpoints
+     - Update endpoint descriptions
+     - Update request/response examples
+     - Update error responses
+   
+   - **Database Schema** (`docs/database-schema.md`):
+     - Add new models
+     - Update model fields
+     - Update relationships
+     - Update indexes
+   
+   - **Architecture** (`docs/architecture.md`):
+     - Update technology stack versions
+     - Update component structure
+     - Update data flow diagrams
+     - Update security architecture
+   
+   - **Configuration** (`docs/configuration.md`):
+     - Add new environment variables
+     - Update configuration examples
+     - Update feature flags
+   
+   - **Development Guide** (`docs/development.md`):
+     - Update project structure
+     - Update coding examples
+     - Update common tasks
+   
+   - **Installation Guide** (`docs/installation.md`):
+     - Update dependencies
+     - Update setup steps
+     - Update prerequisites
+   
+   - **Deployment Guide** (`docs/deployment.md`):
+     - Update deployment steps
+     - Update configuration
+     - Update monitoring
+   
+   - **Quick Start** (`docs/quick-start.md`):
+     - Update quick setup steps
+     - Update default accounts
+   
+   - **README.md** (root):
+     - Update feature list
+     - Update technology stack
+     - Update quick start commands
+     - Update links to documentation
+
+4. **Maintain Consistency:**
+   - Ensure all documentation references are accurate
+   - Update cross-references between documents
+   - Verify code examples match current implementation
+   - Ensure version numbers are consistent
+
+## Documentation Update Checklist
+
+After making code changes, verify:
+
+- [ ] **API Reference** - All endpoints documented with examples
+- [ ] **Database Schema** - All models and relationships documented
+- [ ] **Architecture** - Technology stack and structure updated
+- [ ] **Configuration** - All environment variables documented
+- [ ] **Development Guide** - Code examples and patterns updated
+- [ ] **Installation Guide** - Setup steps are current
+- [ ] **Deployment Guide** - Production setup is accurate
+- [ ] **Quick Start** - Quick setup works with current code
+- [ ] **README.md** - Feature list and links are current
+- [ ] **Cross-references** - Links between documents work
+
+## Examples
+
+### Example 1: Adding a New API Endpoint
+
+**Code Change:** Added `POST /api/courses/:id/assign-instructor`
+
+**Documentation Updates:**
+- `docs/api-reference.md`: Add endpoint documentation with request/response examples
+- `docs/development.md`: Update "Adding a New API Endpoint" section if needed
+- `README.md`: Update feature list if this is a major feature
+
+### Example 2: Database Schema Change
+
+**Code Change:** Added `isActive` field to `User` model
+
+**Documentation Updates:**
+- `docs/database-schema.md`: Update User model fields
+- `docs/api-reference.md`: Update user-related endpoints if response changed
+- `docs/development.md`: Update database change workflow if needed
+
+### Example 3: Dependency Update
+
+**Code Change:** Updated Next.js from 16.0.8 to 16.1.0
+
+**Documentation Updates:**
+- `docs/architecture.md`: Update Next.js version
+- `docs/installation.md`: Update if installation steps changed
+- `docs/development.md`: Update if development workflow changed
+- `README.md`: Update technology stack
+
+### Example 4: New Feature Addition
+
+**Code Change:** Added video streaming feature
+
+**Documentation Updates:**
+- `docs/architecture.md`: Add to component architecture
+- `docs/api-reference.md`: Add streaming endpoints
+- `docs/development.md`: Add development notes
+- `README.md`: Add to feature list
+- User guides: Add usage instructions
+
+## Best Practices
+
+1. **Update Immediately:** Don't wait, update docs right after making changes
+2. **Be Specific:** Include details about what changed and why
+3. **Use Examples:** Show code examples when relevant
+4. **Link Related Docs:** Reference related documentation sections
+5. **Verify Accuracy:** Ensure examples work with current code
+6. **Maintain Consistency:** Keep version numbers and references consistent
+
+## Integration with Other Rules
+
+- Follow [update-project-docs.mdc](mdc:.cursor/rules/update-project-docs.mdc) for project documentation updates
+- Follow [keep-project-docs-updated.mdc](mdc:.cursor/rules/keep-project-docs-updated.mdc) for project status updates
+
+## Enforcement
+
+This rule should be followed for **every code change** that affects:
+- API endpoints
+- Database schema
+- Configuration
+- Features
+- Architecture
+- Dependencies
+
+**Never skip documentation updates.** Keeping docs in sync is critical for project maintainability and user experience.
+
+## Quick Reference
+
+**After making changes:**
+1. ✅ Identify what changed
+2. ✅ Determine affected documentation files
+3. ✅ Update relevant sections
+4. ✅ Verify examples are current
+5. ✅ Check cross-references
+6. ✅ Update README.md if needed
+
+**Remember:** Documentation that's out of date is worse than no documentation. Keep it current!

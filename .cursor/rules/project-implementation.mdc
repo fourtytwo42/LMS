@@ -1,0 +1,347 @@
+---
+description: Guidelines for AI assistants when building/implementing projects using project documentation
+globs: **/*
+alwaysApply: true
+---
+# Project Implementation Guide
+
+**CRITICAL:** When a user asks you to build or implement a project, you MUST first locate and read the project documentation. The documentation contains all specifications, technologies, patterns, and decisions needed to build the project correctly.
+
+## Finding Project Documentation
+
+### Step 1: Identify the Project
+
+**When user says:**
+- "Build [project name]"
+- "Implement [project name]"
+- "Start working on [project name]"
+- "Create [project name]"
+
+**Action:** Identify the project name and search for its documentation.
+
+### Step 2: Locate Documentation
+
+**Search Methods:**
+
+**Method 1: Search by Project Name**
+```bash
+# Search for project files
+codebase_search("Where is the [project name] project documented?", ["brain/projects"])
+```
+
+### Step 3: Read Main Project File
+
+**Always start with the main project file:**
+- Path: `project-name.md`
+
+**What to Read:**
+1. **Concept** - Understand what the project does
+2. **Core Architecture** - High-level system design
+3. **Status** - Current phase, what's done, what's next
+4. **Project Artifacts** - Links to detailed documentation
+
+### Step 4: Read Relevant Artifacts
+
+**Based on what you're building, read:**
+- **Architecture artifact** - If building components or understanding system
+- **API artifact** - If building API endpoints
+- **Smart Contract artifact** - If building smart contracts
+- **Implementation artifact** - If setting up development environment
+- **Security artifact** - If implementing security features
+
+**Reading Order:**
+1. Main project file (overview)
+2. Architecture artifact (system design)
+3. Implementation artifact (setup, patterns, structure)
+4. Specific artifacts as needed (API, contracts, etc.)
+
+## Understanding Project Documentation
+
+### Key Information to Extract
+
+**1. Technology Stack**
+- **Exact versions:** Note exact versions specified (e.g., "React 18.2.0", not just "React")
+- **Why chosen:** Understand reasoning for technology choices
+- **Dependencies:** Note all dependencies and their versions
+
+**2. Architecture & Design**
+- **Component structure:** How components are organized
+- **Data flow:** How data moves through the system
+- **Patterns:** What architectural patterns are used
+- **Interactions:** How components interact
+
+**3. Implementation Details**
+- **Project structure:** Exact directory layout
+- **Coding patterns:** Conventions, style, patterns to follow
+- **Setup steps:** Exact commands and configuration
+- **Environment variables:** All required variables with examples
+
+**4. Specifications**
+- **API endpoints:** Exact request/response formats
+- **Database schema:** Exact field types, constraints, indexes
+- **Smart contracts:** Exact function signatures, events, state
+- **Data structures:** Exact formats and validation rules
+
+**5. Decisions Made**
+- **Why decisions were made:** Understand reasoning
+- **Trade-offs:** What was gained/lost with decisions
+- **Alternatives considered:** What other options were evaluated
+
+### What to Look For
+
+**In Main Project File:**
+- Project concept and goals
+- High-level architecture
+- Current status (what's done, what's next)
+- Links to detailed artifacts
+
+**In Architecture Artifact:**
+- Detailed component breakdown
+- Technology choices with versions
+- Data flow and interactions
+- Design patterns
+
+**In Implementation Artifact:**
+- Exact project structure
+- Development setup steps
+- Coding patterns and conventions
+- Deployment process
+
+**In API Artifact:**
+- All endpoint specifications
+- Request/response formats
+- Authentication methods
+- Error handling
+
+**In Smart Contract Artifact:**
+- Contract structures
+- Function signatures
+- Event definitions
+- State variables
+
+## Using Project Documentation When Building
+
+### Before Starting
+
+**1. Verify You Have All Information**
+- [ ] Technology stack with exact versions
+- [ ] Project structure defined
+- [ ] Setup steps documented
+- [ ] Patterns and conventions specified
+- [ ] All specifications needed for your task
+
+**2. Check Current Status**
+- What's already built?
+- What's in progress?
+- What should you work on next?
+- Are there any blockers?
+
+**3. Understand the Context**
+- What phase is the project in? (planning, design, development, testing)
+- What's the priority?
+- What are the constraints?
+
+### During Implementation
+
+**1. Follow Exact Specifications**
+- **Use exact versions:** Don't use different versions than specified
+- **Follow structure:** Use the exact project structure documented
+- **Follow patterns:** Use the coding patterns and conventions specified
+- **Follow formats:** Use exact API formats, data structures, etc.
+
+**2. Reference Documentation Frequently**
+- Check documentation when unsure
+- Verify your implementation matches specifications
+- Ensure you're following patterns correctly
+
+**3. Document What You Build**
+- Update status in main project file
+- Add notes about implementation details
+- Document any deviations and why
+
+**4. Ask Questions If Needed**
+- If documentation is unclear or missing information
+- If you encounter issues not covered in docs
+- If you need to make decisions not documented
+
+### Implementation Checklist
+
+**Before Writing Code:**
+- [ ] Read main project file
+- [ ] Read relevant artifacts
+- [ ] Understand architecture
+- [ ] Understand patterns and conventions
+- [ ] Verify setup is correct
+
+**While Writing Code:**
+- [ ] Follow exact project structure
+- [ ] Use exact technology versions
+- [ ] Follow coding patterns specified
+- [ ] Match API/data format specifications
+- [ ] Follow error handling patterns
+
+**After Writing Code:**
+- [ ] Verify implementation matches specifications
+- [ ] Update project status if needed
+- [ ] Document any deviations
+
+## Common Scenarios
+
+### Scenario 1: Building a New Feature
+
+**Steps:**
+1. Read main project file to understand feature context
+2. Read architecture artifact to understand system design
+3. Read implementation artifact for patterns and structure
+4. Read API artifact if feature involves API changes
+5. Implement following exact specifications
+6. Update status in main project file
+
+### Scenario 2: Setting Up Development Environment
+
+**Steps:**
+1. Read implementation artifact
+2. Follow exact setup steps
+3. Use exact versions specified
+4. Configure all environment variables as documented
+5. Verify setup works
+
+### Scenario 3: Building API Endpoints
+
+**Steps:**
+1. Read API artifact for endpoint specifications
+2. Read implementation artifact for patterns
+3. Follow exact request/response formats
+4. Implement authentication as specified
+5. Handle errors as documented
+
+### Scenario 4: Building Smart Contracts
+
+**Steps:**
+1. Read smart contract artifact
+2. Use exact function signatures
+3. Follow exact state variable structures
+4. Emit events as specified
+5. Follow deployment process
+
+### Scenario 5: Building Frontend Components
+
+**Steps:**
+1. Read architecture artifact for component structure
+2. Read implementation artifact for patterns
+3. Follow exact project structure
+4. Use exact technology versions
+5. Follow UI/UX specifications
+
+## Handling Missing or Unclear Information
+
+### If Information is Missing
+
+**Check:**
+1. Did you read all relevant artifacts?
+2. Is the information in a different artifact?
+3. Is it in the main project file?
+
+**If Still Missing:**
+- Ask the user for clarification
+- Don't guess or assume
+- Document what's missing in your response
+
+### If Information is Unclear
+
+**Actions:**
+1. Re-read the relevant section
+2. Check related artifacts
+3. Look for examples or additional context
+4. Ask the user for clarification
+
+**Don't:**
+- Make assumptions
+- Use different versions/patterns than specified
+- Skip unclear parts
+
+### If Specifications Conflict
+
+**Actions:**
+1. Check if there's a "Decisions Made" section explaining the conflict
+2. Check if one specification is more recent
+3. Ask the user which specification to follow
+
+## Best Practices
+
+### 1. Read First, Code Second
+- Always read documentation before writing code
+- Understand the full context before implementing
+- Don't start coding until you understand the specifications
+
+### 2. Follow Exactly
+- Use exact versions specified
+- Follow exact structure documented
+- Match exact formats specified
+- Don't deviate without good reason
+
+### 3. Verify Frequently
+- Check your implementation against specifications
+- Ensure you're following patterns correctly
+- Verify versions and configurations match
+
+### 4. Document Changes
+- If you need to deviate, document why
+- Update project status as you work
+- Add notes about implementation details
+
+### 5. Ask When Needed
+- Ask if documentation is unclear
+- Ask if information is missing
+- Ask if you need to make decisions not documented
+
+## Integration with Other Rules
+
+- **Projects Organization:** See [projects-organization.mdc](mdc:.cursor/rules/projects-organization.mdc) for how projects are organized
+- **Project Artifacts:** See [project-artifacts.mdc](mdc:.cursor/rules/project-artifacts.mdc) for artifact structure and how to read them
+- **Project Documentation Guide:** See [PROJECT_DOCUMENTATION_GUIDE.md](../brain/projects/PROJECT_DOCUMENTATION_GUIDE.md) for what information is in each file type
+
+## Example Workflow
+
+```
+User: "Build the user authentication feature for the marketplace project"
+
+AI Assistant Process:
+1. Search for marketplace project: codebase_search("marketplace project documentation", ["brain/projects"])
+2. Find: brain/projects/2025/decentralized-marketplace/decentralized-marketplace-platform.md
+3. Read main file:
+   - Understand: It's a decentralized marketplace
+   - Status: In development, authentication not yet implemented
+   - Architecture: Uses smart contracts, IPFS, encrypted messaging
+4. Read architecture artifact:
+   - Understand: Wallet-based authentication (MetaMask)
+   - No traditional username/password
+5. Read API artifact:
+   - Check if there are auth endpoints (none yet - need to implement)
+6. Read implementation artifact:
+   - Project structure: frontend/, backend/, contracts/
+   - Patterns: TypeScript, Next.js, Solidity
+7. Implement:
+   - Follow exact structure
+   - Use wallet integration pattern
+   - Follow coding conventions
+8. Update status in main project file
+```
+
+## Quick Reference
+
+**When user asks to build something:**
+1. ✅ Find project documentation
+2. ✅ Read main project file
+3. ✅ Read relevant artifacts
+4. ✅ Understand specifications
+5. ✅ Follow exactly
+6. ✅ Verify against docs
+7. ✅ Update status
+
+**Key Questions to Answer:**
+- What technologies? (exact versions)
+- What structure? (exact layout)
+- What patterns? (exact conventions)
+- What specifications? (exact formats)
+- What's the status? (what's done, what's next)
