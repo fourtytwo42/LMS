@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle, Trash2 } from "lucide-react";
+import { CheckCircle, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,7 @@ export default function EnrollmentsPage() {
     totalPages: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [enrollmentToDelete, setEnrollmentToDelete] = useState<Enrollment | null>(null);
@@ -73,6 +75,7 @@ export default function EnrollmentsPage() {
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
       });
+      if (search) params.append("search", search);
       if (statusFilter) params.append("status", statusFilter);
 
       const response = await fetch(`/api/enrollments?${params}`);
@@ -90,7 +93,7 @@ export default function EnrollmentsPage() {
 
   useEffect(() => {
     fetchEnrollments();
-  }, [pagination.page, statusFilter]);
+  }, [pagination.page, search, statusFilter]);
 
   const handleApprove = async (enrollmentId: string) => {
     try {
@@ -150,7 +153,7 @@ export default function EnrollmentsPage() {
       </div>
 
       <Card>
-        <div className="mb-4 flex gap-4">
+        <div className="mb-4 flex gap-4 justify-end">
           <Select
             value={statusFilter}
             onChange={(e) => {
@@ -166,6 +169,17 @@ export default function EnrollmentsPage() {
             <option value="COMPLETED">Completed</option>
             <option value="DROPPED">Dropped</option>
           </Select>
+          <div className="w-64">
+            <Input
+              placeholder="Search enrollments..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              icon={<Search className="h-4 w-4" />}
+            />
+          </div>
         </div>
 
         {loading ? (

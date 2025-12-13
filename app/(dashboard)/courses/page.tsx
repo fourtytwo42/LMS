@@ -152,18 +152,7 @@ export default function CoursesPage() {
       </div>
 
       <Card>
-        <div className="mb-4 sm:mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search courses..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPagination((p) => ({ ...p, page: 1 }));
-              }}
-              icon={<Search className="h-4 w-4" />}
-            />
-          </div>
+        <div className="mb-4 sm:mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end">
           {(isAdmin || isInstructor) && (
             <Select
               value={statusFilter}
@@ -179,6 +168,17 @@ export default function CoursesPage() {
               <option value="ARCHIVED">Archived</option>
             </Select>
           )}
+          <div className="w-full sm:w-64">
+            <Input
+              placeholder="Search courses..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              icon={<Search className="h-4 w-4" />}
+            />
+          </div>
         </div>
 
         {loading ? (

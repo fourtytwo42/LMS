@@ -18,6 +18,7 @@ const updateUserSchema = z.object({
   bio: z.string().optional(),
   avatar: z.string().url().optional().or(z.literal("")),
   roles: z.array(z.enum(["LEARNER", "INSTRUCTOR", "ADMIN"])).optional(),
+  groupIds: z.array(z.string()).optional(),
 });
 
 type UpdateUserForm = z.infer<typeof updateUserSchema>;
@@ -31,6 +32,7 @@ interface User {
   bio: string | null;
   emailVerified: boolean;
   roles: string[];
+  groups: Array<{ id: string; name: string }>;
   createdAt: string;
   lastLoginAt: string | null;
   enrollments: Array<{
@@ -42,6 +44,11 @@ interface User {
   }>;
 }
 
+interface Group {
+  id: string;
+  name: string;
+}
+
 export default function UserDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -50,6 +57,8 @@ export default function UserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
   const {
     register,
@@ -61,8 +70,9 @@ export default function UserDetailPage() {
   });
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch user
         const response = await fetch(`/api/users/${userId}`);
         if (!response.ok) throw new Error("Failed to fetch user");
 
@@ -84,15 +94,37 @@ export default function UserDetailPage() {
         if (isAdmin) {
           setValue("roles", userData.roles);
         }
+
+        // Set groups
+        if (userData.groups) {
+          const groupIds = userData.groups.map((g: { id: string }) => g.id);
+          setSelectedGroupIds(groupIds);
+          setValue("groupIds", groupIds);
+        }
+
+        // Fetch all groups
+        const groupsResponse = await fetch("/api/groups");
+        if (groupsResponse.ok) {
+          const groupsData = await groupsResponse.json();
+          setGroups(groupsData.groups || []);
+        }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
+    fetchData();
   }, [userId, setValue, isAdmin]);
+
+  const handleGroupToggle = (groupId: string) => {
+    const newSelected = selectedGroupIds.includes(groupId)
+      ? selectedGroupIds.filter((id) => id !== groupId)
+      : [...selectedGroupIds, groupId];
+    setSelectedGroupIds(newSelected);
+    setValue("groupIds", newSelected);
+  };
 
   const onSubmit = async (data: UpdateUserForm) => {
     setSaving(true);
@@ -210,6 +242,30 @@ export default function UserDetailPage() {
               </div>
             )}
 
+            {isAdmin && (
+              <div>
+                <label className="mb-1 block text-sm font-medium">Groups (optional)</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                  {groups.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No groups available</p>
+                  ) : (
+                    groups.map((group) => (
+                      <label key={group.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={selectedGroupIds.includes(group.id)}
+                          onChange={() => handleGroupToggle(group.id)}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="text-sm">{group.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                <input type="hidden" {...register("groupIds")} />
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -254,6 +310,20 @@ export default function UserDetailPage() {
                     {role}
                   </Badge>
                 ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Groups</div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {user.groups && user.groups.length > 0 ? (
+                  user.groups.map((group) => (
+                    <Badge key={group.id} variant="info">
+                      {group.name}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-400">None</span>
+                )}
               </div>
             </div>
             <div>

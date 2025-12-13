@@ -171,9 +171,169 @@ async function main() {
     });
   }
 
+  // Create realistic groups
+  const salesGroup = await prisma.group.upsert({
+    where: { name: "Sales Team" },
+    update: {},
+    create: {
+      name: "Sales Team",
+      type: "STAFF",
+      description: "Sales and business development team",
+    },
+  });
+
+  const engineeringGroup = await prisma.group.upsert({
+    where: { name: "Engineering Team" },
+    update: {},
+    create: {
+      name: "Engineering Team",
+      type: "STAFF",
+      description: "Software engineering and development team",
+    },
+  });
+
+  const marketingGroup = await prisma.group.upsert({
+    where: { name: "Marketing Team" },
+    update: {},
+    create: {
+      name: "Marketing Team",
+      type: "STAFF",
+      description: "Marketing and communications team",
+    },
+  });
+
+  const managementGroup = await prisma.group.upsert({
+    where: { name: "Management" },
+    update: {},
+    create: {
+      name: "Management",
+      type: "STAFF",
+      description: "Management and leadership team",
+    },
+  });
+
+  const newHiresGroup = await prisma.group.upsert({
+    where: { name: "New Hires" },
+    update: {},
+    create: {
+      name: "New Hires",
+      type: "CUSTOM",
+      description: "New employee onboarding group",
+    },
+  });
+
+  // Create additional learners for group assignments
+  const learner2Password = await bcrypt.hash("learner123", 10);
+  const learner2 = await prisma.user.upsert({
+    where: { email: "learner2@lms.com" },
+    update: {
+      passwordHash: learner2Password,
+      emailVerified: true,
+    },
+    create: {
+      email: "learner2@lms.com",
+      passwordHash: learner2Password,
+      firstName: "Jane",
+      lastName: "Smith",
+      emailVerified: true,
+      roles: {
+        create: {
+          roleId: learnerRole.id,
+        },
+      },
+    },
+  });
+
+  const learner3Password = await bcrypt.hash("learner123", 10);
+  const learner3 = await prisma.user.upsert({
+    where: { email: "learner3@lms.com" },
+    update: {
+      passwordHash: learner3Password,
+      emailVerified: true,
+    },
+    create: {
+      email: "learner3@lms.com",
+      passwordHash: learner3Password,
+      firstName: "Bob",
+      lastName: "Johnson",
+      emailVerified: true,
+      roles: {
+        create: {
+          roleId: learnerRole.id,
+        },
+      },
+    },
+  });
+
+  const learner4Password = await bcrypt.hash("learner123", 10);
+  const learner4 = await prisma.user.upsert({
+    where: { email: "learner4@lms.com" },
+    update: {
+      passwordHash: learner4Password,
+      emailVerified: true,
+    },
+    create: {
+      email: "learner4@lms.com",
+      passwordHash: learner4Password,
+      firstName: "Alice",
+      lastName: "Williams",
+      emailVerified: true,
+      roles: {
+        create: {
+          roleId: learnerRole.id,
+        },
+      },
+    },
+  });
+
+  const learner5Password = await bcrypt.hash("learner123", 10);
+  const learner5 = await prisma.user.upsert({
+    where: { email: "learner5@lms.com" },
+    update: {
+      passwordHash: learner5Password,
+      emailVerified: true,
+    },
+    create: {
+      email: "learner5@lms.com",
+      passwordHash: learner5Password,
+      firstName: "Charlie",
+      lastName: "Brown",
+      emailVerified: true,
+      roles: {
+        create: {
+          roleId: learnerRole.id,
+        },
+      },
+    },
+  });
+
+  // Assign learners to groups
+  // Remove any existing group memberships for these users first
+  await prisma.groupMember.deleteMany({
+    where: {
+      userId: { in: [learner.id, learner2.id, learner3.id, learner4.id, learner5.id] },
+    },
+  });
+
+  // Assign learners to various groups
+  await prisma.groupMember.createMany({
+    data: [
+      { userId: learner.id, groupId: salesGroup.id },
+      { userId: learner.id, groupId: newHiresGroup.id },
+      { userId: learner2.id, groupId: engineeringGroup.id },
+      { userId: learner2.id, groupId: newHiresGroup.id },
+      { userId: learner3.id, groupId: marketingGroup.id },
+      { userId: learner4.id, groupId: engineeringGroup.id },
+      { userId: learner4.id, groupId: managementGroup.id },
+      { userId: learner5.id, groupId: salesGroup.id },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log("Seed data created:", {
     roles: [learnerRole.name, instructorRole.name, adminRole.name],
-    users: [admin.email, instructor.email, learner.email],
+    users: [admin.email, instructor.email, learner.email, learner2.email, learner3.email, learner4.email, learner5.email],
+    groups: [salesGroup.name, engineeringGroup.name, marketingGroup.name, managementGroup.name, newHiresGroup.name],
   });
 }
 

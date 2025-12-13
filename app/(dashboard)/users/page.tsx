@@ -19,6 +19,7 @@ interface User {
   avatar: string | null;
   emailVerified: boolean;
   roles: string[];
+  groups: Array<{ id: string; name: string }>;
   createdAt: string;
 }
 
@@ -171,18 +172,7 @@ export default function UsersPage() {
       </div>
 
       <Card>
-        <div className="mb-4 flex gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPagination((p) => ({ ...p, page: 1 }));
-              }}
-              icon={<Search className="h-4 w-4" />}
-            />
-          </div>
+        <div className="mb-4 flex gap-4 justify-end">
           <Select
             value={roleFilter}
             onChange={(e) => {
@@ -196,6 +186,17 @@ export default function UsersPage() {
             <option value="INSTRUCTOR">Instructor</option>
             <option value="ADMIN">Admin</option>
           </Select>
+          <div className="w-64">
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              icon={<Search className="h-4 w-4" />}
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -216,6 +217,9 @@ export default function UsersPage() {
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Roles
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Groups
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Status
@@ -258,6 +262,19 @@ export default function UsersPage() {
                               {role}
                             </Badge>
                           ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                        <div className="flex gap-1 flex-wrap">
+                          {user.groups && user.groups.length > 0 ? (
+                            user.groups.map((group) => (
+                              <Badge key={group.id} variant="info">
+                                {group.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500">-</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">

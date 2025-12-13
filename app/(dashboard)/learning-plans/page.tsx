@@ -116,18 +116,7 @@ export default function LearningPlansPage() {
       </div>
 
       <Card>
-        <div className="mb-4 flex gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search learning plans..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPagination((p) => ({ ...p, page: 1 }));
-              }}
-              icon={<Search className="h-4 w-4" />}
-            />
-          </div>
+        <div className="mb-4 flex gap-4 justify-end">
           {(isAdmin || isInstructor) && (
             <Select
               value={statusFilter}
@@ -143,6 +132,17 @@ export default function LearningPlansPage() {
               <option value="ARCHIVED">Archived</option>
             </Select>
           )}
+          <div className="w-64">
+            <Input
+              placeholder="Search learning plans..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              icon={<Search className="h-4 w-4" />}
+            />
+          </div>
         </div>
 
         {loading ? (

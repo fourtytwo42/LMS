@@ -9,6 +9,7 @@ const updateUserSchema = z.object({
   bio: z.string().optional(),
   avatar: z.string().url().optional().or(z.literal("")),
   roles: z.array(z.enum(["LEARNER", "INSTRUCTOR", "ADMIN"])).optional(),
+  groupIds: z.array(z.string()).optional(),
 });
 
 export async function GET(
@@ -48,6 +49,16 @@ export async function GET(
             role: true,
           },
         },
+        groupMembers: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         enrollments: {
           include: {
             course: {
@@ -78,6 +89,10 @@ export async function GET(
       bio: targetUser.bio,
       emailVerified: targetUser.emailVerified,
       roles: targetUser.roles.map((r) => r.role.name),
+      groups: targetUser.groupMembers.map((gm) => ({
+        id: gm.group.id,
+        name: gm.group.name,
+      })),
       createdAt: targetUser.createdAt,
       lastLoginAt: targetUser.lastLoginAt,
       enrollments: targetUser.enrollments
@@ -169,6 +184,25 @@ export async function PUT(
       });
     }
 
+    // Update groups if provided
+    if (validated.groupIds !== undefined) {
+      // Delete existing group memberships
+      await prisma.groupMember.deleteMany({
+        where: { userId },
+      });
+
+      // Create new group memberships
+      if (validated.groupIds.length > 0) {
+        await prisma.groupMember.createMany({
+          data: validated.groupIds.map((groupId) => ({
+            userId,
+            groupId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
@@ -176,6 +210,16 @@ export async function PUT(
         roles: {
           include: {
             role: true,
+          },
+        },
+        groupMembers: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -190,6 +234,10 @@ export async function PUT(
         bio: updatedUser.bio,
         avatar: updatedUser.avatar,
         roles: updatedUser.roles.map((r) => r.role.name),
+        groups: updatedUser.groupMembers.map((gm) => ({
+          id: gm.group.id,
+          name: gm.group.name,
+        })),
         updatedAt: updatedUser.updatedAt,
       },
     });

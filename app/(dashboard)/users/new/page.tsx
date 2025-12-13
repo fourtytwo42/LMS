@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,7 @@ const createUserSchema = z
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     roles: z.array(z.enum(["LEARNER", "INSTRUCTOR", "ADMIN"])).optional(),
+    groupIds: z.array(z.string()).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -26,20 +27,52 @@ const createUserSchema = z
 
 type CreateUserForm = z.infer<typeof createUserSchema>;
 
+interface Group {
+  id: string;
+  name: string;
+}
+
 export default function NewUserPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       roles: ["LEARNER"],
+      groupIds: [],
     },
   });
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await fetch("/api/groups");
+        if (response.ok) {
+          const data = await response.json();
+          setGroups(data.groups || []);
+        }
+      } catch (error) {
+        console.error("Error fetching groups:", error);
+      }
+    };
+    fetchGroups();
+  }, []);
+
+  const handleGroupToggle = (groupId: string) => {
+    const newSelected = selectedGroupIds.includes(groupId)
+      ? selectedGroupIds.filter((id) => id !== groupId)
+      : [...selectedGroupIds, groupId];
+    setSelectedGroupIds(newSelected);
+    setValue("groupIds", newSelected);
+  };
 
   const onSubmit = async (data: CreateUserForm) => {
     setSaving(true);
@@ -152,6 +185,28 @@ export default function NewUserPage() {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">Groups (optional)</label>
+            <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+              {groups.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No groups available</p>
+              ) : (
+                groups.map((group) => (
+                  <label key={group.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.includes(group.id)}
+                      onChange={() => handleGroupToggle(group.id)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm">{group.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <input type="hidden" {...register("groupIds")} />
           </div>
 
           <div className="flex justify-end gap-2">

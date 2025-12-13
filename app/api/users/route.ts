@@ -10,6 +10,7 @@ const createUserSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   roles: z.array(z.enum(["LEARNER", "INSTRUCTOR", "ADMIN"])).optional(),
+  groupIds: z.array(z.string()).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -90,6 +91,16 @@ export async function GET(request: NextRequest) {
               role: true,
             },
           },
+          groupMembers: {
+            include: {
+              group: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -105,6 +116,10 @@ export async function GET(request: NextRequest) {
         avatar: u.avatar,
         emailVerified: u.emailVerified,
         roles: u.roles.map((r) => r.role.name),
+        groups: u.groupMembers.map((gm) => ({
+          id: gm.group.id,
+          name: gm.group.name,
+        })),
         createdAt: u.createdAt,
       })),
       pagination: {
@@ -184,11 +199,26 @@ export async function POST(request: NextRequest) {
             roleId: role.id,
           })),
         },
+        groupMembers: validated.groupIds && validated.groupIds.length > 0 ? {
+          create: validated.groupIds.map((groupId) => ({
+            groupId,
+          })),
+        } : undefined,
       },
       include: {
         roles: {
           include: {
             role: true,
+          },
+        },
+        groupMembers: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -202,6 +232,10 @@ export async function POST(request: NextRequest) {
           firstName: newUser.firstName,
           lastName: newUser.lastName,
           roles: newUser.roles.map((r) => r.role.name),
+          groups: newUser.groupMembers.map((gm) => ({
+            id: gm.group.id,
+            name: gm.group.name,
+          })),
           createdAt: newUser.createdAt,
         },
       },
