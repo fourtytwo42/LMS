@@ -1,44 +1,82 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, BarChart3, Users, LogOut } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useAuthStore } from "@/store/auth-store";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DataTable } from "@/components/tables/data-table";
+import type { Column } from "@/components/tables/data-table";
+import { TableToolbar } from "@/components/tables/table-toolbar";
+import { TablePagination } from "@/components/tables/table-pagination";
+import { ContentItemModal } from "@/components/content/content-item-modal";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
 import { cn } from "@/lib/utils/cn";
 import { getIconContainerClasses, getIconContainerStyle } from "@/lib/utils/icon-container";
 
+const updateCourseSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  shortDescription: z.string().max(130).optional(),
+  description: z.string().optional(),
+  estimatedTime: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) {
+        return undefined;
+      }
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().int().positive().optional().nullable()
+  ),
+  difficultyLevel: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined) {
+        return undefined;
+      }
+      return val;
+    },
+    z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional().nullable()
+  ),
+  publicAccess: z.boolean().optional(),
+  selfEnrollment: z.boolean().optional(),
+  sequentialRequired: z.boolean().optional(),
+  allowSkipping: z.boolean().optional(),
+  coverImage: z.string().optional(),
+});
+
+type UpdateCourseForm = z.infer<typeof updateCourseSchema>;
+
 interface Course {
   id: string;
-  code: string | null;
   title: string;
   shortDescription: string | null;
   description: string | null;
-  thumbnail: string | null;
   coverImage: string | null;
   status: string;
-  type: string;
   estimatedTime: number | null;
   difficultyLevel: string | null;
   publicAccess: boolean;
   selfEnrollment: boolean;
   sequentialRequired: boolean;
   allowSkipping: boolean;
-  category: {
+  createdBy: {
     id: string;
-    name: string;
-  } | null;
-  tags: string[];
-  rating: number | null;
-  reviewCount: number;
+  };
+  instructors: Array<{ id: string }>;
   enrollmentCount: number;
   contentItemCount: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface ContentItem {
@@ -69,54 +107,184 @@ interface ExpandedContentItem {
   completed: boolean;
 }
 
-export default function CourseDetailPage() {
+interface Enrollment {
+  id: string;
+  userId: string;
+  status: string;
+  enrolledAt: string;
+  startedAt: string | null;
+  dueDate: string | null;
+  progress: number;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatar: string | null;
+    isInstructor: boolean;
+  };
+}
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export default function CourseEditorPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const courseId = params.id as string;
   const { user } = useAuthStore();
+  
+  // Course data
   const [course, setCourse] = useState<Course | null>(null);
-  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [learningPlans, setLearningPlans] = useState<Array<{ id: string; title: string; status: string; coverImage: string | null; order: number }>>([]);
+  
+  // Tabs
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const tab = searchParams.get("tab");
+    return tab || "details";
+  });
+
+  // Details tab - form
+  const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  
+  const {
+    register: registerDetails,
+    handleSubmit: handleSubmitDetails,
+    formState: { errors: detailsErrors },
+    setValue: setDetailsValue,
+    watch: watchDetails,
+  } = useForm<UpdateCourseForm>({
+    resolver: zodResolver(updateCourseSchema),
+  });
+
+  // Training Material tab
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [expandedContent, setExpandedContent] = useState<ExpandedContentItem | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
-  const [userEnrollment, setUserEnrollment] = useState<{ id: string; status: string } | null>(null);
-  const [unenrolling, setUnenrolling] = useState(false);
+  const [contentModalOpen, setContentModalOpen] = useState(false);
+  const [editingContentItem, setEditingContentItem] = useState<any | null>(null);
+
+  // Enrollments tab
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollmentsPagination, setEnrollmentsPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [enrollmentsSearch, setEnrollmentsSearch] = useState("");
+  const [enrollmentsStatusFilter, setEnrollmentsStatusFilter] = useState("");
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [deleteEnrollmentModalOpen, setDeleteEnrollmentModalOpen] = useState(false);
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState<Enrollment | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [selectedRole, setSelectedRole] = useState<"LEARNER" | "INSTRUCTOR">("LEARNER");
+  const [usersPagination, setUsersPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+  const [usersSearch, setUsersSearch] = useState("");
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [selectedEnrollmentIds, setSelectedEnrollmentIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteEnrollmentModalOpen, setBulkDeleteEnrollmentModalOpen] = useState(false);
+  const [bulkUpdateEnrollmentModalOpen, setBulkUpdateEnrollmentModalOpen] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<string>("");
+
+  // Settings tab - form
+  const {
+    register: registerSettings,
+    handleSubmit: handleSubmitSettings,
+    formState: { errors: settingsErrors },
+    setValue: setSettingsValue,
+    watch: watchSettings,
+  } = useForm<UpdateCourseForm>({
+    resolver: zodResolver(updateCourseSchema),
+  });
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
-  const isInstructor = user?.roles?.includes("INSTRUCTOR") || false;
-  const canEdit = isAdmin || isInstructor;
-  const isLearner = user?.roles?.includes("LEARNER") || false;
+  const isAssignedInstructor = course?.instructors.some((i) => i.id === user?.id) || false;
+  const isCreator = course?.createdBy.id === user?.id || false;
+  const canEdit = isAdmin || isAssignedInstructor || isCreator;
 
+  // Redirect if no access
+  useEffect(() => {
+    if (!loading && course && !canEdit) {
+      router.push("/courses");
+    }
+  }, [loading, course, canEdit, router]);
+
+  // Fetch course data
   useEffect(() => {
     const fetchCourse = async () => {
+      setLoading(true);
       try {
-        const [courseResponse, contentResponse, enrollmentsResponse] = await Promise.all([
+        const [courseResponse, learningPlansResponse] = await Promise.all([
           fetch(`/api/courses/${courseId}`),
-          fetch(`/api/courses/${courseId}/content`),
-          user ? fetch(`/api/enrollments?courseId=${courseId}&userId=${user.id}`) : Promise.resolve(null),
+          fetch(`/api/courses/${courseId}/learning-plans`),
         ]);
 
-        if (!courseResponse.ok) throw new Error("Failed to fetch course");
-        if (!contentResponse.ok) throw new Error("Failed to fetch content");
+        if (!courseResponse.ok) {
+          if (courseResponse.status === 403) {
+            router.push("/courses");
+            return;
+          }
+          throw new Error("Failed to fetch course");
+        }
 
         const courseData = await courseResponse.json();
-        const contentData = await contentResponse.json();
-
         setCourse(courseData);
-        // Map content items with unlocked status from progress
-        const itemsWithProgress = contentData.contentItems.map((item: any) => ({
-          ...item,
-          unlocked: item.unlocked !== undefined ? item.unlocked : true, // Default to unlocked if not specified
-        }));
-        setContentItems(itemsWithProgress);
 
-        // Check if user is enrolled
-        if (enrollmentsResponse && enrollmentsResponse.ok) {
-          const enrollmentsData = await enrollmentsResponse.json();
-          if (enrollmentsData.enrollments && enrollmentsData.enrollments.length > 0) {
-            setUserEnrollment(enrollmentsData.enrollments[0]);
-          }
+        if (learningPlansResponse.ok) {
+          const learningPlansData = await learningPlansResponse.json();
+          setLearningPlans(learningPlansData.learningPlans || []);
+        }
+
+        // Set form values
+        setDetailsValue("title", courseData.title);
+        setDetailsValue("shortDescription", courseData.shortDescription || "");
+        setDetailsValue("description", courseData.description || "");
+        setDetailsValue("estimatedTime", courseData.estimatedTime);
+        setDetailsValue("difficultyLevel", courseData.difficultyLevel);
+        setDetailsValue("publicAccess", courseData.publicAccess);
+        setDetailsValue("selfEnrollment", courseData.selfEnrollment);
+        setDetailsValue("sequentialRequired", courseData.sequentialRequired);
+        setDetailsValue("allowSkipping", courseData.allowSkipping);
+        setDetailsValue("coverImage", courseData.coverImage || "");
+        
+        setSettingsValue("title", courseData.title);
+        setSettingsValue("shortDescription", courseData.shortDescription || "");
+        setSettingsValue("description", courseData.description || "");
+        setSettingsValue("estimatedTime", courseData.estimatedTime);
+        setSettingsValue("difficultyLevel", courseData.difficultyLevel);
+        setSettingsValue("publicAccess", courseData.publicAccess);
+        setSettingsValue("selfEnrollment", courseData.selfEnrollment);
+        setSettingsValue("sequentialRequired", courseData.sequentialRequired);
+        setSettingsValue("allowSkipping", courseData.allowSkipping);
+        setSettingsValue("coverImage", courseData.coverImage || "");
+
+        if (courseData.coverImage) {
+          setCoverImagePreview(courseData.coverImage);
         }
       } catch (error) {
         console.error("Error fetching course:", error);
@@ -126,11 +294,233 @@ export default function CourseDetailPage() {
     };
 
     fetchCourse();
-  }, [courseId, user]);
+  }, [courseId, setDetailsValue, setSettingsValue, router]);
 
+  // Fetch content items when Training Material tab is active
+  useEffect(() => {
+    if (activeTab === "training-material") {
+      const fetchContent = async () => {
+        try {
+          const response = await fetch(`/api/courses/${courseId}/content`);
+          if (response.ok) {
+            const data = await response.json();
+            const itemsWithProgress = data.contentItems.map((item: any) => ({
+              ...item,
+              unlocked: item.unlocked !== undefined ? item.unlocked : true,
+            }));
+            setContentItems(itemsWithProgress);
+          }
+        } catch (error) {
+          console.error("Error fetching content:", error);
+        }
+      };
+      fetchContent();
+    }
+  }, [activeTab, courseId]);
+
+  // Fetch enrollments when Enrollments tab is active
+  useEffect(() => {
+    if (activeTab === "enrollments") {
+      fetchEnrollments();
+    }
+  }, [activeTab, enrollmentsPagination.page, enrollmentsSearch, enrollmentsStatusFilter]);
+
+  // Fetch available users for enrollment
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: usersPagination.page.toString(),
+        limit: usersPagination.limit.toString(),
+      });
+      if (usersSearch) params.append("search", usersSearch);
+
+      const response = await fetch(`/api/users?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter out users already enrolled
+        const enrolledUserIds = new Set(enrollments.map((e) => e.userId));
+        setAvailableUsers((data.users || []).filter((u: User) => !enrolledUserIds.has(u.id)));
+        setUsersPagination({
+          page: data.pagination?.page || usersPagination.page,
+          limit: data.pagination?.limit || usersPagination.limit,
+          total: data.pagination?.total || 0,
+          totalPages: data.pagination?.totalPages || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (enrollModalOpen) {
+      fetchUsers();
+    } else {
+      setUsersSearch("");
+      setUsersPagination({ page: 1, limit: 20, total: 0, totalPages: 0 });
+      setSelectedUserIds(new Set());
+    }
+  }, [enrollModalOpen]);
+
+  useEffect(() => {
+    if (enrollModalOpen) {
+      const enrolledUserIds = new Set(enrollments.map((e) => e.userId));
+      fetchUsers();
+    }
+  }, [usersPagination.page, usersSearch, enrollModalOpen]);
+
+  const fetchEnrollments = async () => {
+    setEnrollmentsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: enrollmentsPagination.page.toString(),
+        limit: enrollmentsPagination.limit.toString(),
+      });
+      if (enrollmentsSearch) params.append("search", enrollmentsSearch);
+      if (enrollmentsStatusFilter) params.append("status", enrollmentsStatusFilter);
+
+      const response = await fetch(`/api/courses/${courseId}/enrollments?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch enrollments");
+
+      const data = await response.json();
+      setEnrollments(data.enrollments || []);
+      setEnrollmentsPagination({
+        page: data.pagination?.page || enrollmentsPagination.page,
+        limit: data.pagination?.limit || enrollmentsPagination.limit,
+        total: data.pagination?.total || 0,
+        totalPages: data.pagination?.totalPages || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching enrollments:", error);
+    } finally {
+      setEnrollmentsLoading(false);
+    }
+  };
+
+  // Details tab handlers
+  const handleCoverImageUploadClick = () => {
+    coverImageInputRef.current?.click();
+  };
+
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "COVER");
+
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload image");
+      }
+
+      const result = await response.json();
+      const fullUrl = result.file.url.startsWith("http")
+        ? result.file.url
+        : `${window.location.origin}${result.file.url}`;
+      
+      setDetailsValue("coverImage", fullUrl);
+      setSettingsValue("coverImage", fullUrl);
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImagePreview(previewUrl);
+    } catch (error) {
+      console.error("Error uploading cover image:", error);
+      alert(error instanceof Error ? error.message : "Failed to upload image");
+    } finally {
+      setUploadingCover(false);
+      if (coverImageInputRef.current) {
+        coverImageInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setDetailsValue("coverImage", "");
+    setSettingsValue("coverImage", "");
+    setCoverImagePreview(null);
+    if (coverImageInputRef.current) {
+      coverImageInputRef.current.value = "";
+    }
+  };
+
+  const onDetailsSubmit = async (data: UpdateCourseForm) => {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          estimatedTime: data.estimatedTime || null,
+          difficultyLevel: data.difficultyLevel || null,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update course");
+
+      const updatedCourse = await response.json();
+      setCourse(updatedCourse);
+      alert("Course updated successfully");
+    } catch (error) {
+      console.error("Error updating course:", error);
+      alert("Failed to update course");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSettingsSubmit = async (data: UpdateCourseForm) => {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          estimatedTime: data.estimatedTime || null,
+          difficultyLevel: data.difficultyLevel || null,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update course");
+
+      const updatedCourse = await response.json();
+      setCourse(updatedCourse);
+      alert("Course settings updated successfully");
+    } catch (error) {
+      console.error("Error updating course:", error);
+      alert("Failed to update course");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Training Material tab handlers
   const getContentIcon = (type: string) => {
     switch (type) {
       case "VIDEO":
+      case "YOUTUBE":
         return <Play className="h-5 w-5" />;
       case "PDF":
         return <FileText className="h-5 w-5" />;
@@ -147,90 +537,115 @@ export default function CourseDetailPage() {
     }
   };
 
-  const handleUnenroll = async () => {
-    if (!userEnrollment || !confirm("Are you sure you want to unenroll from this course?")) {
-      return;
-    }
+  const handleAddContent = () => {
+    setEditingContentItem(null);
+    setContentModalOpen(true);
+  };
 
-    setUnenrolling(true);
-    try {
-      const response = await fetch(`/api/enrollments/self/${userEnrollment.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to unenroll");
+  const handleEditContent = (item: ContentItem) => {
+    // Fetch full content item details
+    const fetchItem = async () => {
+      try {
+        const response = await fetch(`/api/content/${item.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setEditingContentItem(data);
+          setContentModalOpen(true);
+        }
+      } catch (error) {
+        console.error("Error fetching content item:", error);
       }
+    };
+    fetchItem();
+  };
 
-      setUserEnrollment(null);
-      alert("Successfully unenrolled from course");
-      router.push("/courses");
-    } catch (error: any) {
-      console.error("Error unenrolling:", error);
-      alert(error.message || "Failed to unenroll");
-    } finally {
-      setUnenrolling(false);
+  const handleDeleteContent = async (itemId: string) => {
+    if (!confirm("Are you sure you want to delete this content item?")) return;
+
+    try {
+      const response = await fetch(`/api/content/${itemId}`, { method: "DELETE" });
+      if (response.ok) {
+        setContentItems((items) => items.filter((i) => i.id !== itemId));
+        if (expandedItemId === itemId) {
+          setExpandedItemId(null);
+          setExpandedContent(null);
+        }
+        // Refresh course to update contentItemCount
+        const courseResponse = await fetch(`/api/courses/${courseId}`);
+        if (courseResponse.ok) {
+          const courseData = await courseResponse.json();
+          setCourse(courseData);
+        }
+      }
+    } catch (error) {
+      alert("Failed to delete content item");
+    }
+  };
+
+  const handleContentItemSubmit = async (data: any) => {
+    try {
+      if (editingContentItem) {
+        // Update existing
+        const response = await fetch(`/api/content/${editingContentItem.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error("Failed to update content item");
+      } else {
+        // Create new
+        const response = await fetch(`/api/courses/${courseId}/content`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error("Failed to create content item");
+      }
+      
+      // Refresh content items
+      const contentResponse = await fetch(`/api/courses/${courseId}/content`);
+      if (contentResponse.ok) {
+        const contentData = await contentResponse.json();
+        const itemsWithProgress = contentData.contentItems.map((item: any) => ({
+          ...item,
+          unlocked: item.unlocked !== undefined ? item.unlocked : true,
+        }));
+        setContentItems(itemsWithProgress);
+      }
+      
+      // Refresh course
+      const courseResponse = await fetch(`/api/courses/${courseId}`);
+      if (courseResponse.ok) {
+        const courseData = await courseResponse.json();
+        setCourse(courseData);
+      }
+    } catch (error) {
+      console.error("Error saving content item:", error);
+      throw error;
     }
   };
 
   const handleContentItemClick = async (item: ContentItem) => {
-    // If clicking the same item, collapse it
     if (expandedItemId === item.id) {
       setExpandedItemId(null);
       setExpandedContent(null);
       return;
     }
 
-    // Check if content is unlocked
-    if (item.unlocked === false) {
-      // Find previous incomplete content
-      const previousItems = contentItems.filter((i) => i.order < item.order);
-      const incompleteItem = previousItems.find((i) => !i.completed && i.required);
-      
-      if (incompleteItem) {
-        alert(`Please complete "${incompleteItem.title}" before accessing this content.`);
-      } else {
-        alert("This content is locked. Please complete the previous required content first.");
-      }
-      return;
-    }
-
-    // Expand the item and fetch full content
     setExpandedItemId(item.id);
     setLoadingContent(true);
 
     try {
-      // Fetch full content item details
       const contentResponse = await fetch(`/api/content/${item.id}`);
-      if (!contentResponse.ok) {
-        throw new Error("Failed to fetch content item");
-      }
+      if (!contentResponse.ok) throw new Error("Failed to fetch content item");
 
       const contentData = await contentResponse.json();
-      
-      // Get progress to check unlocked status
-      const progressResponse = await fetch(`/api/progress/course/${courseId}`);
-      if (progressResponse.ok) {
-        const progressData = await progressResponse.json();
-        const itemProgress = progressData.contentItems.find(
-          (p: any) => p.id === item.id
-        );
-
-        setExpandedContent({
-          ...contentData,
-          videoDuration: contentData.videoDuration || null,
-          unlocked: itemProgress?.unlocked !== false,
-          completed: itemProgress?.completed || false,
-        });
-      } else {
-        setExpandedContent({
-          ...contentData,
-          videoDuration: contentData.videoDuration || null,
-          unlocked: true,
-          completed: false,
-        });
-      }
+      setExpandedContent({
+        ...contentData,
+        videoDuration: contentData.videoDuration || null,
+        unlocked: true,
+        completed: false,
+      });
     } catch (error) {
       console.error("Error fetching content:", error);
       alert("Failed to load content. Please try again.");
@@ -241,7 +656,6 @@ export default function CourseDetailPage() {
   };
 
   const handleProgressUpdate = () => {
-    // Refresh course content to update progress
     const fetchContent = async () => {
       try {
         const contentResponse = await fetch(`/api/courses/${courseId}/content`);
@@ -260,6 +674,165 @@ export default function CourseDetailPage() {
     fetchContent();
   };
 
+  // Enrollments tab handlers
+  const handleSelectAllEnrollments = (checked: boolean) => {
+    if (checked) {
+      setSelectedEnrollmentIds(new Set(enrollments.map((e) => e.id)));
+    } else {
+      setSelectedEnrollmentIds(new Set());
+    }
+  };
+
+  const handleSelectEnrollment = (enrollmentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedEnrollmentIds);
+    if (checked) {
+      newSelected.add(enrollmentId);
+    } else {
+      newSelected.delete(enrollmentId);
+    }
+    setSelectedEnrollmentIds(newSelected);
+  };
+
+  const handleSelectAllUsers = (checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds(new Set(availableUsers.map((u) => u.id)));
+    } else {
+      setSelectedUserIds(new Set());
+    }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    const newSelected = new Set(selectedUserIds);
+    if (checked) {
+      newSelected.add(userId);
+    } else {
+      newSelected.delete(userId);
+    }
+    setSelectedUserIds(newSelected);
+  };
+
+  const handleBulkEnroll = async () => {
+    if (selectedUserIds.size === 0) {
+      alert("Please select at least one user");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/courses/${courseId}/enrollments/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          role: selectedRole,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.message || "Failed to enroll users");
+        return;
+      }
+
+      const result = await response.json();
+      setEnrollModalOpen(false);
+      setSelectedUserIds(new Set());
+      setSelectedRole("LEARNER");
+      fetchEnrollments();
+      alert(`Successfully enrolled ${result.enrolled || selectedUserIds.size} user(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
+    } catch (error) {
+      console.error("Error enrolling users:", error);
+      alert("Failed to enroll users");
+    }
+  };
+
+  const handleDeleteEnrollment = async () => {
+    if (!enrollmentToDelete) return;
+
+    try {
+      const response = await fetch(`/api/enrollments/${enrollmentToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to remove enrollment");
+
+      setDeleteEnrollmentModalOpen(false);
+      setEnrollmentToDelete(null);
+      fetchEnrollments();
+    } catch (error) {
+      console.error("Error removing enrollment:", error);
+      alert("Failed to remove enrollment");
+    }
+  };
+
+  const handleBulkDeleteEnrollments = async () => {
+    if (selectedEnrollmentIds.size === 0) return;
+
+    try {
+      const response = await fetch("/api/enrollments/bulk-delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentIds: Array.from(selectedEnrollmentIds),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to delete enrollments");
+
+      const data = await response.json();
+      alert(`Deleted ${data.deleted} enrollment(s), ${data.failed} failed`);
+      setBulkDeleteEnrollmentModalOpen(false);
+      setSelectedEnrollmentIds(new Set());
+      fetchEnrollments();
+    } catch (error) {
+      console.error("Error deleting enrollments:", error);
+      alert("Failed to delete enrollments");
+    }
+  };
+
+  const handleBulkUpdateEnrollments = async () => {
+    if (selectedEnrollmentIds.size === 0 || !bulkStatus) return;
+
+    try {
+      const response = await fetch("/api/enrollments/bulk-update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentIds: Array.from(selectedEnrollmentIds),
+          status: bulkStatus,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update enrollments");
+
+      const data = await response.json();
+      alert(`Updated ${data.updated} enrollment(s), ${data.failed} failed`);
+      setBulkUpdateEnrollmentModalOpen(false);
+      setBulkStatus("");
+      setSelectedEnrollmentIds(new Set());
+      fetchEnrollments();
+    } catch (error) {
+      console.error("Error updating enrollments:", error);
+      alert("Failed to update enrollments");
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "ENROLLED":
+        return <Badge variant="default">Enrolled</Badge>;
+      case "IN_PROGRESS":
+        return <Badge variant="primary">In Progress</Badge>;
+      case "COMPLETED":
+        return <Badge variant="success">Completed</Badge>;
+      case "PENDING_APPROVAL":
+        return <Badge variant="warning">Pending Approval</Badge>;
+      case "DROPPED":
+        return <Badge variant="danger">Dropped</Badge>;
+      default:
+        return <Badge variant="default">{status}</Badge>;
+    }
+  };
+
   if (loading) {
     return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Loading...</div>;
   }
@@ -268,8 +841,14 @@ export default function CourseDetailPage() {
     return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Course not found</div>;
   }
 
+  if (!canEdit) {
+    return null; // Will redirect in useEffect
+  }
+
+  const isAllEnrollmentsSelected = enrollments.length > 0 && enrollments.every((e) => selectedEnrollmentIds.has(e.id));
+
   return (
-    <div className="space-y-8 sm:space-y-10 max-w-7xl mx-auto w-full">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -280,228 +859,231 @@ export default function CourseDetailPage() {
           Back
         </Button>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{course.title}</h1>
-        <div className="flex gap-2">
-          {canEdit && (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push(`/courses/${courseId}/enrollments`)}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Enrollments
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push(`/courses/${courseId}/edit`)}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push(`/analytics/course/${courseId}`)}
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Analytics
-              </Button>
-            </>
-          )}
-          {isLearner && userEnrollment && !canEdit && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={handleUnenroll}
-              disabled={unenrolling}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              {unenrolling ? "Unenrolling..." : "Unenroll"}
-            </Button>
-          )}
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2">
-          {course.coverImage ? (
-            <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-              <img
-                src={course.coverImage}
-                alt={course.title}
-                className="w-full h-full object-contain"
-              />
-            </div>
-          ) : null}
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Badge
-              variant={
-                course.status === "PUBLISHED"
-                  ? "success"
-                  : course.status === "DRAFT"
-                  ? "warning"
-                  : "default"
-              }
-            >
-              {course.status}
-            </Badge>
-            <Badge variant="info">{course.type}</Badge>
-            {course.difficultyLevel && (
-              <Badge variant="default">{course.difficultyLevel}</Badge>
-            )}
-            {course.category && (
-              <Badge variant="default">{course.category.name}</Badge>
-            )}
-          </div>
-          {course.shortDescription && (
-            <p className="mb-4 text-lg text-gray-700 dark:text-gray-300">
-              {course.shortDescription}
-            </p>
-          )}
-          {course.description && (
-            <div className="prose max-w-none">
-              <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                {course.description}
-              </p>
-            </div>
-          )}
-        </Card>
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="training-material">Training Material</TabsTrigger>
+          <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
 
-        <Card className="p-6">
-          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Course Info</h2>
-          <div className="space-y-4">
-            {course.estimatedTime && (
+        <TabsContent value="details">
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Course Details</h2>
+            <form onSubmit={handleSubmitDetails(onDetailsSubmit)} className="space-y-4">
               <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Estimated Time</div>
-                <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {course.estimatedTime} minutes
-                </div>
+                <label className="mb-1 block text-sm font-medium">Title *</label>
+                <Input
+                  {...registerDetails("title")}
+                  error={detailsErrors.title?.message}
+                />
               </div>
-            )}
-            <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Enrollments</div>
-              <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                {course.enrollmentCount}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Content Items</div>
-              <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                {course.contentItemCount}
-              </div>
-            </div>
-            {course.rating && (
+
               <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Rating</div>
-                <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {course.rating.toFixed(1)} ({course.reviewCount} reviews)
+                <label className="mb-1 block text-sm font-medium">Short Description</label>
+                <Input
+                  {...registerDetails("shortDescription")}
+                  error={detailsErrors.shortDescription?.message}
+                  maxLength={130}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">Description</label>
+                <Textarea
+                  {...registerDetails("description")}
+                  rows={6}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Estimated Time (minutes)</label>
+                  <Input
+                    type="number"
+                    {...registerDetails("estimatedTime", { valueAsNumber: true })}
+                    error={detailsErrors.estimatedTime?.message}
+                    placeholder="120 (optional)"
+                  />
                 </div>
-              </div>
-            )}
-            <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Settings</div>
-              <div className="mt-1 space-y-1 text-sm">
-                {course.publicAccess && (
-                  <div className="text-green-600 dark:text-green-400">✓ Public Access</div>
-                )}
-                {course.selfEnrollment && (
-                  <div className="text-green-600 dark:text-green-400">✓ Self-Enrollment</div>
-                )}
-                {course.sequentialRequired && (
-                  <div className="text-blue-600 dark:text-blue-400">Sequential Required</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Content Items</h2>
-          {canEdit && (
-            <Button
-              onClick={() => router.push(`/courses/${courseId}/content/new`)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Content
-            </Button>
-          )}
-        </div>
-
-        {contentItems.length === 0 ? (
-          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-            No content items yet
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {contentItems.map((item) => {
-              const isExpanded = expandedItemId === item.id;
-              const isLocked = item.unlocked === false;
-              
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-lg border overflow-hidden"
-                >
-                  <div
-                    className={cn(
-                      "flex items-center justify-between p-4 cursor-pointer transition-colors",
-                      isExpanded 
-                        ? "bg-blue-50 dark:bg-blue-900/20" 
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800",
-                      isLocked && "opacity-60"
-                    )}
-                    onClick={() => !canEdit && handleContentItemClick(item)}
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Difficulty Level</label>
+                  <Select
+                    {...registerDetails("difficultyLevel")}
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div
-                        className={getIconContainerClasses(isLocked ? "locked" : "primary")}
-                        style={getIconContainerStyle(isLocked ? "locked" : "primary")}
+                    <option value="">Select difficulty (optional)</option>
+                    <option value="BEGINNER">Beginner</option>
+                    <option value="INTERMEDIATE">Intermediate</option>
+                    <option value="ADVANCED">Advanced</option>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Cover Image
+                </label>
+                {watchDetails("coverImage") || coverImagePreview ? (
+                  <div className="space-y-2">
+                    <div className="relative w-full max-w-2xl aspect-video rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <img
+                        src={coverImagePreview || watchDetails("coverImage") || ""}
+                        alt="Cover preview"
+                        className="w-full h-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoverImage}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
-                        {isLocked ? (
-                          <Lock className="h-5 w-5" />
-                        ) : (
-                          getContentIcon(item.type)
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                          {item.title}
-                          {isLocked && (
-                            <Badge variant="default" className="text-xs">
-                              Locked
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                          <Badge variant="info" className="text-xs">
-                            {item.type}
-                          </Badge>
-                          {item.required && (
-                            <Badge variant="warning" className="text-xs">
-                              Required
-                            </Badge>
-                          )}
-                          <span>Order: {item.order}</span>
-                        </div>
-                      </div>
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {item.progress !== undefined && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {Math.round(item.progress * 100)}%
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleCoverImageUploadClick}
+                      disabled={uploadingCover}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {uploadingCover ? "Uploading..." : "Change Image"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleCoverImageUploadClick}
+                    disabled={uploadingCover}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {uploadingCover ? "Uploading..." : "Upload Cover Image"}
+                  </Button>
+                )}
+                <input
+                  ref={coverImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverImageUpload}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB
+                </p>
+                <input type="hidden" {...registerDetails("coverImage")} />
+              </div>
+
+              {learningPlans.length > 0 && (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Part of Learning Plans
+                  </label>
+                  <div className="space-y-2">
+                    {learningPlans.map((lp) => (
+                      <div
+                        key={lp.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/learning-plans/${lp.id}?tab=courses`)}
+                      >
+                        {lp.coverImage && (
+                          <div className="w-16 h-10 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                            <img
+                              src={lp.coverImage}
+                              alt={lp.title}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {lp.title}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            Order: {lp.order} • {lp.status}
+                          </div>
                         </div>
-                      )}
-                      {canEdit && (
-                        <>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="submit" disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="training-material">
+          <Card className="p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Training Material</h2>
+              <Button onClick={handleAddContent}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Content
+              </Button>
+            </div>
+
+            {contentItems.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                No content items yet
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contentItems.map((item) => {
+                  const isExpanded = expandedItemId === item.id;
+                  
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-lg border overflow-hidden"
+                    >
+                      <div
+                        className={cn(
+                          "flex items-center justify-between p-4 cursor-pointer transition-colors",
+                          isExpanded 
+                            ? "bg-blue-50 dark:bg-blue-900/20" 
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                        )}
+                        onClick={() => handleContentItemClick(item)}
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div
+                            className={getIconContainerClasses("primary")}
+                            style={getIconContainerStyle("primary")}
+                          >
+                            {getContentIcon(item.type)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                              {item.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                              <Badge variant="info" className="text-xs">
+                                {item.type}
+                              </Badge>
+                              {item.required && (
+                                <Badge variant="warning" className="text-xs">
+                                  Required
+                                </Badge>
+                              )}
+                              <span>Order: {item.order}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/courses/${courseId}/content/${item.id}/edit`);
+                              handleEditContent(item);
                             }}
                           >
                             <Edit className="h-4 w-4" />
@@ -509,139 +1091,630 @@ export default function CourseDetailPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              if (
-                                confirm(
-                                  "Are you sure you want to delete this content item?"
-                                )
-                              ) {
-                                try {
-                                  const response = await fetch(
-                                    `/api/content/${item.id}`,
-                                    { method: "DELETE" }
-                                  );
-                                  if (response.ok) {
-                                    setContentItems((items) =>
-                                      items.filter((i) => i.id !== item.id)
-                                    );
-                                    if (expandedItemId === item.id) {
-                                      setExpandedItemId(null);
-                                      setExpandedContent(null);
-                                    }
-                                  }
-                                } catch (error) {
-                                  alert("Failed to delete content item");
-                                }
-                              }
+                              handleDeleteContent(item.id);
                             }}
                           >
                             <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
-                        </>
-                      )}
-                      {!canEdit && (
-                        <div className="text-gray-400">
-                          {isExpanded ? (
-                            <ChevronUp className="h-5 w-5" />
+                          <div className="text-gray-400">
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+                          {loadingContent ? (
+                            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                              Loading content...
+                            </div>
+                          ) : expandedContent ? (
+                            <div className="space-y-4">
+                              {expandedContent.description && (
+                                <p className="text-gray-700 dark:text-gray-300">{expandedContent.description}</p>
+                              )}
+                              
+                              {expandedContent.type === "VIDEO" && expandedContent.videoUrl && (
+                                <VideoPlayerLazy
+                                  contentItemId={expandedContent.id}
+                                  videoUrl={expandedContent.videoUrl}
+                                  videoDuration={expandedContent.videoDuration || undefined}
+                                  completionThreshold={expandedContent.completionThreshold || 0.8}
+                                  allowSeeking={expandedContent.allowSeeking}
+                                  onProgressUpdate={handleProgressUpdate}
+                                />
+                              )}
+
+                              {expandedContent.type === "PDF" && expandedContent.pdfUrl && (
+                                <PdfViewerLazy fileUrl={expandedContent.pdfUrl} />
+                              )}
+
+                              {expandedContent.type === "PPT" && expandedContent.pptUrl && (
+                                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                    PowerPoint presentation. Click to download or view.
+                                  </p>
+                                  <Button
+                                    onClick={() => window.open(expandedContent.pptUrl!, "_blank")}
+                                  >
+                                    Open Presentation
+                                  </Button>
+                                </div>
+                              )}
+
+                              {expandedContent.type === "HTML" && expandedContent.htmlContent && (
+                                <div
+                                  className="prose max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: expandedContent.htmlContent }}
+                                />
+                              )}
+
+                              {expandedContent.type === "EXTERNAL" && expandedContent.externalUrl && (
+                                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                    External content link.
+                                  </p>
+                                  <Button
+                                    onClick={() => window.open(expandedContent.externalUrl!, "_blank")}
+                                  >
+                                    Open External Link
+                                  </Button>
+                                </div>
+                              )}
+
+                              {expandedContent.type === "TEST" && (
+                                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                    Test content. Click to take the test.
+                                  </p>
+                                  <Button
+                                    onClick={() =>
+                                      router.push(`/courses/${courseId}/tests/${expandedContent.id}`)
+                                    }
+                                  >
+                                    Take Test
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           ) : (
-                            <ChevronDown className="h-5 w-5" />
+                            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                              Failed to load content
+                            </div>
                           )}
                         </div>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="enrollments">
+          <Card className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Enrollments</h2>
+              {isAdmin && (
+                <Button onClick={() => setEnrollModalOpen(true)}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Enroll User
+                </Button>
+              )}
+            </div>
+
+            <div className="mb-4 flex gap-4 justify-end">
+              <Select
+                value={enrollmentsStatusFilter}
+                onChange={(e) => {
+                  setEnrollmentsStatusFilter(e.target.value);
+                  setEnrollmentsPagination((p) => ({ ...p, page: 1 }));
+                }}
+                className="w-48"
+              >
+                <option value="">All Status</option>
+                <option value="ENROLLED">Enrolled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="PENDING_APPROVAL">Pending Approval</option>
+                <option value="DROPPED">Dropped</option>
+              </Select>
+              <div className="w-64">
+                <Input
+                  placeholder="Search by name or email..."
+                  value={enrollmentsSearch}
+                  onChange={(e) => {
+                    setEnrollmentsSearch(e.target.value);
+                    setEnrollmentsPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  icon={<Search className="h-4 w-4" />}
+                />
+              </div>
+            </div>
+
+            {enrollmentsLoading ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+            ) : enrollments.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">No enrollments found</div>
+            ) : (
+              <>
+                {selectedEnrollmentIds.size > 0 && (
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {selectedEnrollmentIds.size} enrollment(s) selected
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setBulkUpdateEnrollmentModalOpen(true)}
+                      >
+                        Change Status
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setBulkDeleteEnrollmentModalOpen(true)}
+                      >
+                        Remove Selected
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedEnrollmentIds(new Set())}
+                      >
+                        Clear Selection
+                      </Button>
                     </div>
                   </div>
-                  
-                  {/* Expanded Content */}
-                  {isExpanded && !canEdit && (
-                    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
-                      {loadingContent ? (
-                        <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-                          Loading content...
-                        </div>
-                      ) : expandedContent ? (
-                        <div className="space-y-4">
-                          {expandedContent.description && (
-                            <p className="text-gray-700 dark:text-gray-300">{expandedContent.description}</p>
-                          )}
-                          
-                          {expandedContent.type === "VIDEO" && expandedContent.videoUrl && (
-                            <VideoPlayerLazy
-                              contentItemId={expandedContent.id}
-                              videoUrl={expandedContent.videoUrl}
-                              videoDuration={expandedContent.videoDuration || undefined}
-                              completionThreshold={expandedContent.completionThreshold || 0.8}
-                              allowSeeking={expandedContent.allowSeeking}
-                              onProgressUpdate={handleProgressUpdate}
-                            />
-                          )}
-
-                          {expandedContent.type === "PDF" && expandedContent.pdfUrl && (
-                            <PdfViewerLazy fileUrl={expandedContent.pdfUrl} />
-                          )}
-
-                          {expandedContent.type === "PPT" && expandedContent.pptUrl && (
-                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
-                              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                                PowerPoint presentation. Click to download or view.
-                              </p>
-                              <Button
-                                onClick={() => window.open(expandedContent.pptUrl!, "_blank")}
-                              >
-                                Open Presentation
-                              </Button>
+                )}
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <button
+                            onClick={() => handleSelectAllEnrollments(!isAllEnrollmentsSelected)}
+                            className="flex items-center justify-center"
+                          >
+                            {isAllEnrollmentsSelected ? (
+                              <CheckSquare className="h-5 w-5 text-blue-600" />
+                            ) : (
+                              <Square className="h-5 w-5 text-gray-400" />
+                            )}
+                          </button>
+                        </TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Enrolled At</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enrollments.map((enrollment) => (
+                        <TableRow key={enrollment.id}>
+                          <TableCell>
+                            <button
+                              onClick={() => handleSelectEnrollment(enrollment.id, !selectedEnrollmentIds.has(enrollment.id))}
+                              className="flex items-center justify-center"
+                            >
+                              {selectedEnrollmentIds.has(enrollment.id) ? (
+                                <CheckSquare className="h-5 w-5 text-blue-600" />
+                              ) : (
+                                <Square className="h-5 w-5 text-gray-400" />
+                              )}
+                            </button>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {enrollment.user.avatar ? (
+                                <img
+                                  src={enrollment.user.avatar}
+                                  alt={`${enrollment.user.firstName} ${enrollment.user.lastName}`}
+                                  className="h-8 w-8 rounded-full"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                    {enrollment.user.firstName[0]}
+                                    {enrollment.user.lastName[0]}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                  {enrollment.user.firstName} {enrollment.user.lastName}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {enrollment.user.email}
+                                </div>
+                              </div>
                             </div>
-                          )}
-
-                          {expandedContent.type === "HTML" && expandedContent.htmlContent && (
-                            <div
-                              className="prose max-w-none"
-                              dangerouslySetInnerHTML={{ __html: expandedContent.htmlContent }}
-                            />
-                          )}
-
-                          {expandedContent.type === "EXTERNAL" && expandedContent.externalUrl && (
-                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
-                              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                                External content link.
-                              </p>
-                              <Button
-                                onClick={() => window.open(expandedContent.externalUrl!, "_blank")}
-                              >
-                                Open External Link
-                              </Button>
+                          </TableCell>
+                          <TableCell>
+                            {enrollment.user.isInstructor ? (
+                              <Badge variant="primary">Instructor</Badge>
+                            ) : (
+                              <Badge variant="default">Learner</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(enrollment.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{ width: `${enrollment.progress || 0}%` }}
+                                />
+                              </div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {Math.round(enrollment.progress || 0)}%
+                              </span>
                             </div>
-                          )}
-
-                          {expandedContent.type === "TEST" && (
-                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
-                              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                                Test content. Click to take the test.
-                              </p>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {enrollment.dueDate
+                              ? new Date(enrollment.dueDate).toLocaleDateString()
+                              : "-"}
+                          </TableCell>
+                          {isAdmin && (
+                            <TableCell className="text-right">
                               <Button
-                                onClick={() =>
-                                  router.push(`/courses/${courseId}/tests/${expandedContent.id}`)
-                                }
+                                variant="danger"
+                                size="sm"
+                                onClick={() => {
+                                  setEnrollmentToDelete(enrollment);
+                                  setDeleteEnrollmentModalOpen(true);
+                                }}
                               >
-                                Take Test
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                            </div>
+                            </TableCell>
                           )}
-                        </div>
-                      ) : (
-                        <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-                          Failed to load content
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              );
-            })}
+
+                {enrollmentsPagination.totalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {((enrollmentsPagination.page - 1) * enrollmentsPagination.limit) + 1} to{" "}
+                      {Math.min(enrollmentsPagination.page * enrollmentsPagination.limit, enrollmentsPagination.total)} of{" "}
+                      {enrollmentsPagination.total} enrollments
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={enrollmentsPagination.page === 1}
+                        onClick={() =>
+                          setEnrollmentsPagination((p) => ({ ...p, page: p.page - 1 }))
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={enrollmentsPagination.page >= enrollmentsPagination.totalPages}
+                        onClick={() =>
+                          setEnrollmentsPagination((p) => ({ ...p, page: p.page + 1 }))
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Course Settings</h2>
+            <form onSubmit={handleSubmitSettings(onSettingsSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("publicAccess")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Public Access</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("selfEnrollment")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Allow Self-Enrollment</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("sequentialRequired")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Sequential Content Required</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("allowSkipping")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Allow Skipping Content</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="submit" disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Content Item Modal */}
+      <ContentItemModal
+        isOpen={contentModalOpen}
+        onClose={() => {
+          setContentModalOpen(false);
+          setEditingContentItem(null);
+        }}
+        onSubmit={handleContentItemSubmit}
+        courseId={courseId}
+        existingItem={editingContentItem}
+        nextOrder={contentItems.length}
+      />
+
+      {/* Enroll User Modal */}
+      <Modal
+        isOpen={enrollModalOpen}
+        onClose={() => {
+          setEnrollModalOpen(false);
+          setSelectedUserIds(new Set());
+          setSelectedRole("LEARNER");
+        }}
+        title="Enroll Users"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Enrollment Role
+            </label>
+            <Select
+              value={selectedRole}
+              onChange={(e) =>
+                setSelectedRole(e.target.value as "LEARNER" | "INSTRUCTOR")
+              }
+              className="w-full"
+            >
+              <option value="LEARNER">Learner</option>
+              <option value="INSTRUCTOR">Instructor</option>
+            </Select>
           </div>
-        )}
-      </Card>
+
+          <TableToolbar
+            search={{
+              value: usersSearch,
+              onChange: (value) => {
+                setUsersSearch(value);
+                setUsersPagination((p) => ({ ...p, page: 1 }));
+              },
+              placeholder: "Search users...",
+            }}
+          />
+
+          {selectedUserIds.size > 0 && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {selectedUserIds.size} user(s) selected
+              </div>
+              <Button onClick={handleBulkEnroll} variant="primary">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Enroll Selected
+              </Button>
+            </div>
+          )}
+
+          <div className="max-h-96 overflow-auto">
+            <DataTable
+              data={availableUsers}
+              columns={{
+                name: {
+                  key: "name",
+                  header: "Name",
+                  render: (user) => (
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {user.email}
+                      </div>
+                    </div>
+                  ),
+                },
+                roles: {
+                  key: "roles",
+                  header: "Roles",
+                  render: (user) => (
+                    <div className="flex gap-1 flex-wrap">
+                      {user.roles.map((role) => (
+                        <Badge key={role} variant="default" className="text-xs">
+                          {role}
+                        </Badge>
+                      ))}
+                    </div>
+                  ),
+                },
+              }}
+              loading={usersLoading}
+              emptyMessage="No users available"
+              selectedIds={selectedUserIds}
+              onSelectAll={handleSelectAllUsers}
+              onSelectItem={handleSelectUser}
+              getId={(user) => user.id}
+            />
+          </div>
+
+          {usersPagination.totalPages > 1 && (
+            <TablePagination
+              pagination={usersPagination}
+              onPageChange={(page) => setUsersPagination((p) => ({ ...p, page }))}
+              itemName="users"
+            />
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEnrollModalOpen(false);
+                setSelectedUserIds(new Set());
+                setSelectedRole("LEARNER");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkEnroll} disabled={selectedUserIds.size === 0}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Enroll {selectedUserIds.size > 0 ? `${selectedUserIds.size} ` : ""}User{selectedUserIds.size !== 1 ? "s" : ""}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Enrollment Modal */}
+      <Modal
+        isOpen={deleteEnrollmentModalOpen}
+        onClose={() => {
+          setDeleteEnrollmentModalOpen(false);
+          setEnrollmentToDelete(null);
+        }}
+        title="Remove Enrollment"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-400">
+            Are you sure you want to remove{" "}
+            {enrollmentToDelete
+              ? `${enrollmentToDelete.user.firstName} ${enrollmentToDelete.user.lastName}`
+              : "this user"}{" "}
+            from this course? This will revoke their access.
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDeleteEnrollmentModalOpen(false);
+                setEnrollmentToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteEnrollment}>
+              Remove
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Enrollments Modal */}
+      <Modal
+        isOpen={bulkDeleteEnrollmentModalOpen}
+        onClose={() => {
+          setBulkDeleteEnrollmentModalOpen(false);
+        }}
+        title="Remove Selected Enrollments"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-400">
+            Are you sure you want to remove {selectedEnrollmentIds.size} selected enrollment(s)? This will revoke their access to this course.
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkDeleteEnrollmentModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleBulkDeleteEnrollments}>
+              Remove {selectedEnrollmentIds.size} Enrollment(s)
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Update Enrollments Modal */}
+      <Modal
+        isOpen={bulkUpdateEnrollmentModalOpen}
+        onClose={() => {
+          setBulkUpdateEnrollmentModalOpen(false);
+          setBulkStatus("");
+        }}
+        title="Change Status for Selected Enrollments"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            This will update the status for {selectedEnrollmentIds.size} selected enrollment(s).
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              New Status
+            </label>
+            <Select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Select a status...</option>
+              <option value="ENROLLED">Enrolled</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING_APPROVAL">Pending Approval</option>
+              <option value="DROPPED">Dropped</option>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkUpdateEnrollmentModalOpen(false);
+                setBulkStatus("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkUpdateEnrollments} disabled={!bulkStatus}>
+              Update {selectedEnrollmentIds.size} Enrollment(s)
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
-

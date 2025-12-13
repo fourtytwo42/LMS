@@ -292,6 +292,11 @@ created: 2025-12-09
 - ✅ Table view standardization: All pages (courses, learning plans, users, groups, categories, enrollments) now use unified table template
 - ✅ Card view removal: Removed card/toggle views from courses and learning plans pages, all pages now use table view only
 - ✅ Bulk actions standardization: Consistent bulk action patterns across all table pages with reusable components
+- ✅ Unified editor pages: Combined view and edit pages for courses and learning plans into tabbed editor interfaces (Details, Training Material/Courses, Enrollments, Settings)
+- ✅ Content item modal: Reusable ContentItemModal component for adding and editing content items inline
+- ✅ Categories removed: Removed categories from sidebar menu and all course/learning plan forms
+- ✅ Learning plans display: Course editor shows all learning plans containing the course with clickable links to learning plan courses tab
+- ✅ Courses table in learning plans: Converted courses tab in learning plan editor to table format with course images, detailed information, selection, and bulk delete actions
 
 ### In Progress 🔄
 

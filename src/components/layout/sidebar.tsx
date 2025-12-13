@@ -20,7 +20,6 @@ import {
   BookMarked,
   UserCog,
   UsersRound,
-  FolderTree,
   TrendingUp,
   Menu as MenuIcon,
   ChevronLeft,
@@ -35,7 +34,6 @@ const menuItems = {
     { href: "/courses", label: "My Courses", icon: GraduationCap },
     { href: "/certificates", label: "Certificates", icon: Award },
     { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/profile", label: "Profile", icon: User },
   ],
   INSTRUCTOR: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -44,7 +42,6 @@ const menuItems = {
     { href: "/catalog", label: "Catalog", icon: BookMarked },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/profile", label: "Profile", icon: User },
   ],
   ADMIN: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -53,10 +50,8 @@ const menuItems = {
     { href: "/users", label: "Users", icon: UserCog },
     { href: "/groups", label: "Groups", icon: UsersRound },
     { href: "/enrollments", label: "Enrollments", icon: Users },
-    { href: "/categories", label: "Categories", icon: FolderTree },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
     { href: "/notifications", label: "Notifications", icon: Bell },
-    { href: "/profile", label: "Profile", icon: User },
   ],
 };
 

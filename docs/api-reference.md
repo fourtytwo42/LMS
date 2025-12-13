@@ -397,6 +397,26 @@ Enroll a user in a course (Admin/Instructor).
 }
 ```
 
+## Course Learning Plans
+
+### GET /api/courses/:id/learning-plans
+Get all learning plans that contain a specific course.
+
+**Response:** `200 OK`
+```json
+{
+  "learningPlans": [
+    {
+      "id": "plan_id",
+      "title": "Learning Plan Title",
+      "status": "PUBLISHED",
+      "coverImage": "url",
+      "order": 1
+    }
+  ]
+}
+```
+
 ## Learning Plan Enrollment Management
 
 ### GET /api/learning-plans/:id/enrollments
@@ -417,6 +437,27 @@ Enroll a user in a learning plan (Admin/Instructor). If enrolling as instructor,
   "userId": "user_id",
   "role": "LEARNER" | "INSTRUCTOR",
   "dueDate": "2025-12-31T00:00:00Z"
+}
+```
+
+## Learning Plan Course Management
+
+### DELETE /api/learning-plans/:id/courses/bulk-delete
+Bulk remove courses from a learning plan (Admin/Instructor).
+
+**Request Body:**
+```json
+{
+  "courseIds": ["course_id_1", "course_id_2"]
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "deleted": 2,
+  "failed": 0,
+  "errors": []
 }
 ```
 

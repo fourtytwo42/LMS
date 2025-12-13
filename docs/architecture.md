@@ -63,7 +63,7 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 **Layout Components:**
 - `DashboardLayout` - Main dashboard wrapper with theme provider, full-width content area
 - `Header` - Top navigation bar with LMS on left, navigation items (theme toggle, notifications, user info, logout) on right. Theme toggle has black moon icon.
-- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed). Fixed positioning, extends to footer.
+- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed). Fixed positioning, extends to footer. Categories menu item removed.
 - `Footer` - Fixed at bottom of viewport, spanning full page width
 - `ThemeProvider` - Dark/light mode theme management with centralized CSS variables
 - `ThemeToggle` - Theme toggle button with persistent localStorage state, black moon icon
@@ -76,6 +76,8 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 - `TableToolbar` - Reusable toolbar with search, filters, and custom actions
 - `TablePagination` - Reusable pagination component
 - `IconButton` - Action buttons with icons and tooltips
+- `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` - Tabbed interface components
+- `ContentItemModal` - Reusable modal for adding and editing content items
 
 **Feature Components:**
 - `VideoPlayer` - Video playback with progress tracking, duration detection, stored duration support, and periodic DB updates (every 5 seconds)

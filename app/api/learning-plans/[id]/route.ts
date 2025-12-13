@@ -54,8 +54,11 @@ export async function GET(
               select: {
                 id: true,
                 title: true,
+                coverImage: true,
                 estimatedTime: true,
                 difficultyLevel: true,
+                shortDescription: true,
+                status: true,
               },
             },
           },
@@ -121,6 +124,9 @@ export async function GET(
       courses: learningPlan.courses.map((lpCourse) => ({
         id: lpCourse.course.id,
         title: lpCourse.course.title,
+        coverImage: lpCourse.course.coverImage,
+        shortDescription: lpCourse.course.shortDescription,
+        status: lpCourse.course.status,
         order: lpCourse.order,
         estimatedTime: lpCourse.course.estimatedTime,
         difficultyLevel: lpCourse.course.difficultyLevel,

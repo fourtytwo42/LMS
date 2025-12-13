@@ -165,7 +165,7 @@ export default function LearningPlansPage() {
       const response = await fetch("/api/learning-plans/bulk/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ learningPlanIds: draftPlans.map((p) => p.id) }),
+        body: JSON.stringify({ planIds: draftPlans.map((p) => p.id) }),
       });
 
       if (!response.ok) {
@@ -173,10 +173,11 @@ export default function LearningPlansPage() {
         throw new Error(error.message || "Failed to publish learning plans");
       }
 
+      const result = await response.json();
       setBulkPublishModalOpen(false);
       setSelectedPlanIds(new Set());
       fetchPlans();
-      alert(`Successfully published ${draftPlans.length} learning plan(s)`);
+      alert(`Successfully published ${result.published || draftPlans.length} learning plan(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
     } catch (error) {
       console.error("Error bulk publishing learning plans:", error);
       alert(error instanceof Error ? error.message : "Failed to publish learning plans");
@@ -311,13 +312,6 @@ export default function LearningPlansPage() {
                   disabled={publishingPlanId === plan.id}
                 />
               )}
-              <IconButton
-                icon={<Edit className="h-4 w-4" />}
-                label="Edit Learning Plan"
-                onClick={() => router.push(`/learning-plans/${plan.id}/edit`)}
-                variant="ghost"
-                size="sm"
-              />
               {isAdmin && (
                 <IconButton
                   icon={<Trash2 className="h-4 w-4" />}

@@ -213,10 +213,11 @@ export default function CoursesPage() {
         throw new Error(error.message || "Failed to publish courses");
       }
 
+      const result = await response.json();
       setBulkPublishModalOpen(false);
       setSelectedCourseIds(new Set());
       fetchCourses();
-      alert(`Successfully published ${draftCourses.length} course(s)`);
+      alert(`Successfully published ${result.published || draftCourses.length} course(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
     } catch (error) {
       console.error("Error bulk publishing courses:", error);
       alert(error instanceof Error ? error.message : "Failed to publish courses");
@@ -371,13 +372,6 @@ export default function CoursesPage() {
           />
           {(isAdmin || isInstructor) && (
             <>
-              <IconButton
-                icon={<Edit className="h-4 w-4" />}
-                label="Edit Course"
-                onClick={() => router.push(`/courses/${course.id}/edit`)}
-                variant="ghost"
-                size="sm"
-              />
               {course.status === "DRAFT" && (
                 <IconButton
                   icon={<Send className="h-4 w-4" />}

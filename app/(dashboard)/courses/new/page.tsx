@@ -15,7 +15,6 @@ const createCourseSchema = z.object({
   title: z.string().min(1, "Title is required"),
   shortDescription: z.string().max(130).optional(),
   description: z.string().optional(),
-  categoryId: z.string().optional(),
   estimatedTime: z.preprocess(
     (val) => {
       if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) {

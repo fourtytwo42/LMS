@@ -85,6 +85,11 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ Reusable table components: Unified table UI across all pages (DataTable, TableToolbar, TablePagination)
 - ✅ Table view standardization: All pages (courses, learning plans, users, groups, categories, enrollments) use consistent table template
 - ✅ Card view removal: All pages now use table view only for better consistency and maintainability
+- ✅ Unified editor pages: Combined view and edit pages for courses and learning plans into tabbed editor interfaces
+- ✅ Content item management: Inline add/edit/delete for content items using reusable modal component
+- ✅ Categories removed: Categories feature removed from sidebar menu and all forms
+- ✅ Learning plans display: Course editor shows learning plans containing the course with navigation links
+- ✅ Courses table: Learning plan courses tab converted to table with images, details, selection, and bulk actions
 
 ## Quick Links
 

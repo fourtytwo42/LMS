@@ -1,18 +1,75 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, X, Users, Send } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useAuthStore } from "@/store/auth-store";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DataTable } from "@/components/tables/data-table";
+import type { Column } from "@/components/tables/data-table";
+import { TableToolbar } from "@/components/tables/table-toolbar";
+import { TablePagination } from "@/components/tables/table-pagination";
+
+const updateLearningPlanSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  shortDescription: z.string().max(130).optional(),
+  description: z.string().optional(),
+  estimatedTime: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) {
+        return undefined;
+      }
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().int().positive().optional().nullable()
+  ),
+  difficultyLevel: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined) {
+        return undefined;
+      }
+      return val;
+    },
+    z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional().nullable()
+  ),
+  publicAccess: z.boolean().optional(),
+  selfEnrollment: z.boolean().optional(),
+  requiresApproval: z.boolean().optional(),
+  maxEnrollments: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) {
+        return undefined;
+      }
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().int().positive().optional().nullable()
+  ),
+  hasCertificate: z.boolean().optional(),
+  hasBadge: z.boolean().optional(),
+  coverImage: z.string().optional(),
+});
+
+type UpdateLearningPlanForm = z.infer<typeof updateLearningPlanSchema>;
 
 interface Course {
   id: string;
   title: string;
+  coverImage: string | null;
+  shortDescription: string | null;
+  status: string;
   order: number;
   estimatedTime: number | null;
   difficultyLevel: string | null;
@@ -20,11 +77,9 @@ interface Course {
 
 interface LearningPlan {
   id: string;
-  code: string | null;
   title: string;
   shortDescription: string | null;
   description: string | null;
-  thumbnail: string | null;
   coverImage: string | null;
   status: string;
   estimatedTime: number | null;
@@ -35,50 +90,205 @@ interface LearningPlan {
   maxEnrollments: number | null;
   hasCertificate: boolean;
   hasBadge: boolean;
-  category: {
+  createdBy: {
     id: string;
-    name: string;
-  } | null;
+  };
   courses: Course[];
   courseCount: number;
   enrollmentCount: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
-export default function LearningPlanDetailPage() {
+interface Enrollment {
+  id: string;
+  userId: string;
+  status: string;
+  enrolledAt: string;
+  startedAt: string | null;
+  dueDate: string | null;
+  progress: number;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatar: string | null;
+    isInstructor: boolean;
+  };
+}
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export default function LearningPlanEditorPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const planId = params.id as string;
   const { user } = useAuthStore();
+  
+  // Learning plan data
   const [plan, setPlan] = useState<LearningPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Tabs
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const tab = searchParams.get("tab");
+    return tab || "details";
+  });
+
+  // Details tab - form
+  const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  
+  const {
+    register: registerDetails,
+    handleSubmit: handleSubmitDetails,
+    formState: { errors: detailsErrors },
+    setValue: setDetailsValue,
+    watch: watchDetails,
+  } = useForm<UpdateLearningPlanForm>({
+    resolver: zodResolver(updateLearningPlanSchema),
+  });
+
+  // Courses tab
+  const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string; coverImage: string | null; shortDescription: string | null; status: string; estimatedTime: number | null; difficultyLevel: string | null }>>([]);
   const [addCourseModalOpen, setAddCourseModalOpen] = useState(false);
-  const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedCourseIdsForAdd, setSelectedCourseIdsForAdd] = useState<Set<string>>(new Set());
   const [courseOrder, setCourseOrder] = useState(0);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteCoursesModalOpen, setBulkDeleteCoursesModalOpen] = useState(false);
+  const [coursesPagination, setCoursesPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+  const [coursesSearch, setCoursesSearch] = useState("");
+  const [coursesLoading, setCoursesLoading] = useState(false);
+
+  // Enrollments tab
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollmentsPagination, setEnrollmentsPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [enrollmentsSearch, setEnrollmentsSearch] = useState("");
+  const [enrollmentsStatusFilter, setEnrollmentsStatusFilter] = useState("");
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [deleteEnrollmentModalOpen, setDeleteEnrollmentModalOpen] = useState(false);
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState<Enrollment | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [selectedRole, setSelectedRole] = useState<"LEARNER" | "INSTRUCTOR">("LEARNER");
+  const [usersPagination, setUsersPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+  const [usersSearch, setUsersSearch] = useState("");
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  // Settings tab - form
+  const {
+    register: registerSettings,
+    handleSubmit: handleSubmitSettings,
+    formState: { errors: settingsErrors },
+    setValue: setSettingsValue,
+    watch: watchSettings,
+  } = useForm<UpdateLearningPlanForm>({
+    resolver: zodResolver(updateLearningPlanSchema),
+  });
+
   const [publishing, setPublishing] = useState(false);
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
-  const isInstructor = user?.roles?.includes("INSTRUCTOR") || false;
-  const canEdit = isAdmin || isInstructor;
+  const isCreator = plan?.createdBy.id === user?.id || false;
+  // For instructor access, we'll rely on API permission checks (403 if no access)
+  const canEdit = isAdmin || isCreator;
 
+  // Redirect if no access
+  useEffect(() => {
+    if (!loading && plan && !canEdit) {
+      // Try to fetch to check if user has instructor access
+      fetch(`/api/learning-plans/${planId}`)
+        .then((res) => {
+          if (res.status === 403) {
+            router.push("/learning-plans");
+          }
+        })
+        .catch(() => {
+          router.push("/learning-plans");
+        });
+    }
+  }, [loading, plan, canEdit, router, planId]);
+
+  // Fetch learning plan data
   useEffect(() => {
     const fetchPlan = async () => {
+      setLoading(true);
       try {
-        const response = await fetch(`/api/learning-plans/${planId}`);
-        if (!response.ok) throw new Error("Failed to fetch learning plan");
+        const planResponse = await fetch(`/api/learning-plans/${planId}`);
 
-        const planData = await response.json();
-        setPlan(planData);
-        setCourseOrder(planData.courses.length);
-
-        // Fetch available courses
-        const coursesResponse = await fetch("/api/courses?limit=1000");
-        if (coursesResponse.ok) {
-          const coursesData = await coursesResponse.json();
-          setAvailableCourses(coursesData.courses);
+        if (!planResponse.ok) {
+          if (planResponse.status === 403) {
+            router.push("/learning-plans");
+            return;
+          }
+          throw new Error("Failed to fetch learning plan");
         }
+
+        const planData = await planResponse.json();
+        setPlan(planData);
+
+        // Set form values
+        setDetailsValue("title", planData.title);
+        setDetailsValue("shortDescription", planData.shortDescription || "");
+        setDetailsValue("description", planData.description || "");
+        setDetailsValue("estimatedTime", planData.estimatedTime);
+        setDetailsValue("difficultyLevel", planData.difficultyLevel);
+        setDetailsValue("publicAccess", planData.publicAccess);
+        setDetailsValue("selfEnrollment", planData.selfEnrollment);
+        setDetailsValue("requiresApproval", planData.requiresApproval);
+        setDetailsValue("maxEnrollments", planData.maxEnrollments);
+        setDetailsValue("hasCertificate", planData.hasCertificate);
+        setDetailsValue("hasBadge", planData.hasBadge);
+        setDetailsValue("coverImage", planData.coverImage || "");
+        
+        setSettingsValue("title", planData.title);
+        setSettingsValue("shortDescription", planData.shortDescription || "");
+        setSettingsValue("description", planData.description || "");
+        setSettingsValue("estimatedTime", planData.estimatedTime);
+        setSettingsValue("difficultyLevel", planData.difficultyLevel);
+        setSettingsValue("publicAccess", planData.publicAccess);
+        setSettingsValue("selfEnrollment", planData.selfEnrollment);
+        setSettingsValue("requiresApproval", planData.requiresApproval);
+        setSettingsValue("maxEnrollments", planData.maxEnrollments);
+        setSettingsValue("hasCertificate", planData.hasCertificate);
+        setSettingsValue("hasBadge", planData.hasBadge);
+        setSettingsValue("coverImage", planData.coverImage || "");
+
+        if (planData.coverImage) {
+          setCoverImagePreview(planData.coverImage);
+        }
+
+        setCourseOrder(planData.courses.length);
       } catch (error) {
         console.error("Error fetching learning plan:", error);
       } finally {
@@ -87,25 +297,297 @@ export default function LearningPlanDetailPage() {
     };
 
     fetchPlan();
-  }, [planId]);
+  }, [planId, setDetailsValue, setSettingsValue, router]);
 
-  const handleAddCourse = async () => {
-    if (!selectedCourseId) return;
+  // Fetch enrollments when Enrollments tab is active
+  useEffect(() => {
+    if (activeTab === "enrollments") {
+      fetchEnrollments();
+    }
+  }, [activeTab, enrollmentsPagination.page, enrollmentsSearch, enrollmentsStatusFilter]);
 
+  // Fetch available users for enrollment
+  const fetchUsers = async () => {
+    setUsersLoading(true);
     try {
-      const response = await fetch(`/api/learning-plans/${planId}/courses`, {
+      const params = new URLSearchParams({
+        page: usersPagination.page.toString(),
+        limit: usersPagination.limit.toString(),
+      });
+      if (usersSearch) params.append("search", usersSearch);
+
+      const response = await fetch(`/api/users?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter out users already enrolled
+        const enrolledUserIds = new Set(enrollments.map((e) => e.userId));
+        setAvailableUsers((data.users || []).filter((u: User) => !enrolledUserIds.has(u.id)));
+        setUsersPagination({
+          page: data.pagination?.page || usersPagination.page,
+          limit: data.pagination?.limit || usersPagination.limit,
+          total: data.pagination?.total || 0,
+          totalPages: data.pagination?.totalPages || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (enrollModalOpen) {
+      fetchUsers();
+    } else {
+      setUsersSearch("");
+      setUsersPagination({ page: 1, limit: 20, total: 0, totalPages: 0 });
+      setSelectedUserIds(new Set());
+    }
+  }, [enrollModalOpen]);
+
+  useEffect(() => {
+    if (enrollModalOpen) {
+      const enrolledUserIds = new Set(enrollments.map((e) => e.userId));
+      fetchUsers();
+    }
+  }, [usersPagination.page, usersSearch, enrollModalOpen]);
+
+  const fetchEnrollments = async () => {
+    setEnrollmentsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: enrollmentsPagination.page.toString(),
+        limit: enrollmentsPagination.limit.toString(),
+      });
+      if (enrollmentsSearch) params.append("search", enrollmentsSearch);
+      if (enrollmentsStatusFilter) params.append("status", enrollmentsStatusFilter);
+
+      const response = await fetch(`/api/learning-plans/${planId}/enrollments?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch enrollments");
+
+      const data = await response.json();
+      setEnrollments(data.enrollments || []);
+      setEnrollmentsPagination({
+        page: data.pagination?.page || enrollmentsPagination.page,
+        limit: data.pagination?.limit || enrollmentsPagination.limit,
+        total: data.pagination?.total || 0,
+        totalPages: data.pagination?.totalPages || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching enrollments:", error);
+    } finally {
+      setEnrollmentsLoading(false);
+    }
+  };
+
+  // Details tab handlers
+  const handleCoverImageUploadClick = () => {
+    coverImageInputRef.current?.click();
+  };
+
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "COVER");
+
+      const response = await fetch("/api/files/upload", {
         method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload image");
+      }
+
+      const result = await response.json();
+      const fullUrl = result.file.url.startsWith("http")
+        ? result.file.url
+        : `${window.location.origin}${result.file.url}`;
+      
+      setDetailsValue("coverImage", fullUrl);
+      setSettingsValue("coverImage", fullUrl);
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImagePreview(previewUrl);
+    } catch (error) {
+      console.error("Error uploading cover image:", error);
+      alert(error instanceof Error ? error.message : "Failed to upload image");
+    } finally {
+      setUploadingCover(false);
+      if (coverImageInputRef.current) {
+        coverImageInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setDetailsValue("coverImage", "");
+    setSettingsValue("coverImage", "");
+    setCoverImagePreview(null);
+    if (coverImageInputRef.current) {
+      coverImageInputRef.current.value = "";
+    }
+  };
+
+  const onDetailsSubmit = async (data: UpdateLearningPlanForm) => {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          courseId: selectedCourseId,
-          order: courseOrder,
+          ...data,
+          estimatedTime: data.estimatedTime || null,
+          difficultyLevel: data.difficultyLevel || null,
+          maxEnrollments: data.maxEnrollments || null,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to add course");
+      if (!response.ok) throw new Error("Failed to update learning plan");
 
+      const updatedPlan = await response.json();
+      setPlan(updatedPlan);
+      alert("Learning plan updated successfully");
+    } catch (error) {
+      console.error("Error updating learning plan:", error);
+      alert("Failed to update learning plan");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSettingsSubmit = async (data: UpdateLearningPlanForm) => {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          estimatedTime: data.estimatedTime || null,
+          difficultyLevel: data.difficultyLevel || null,
+          maxEnrollments: data.maxEnrollments || null,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update learning plan");
+
+      const updatedPlan = await response.json();
+      setPlan(updatedPlan);
+      alert("Learning plan settings updated successfully");
+    } catch (error) {
+      console.error("Error updating learning plan:", error);
+      alert("Failed to update learning plan");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Fetch available courses for adding to learning plan
+  const fetchCourses = async () => {
+    setCoursesLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: coursesPagination.page.toString(),
+        limit: coursesPagination.limit.toString(),
+      });
+      if (coursesSearch) params.append("search", coursesSearch);
+
+      const response = await fetch(`/api/courses?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter out courses already in the plan
+        const planCourseIds = new Set(plan.courses.map((c) => c.id));
+        setAvailableCourses((data.courses || []).filter((c: any) => !planCourseIds.has(c.id)));
+        setCoursesPagination({
+          page: data.pagination?.page || coursesPagination.page,
+          limit: data.pagination?.limit || coursesPagination.limit,
+          total: data.pagination?.total || 0,
+          totalPages: data.pagination?.totalPages || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (addCourseModalOpen && plan) {
+      fetchCourses();
+    } else {
+      setCoursesSearch("");
+      setCoursesPagination({ page: 1, limit: 20, total: 0, totalPages: 0 });
+      setSelectedCourseIdsForAdd(new Set());
+    }
+  }, [addCourseModalOpen, plan]);
+
+  useEffect(() => {
+    if (addCourseModalOpen && plan) {
+      fetchCourses();
+    }
+  }, [coursesPagination.page, coursesSearch]);
+
+  // Courses tab handlers - for Add Course modal
+  const handleSelectAllCoursesForAdd = (checked: boolean) => {
+    if (checked) {
+      setSelectedCourseIdsForAdd(new Set(availableCourses.map((c) => c.id)));
+    } else {
+      setSelectedCourseIdsForAdd(new Set());
+    }
+  };
+
+  const handleSelectCourseForAdd = (courseId: string, checked: boolean) => {
+    const newSelected = new Set(selectedCourseIdsForAdd);
+    if (checked) {
+      newSelected.add(courseId);
+    } else {
+      newSelected.delete(courseId);
+    }
+    setSelectedCourseIdsForAdd(newSelected);
+  };
+
+  const handleBulkAddCourses = async () => {
+    if (selectedCourseIdsForAdd.size === 0) {
+      alert("Please select at least one course");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}/courses/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseIds: Array.from(selectedCourseIdsForAdd),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.message || "Failed to add courses");
+        return;
+      }
+
+      const result = await response.json();
       setAddCourseModalOpen(false);
-      setSelectedCourseId("");
+      setSelectedCourseIdsForAdd(new Set());
       
       // Refresh plan data
       const planResponse = await fetch(`/api/learning-plans/${planId}`);
@@ -114,9 +596,10 @@ export default function LearningPlanDetailPage() {
         setPlan(planData);
         setCourseOrder(planData.courses.length);
       }
+      alert(`Successfully added ${result.assigned || selectedCourseIdsForAdd.size} course(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
     } catch (error) {
-      console.error("Error adding course:", error);
-      alert("Failed to add course");
+      console.error("Error adding courses:", error);
+      alert("Failed to add courses");
     }
   };
 
@@ -143,6 +626,191 @@ export default function LearningPlanDetailPage() {
     }
   };
 
+  const handleSelectAllCourses = (checked: boolean) => {
+    if (checked) {
+      setSelectedCourseIds(new Set(plan.courses.map((c) => c.id)));
+    } else {
+      setSelectedCourseIds(new Set());
+    }
+  };
+
+  const handleSelectCourse = (courseId: string, checked: boolean) => {
+    const newSelected = new Set(selectedCourseIds);
+    if (checked) {
+      newSelected.add(courseId);
+    } else {
+      newSelected.delete(courseId);
+    }
+    setSelectedCourseIds(newSelected);
+  };
+
+  const handleBulkDeleteCourses = async () => {
+    if (selectedCourseIds.size === 0) return;
+
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}/courses/bulk-delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseIds: Array.from(selectedCourseIds),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to delete courses");
+
+      const data = await response.json();
+      alert(`Deleted ${data.deleted} course(s), ${data.failed} failed`);
+      setBulkDeleteCoursesModalOpen(false);
+      setSelectedCourseIds(new Set());
+      
+      // Refresh plan data
+      const planResponse = await fetch(`/api/learning-plans/${planId}`);
+      if (planResponse.ok) {
+        const planData = await planResponse.json();
+        setPlan(planData);
+      }
+    } catch (error) {
+      console.error("Error deleting courses:", error);
+      alert("Failed to delete courses");
+    }
+  };
+
+  const handleMoveCourse = async (courseId: string, direction: "up" | "down") => {
+    if (!plan) return;
+
+    const course = plan.courses.find((c) => c.id === courseId);
+    if (!course) return;
+
+    const currentIndex = plan.courses.findIndex((c) => c.id === courseId);
+    if (direction === "up" && currentIndex === 0) return;
+    if (direction === "down" && currentIndex === plan.courses.length - 1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const targetCourse = plan.courses[newIndex];
+
+    try {
+      // Update both courses' orders
+      await Promise.all([
+        fetch(`/api/learning-plans/${planId}/courses`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courseId: courseId,
+            order: targetCourse.order,
+          }),
+        }),
+        fetch(`/api/learning-plans/${planId}/courses`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courseId: targetCourse.id,
+            order: course.order,
+          }),
+        }),
+      ]);
+
+      // Refresh plan data
+      const planResponse = await fetch(`/api/learning-plans/${planId}`);
+      if (planResponse.ok) {
+        const planData = await planResponse.json();
+        setPlan(planData);
+      }
+    } catch (error) {
+      console.error("Error moving course:", error);
+      alert("Failed to move course");
+    }
+  };
+
+  // Enrollments tab handlers
+  const handleSelectAllUsers = (checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds(new Set(availableUsers.map((u) => u.id)));
+    } else {
+      setSelectedUserIds(new Set());
+    }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    const newSelected = new Set(selectedUserIds);
+    if (checked) {
+      newSelected.add(userId);
+    } else {
+      newSelected.delete(userId);
+    }
+    setSelectedUserIds(newSelected);
+  };
+
+  const handleBulkEnroll = async () => {
+    if (selectedUserIds.size === 0) {
+      alert("Please select at least one user");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}/enrollments/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          role: selectedRole,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.message || "Failed to enroll users");
+        return;
+      }
+
+      const result = await response.json();
+      setEnrollModalOpen(false);
+      setSelectedUserIds(new Set());
+      setSelectedRole("LEARNER");
+      fetchEnrollments();
+      alert(`Successfully enrolled ${result.enrolled || selectedUserIds.size} user(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
+    } catch (error) {
+      console.error("Error enrolling users:", error);
+      alert("Failed to enroll users");
+    }
+  };
+
+  const handleDeleteEnrollment = async () => {
+    if (!enrollmentToDelete) return;
+
+    try {
+      const response = await fetch(`/api/enrollments/${enrollmentToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to remove enrollment");
+
+      setDeleteEnrollmentModalOpen(false);
+      setEnrollmentToDelete(null);
+      fetchEnrollments();
+    } catch (error) {
+      console.error("Error removing enrollment:", error);
+      alert("Failed to remove enrollment");
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "ENROLLED":
+        return <Badge variant="default">Enrolled</Badge>;
+      case "IN_PROGRESS":
+        return <Badge variant="primary">In Progress</Badge>;
+      case "COMPLETED":
+        return <Badge variant="success">Completed</Badge>;
+      case "PENDING_APPROVAL":
+        return <Badge variant="warning">Pending Approval</Badge>;
+      case "DROPPED":
+        return <Badge variant="danger">Dropped</Badge>;
+      default:
+        return <Badge variant="default">{status}</Badge>;
+    }
+  };
+
+  // Publish handler
   const handlePublish = async () => {
     if (!plan || plan.status !== "DRAFT") return;
     if (!confirm("Are you sure you want to publish this learning plan? Enrolled users will be able to access the content.")) return;
@@ -158,12 +826,9 @@ export default function LearningPlanDetailPage() {
         throw new Error(error.message || "Failed to publish learning plan");
       }
 
-      // Refresh plan data
-      const planResponse = await fetch(`/api/learning-plans/${planId}`);
-      if (planResponse.ok) {
-        const planData = await planResponse.json();
-        setPlan(planData);
-      }
+      const updatedPlan = await response.json();
+      setPlan({ ...plan, status: "PUBLISHED" });
+      alert("Learning plan published successfully!");
     } catch (error) {
       console.error("Error publishing learning plan:", error);
       alert(error instanceof Error ? error.message : "Failed to publish learning plan");
@@ -173,20 +838,19 @@ export default function LearningPlanDetailPage() {
   };
 
   if (loading) {
-    return <div className="py-8 text-center">Loading...</div>;
+    return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Loading...</div>;
   }
 
   if (!plan) {
-    return <div className="py-8 text-center">Learning plan not found</div>;
+    return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Learning plan not found</div>;
   }
 
-  // Filter out courses already in the plan
-  const availableCoursesList = availableCourses.filter(
-    (course) => !plan.courses.some((planCourse) => planCourse.id === course.id)
-  );
+  if (!canEdit) {
+    return null; // Will redirect in useEffect
+  }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto w-full">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -196,252 +860,899 @@ export default function LearningPlanDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold">{plan.title}</h1>
-        {canEdit && (
-          <>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push(`/learning-plans/${planId}/enrollments`)}
-            >
-              <Users className="mr-2 h-4 w-4" />
-              Enrollments
-            </Button>
-            {plan.status === "DRAFT" && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handlePublish}
-                disabled={publishing}
-              >
-                <Send className="mr-2 h-4 w-4" />
-                {publishing ? "Publishing..." : "Publish"}
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push(`/learning-plans/${planId}/edit`)}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </>
-        )}
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{plan.title}</h1>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2">
-          {plan.coverImage ? (
-            <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-              <img
-                src={plan.coverImage}
-                alt={plan.title}
-                className="w-full h-full object-contain"
-              />
-            </div>
-          ) : null}
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Badge
-              variant={
-                plan.status === "PUBLISHED"
-                  ? "success"
-                  : plan.status === "DRAFT"
-                  ? "warning"
-                  : "default"
-              }
-            >
-              {plan.status}
-            </Badge>
-            {plan.difficultyLevel && (
-              <Badge variant="info">{plan.difficultyLevel}</Badge>
-            )}
-            {plan.category && (
-              <Badge variant="default">{plan.category.name}</Badge>
-            )}
-            {plan.hasCertificate && (
-              <Badge variant="success">Certificate</Badge>
-            )}
-            {plan.hasBadge && <Badge variant="info">Badge</Badge>}
-          </div>
-          {plan.shortDescription && (
-            <p className="mb-4 text-lg text-gray-700">
-              {plan.shortDescription}
-            </p>
-          )}
-          {plan.description && (
-            <div className="prose max-w-none">
-              <p className="text-gray-600 whitespace-pre-wrap">
-                {plan.description}
-              </p>
-            </div>
-          )}
-        </Card>
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
 
-        <Card className="p-6">
-          <h2 className="mb-4 text-xl font-semibold">Plan Info</h2>
-          <div className="space-y-4">
-            {plan.code && (
+        <TabsContent value="details">
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Learning Plan Details</h2>
+            <form onSubmit={handleSubmitDetails(onDetailsSubmit)} className="space-y-4">
               <div>
-                <div className="text-sm text-gray-500">Code</div>
-                <div className="mt-1 text-sm font-medium">{plan.code}</div>
+                <label className="mb-1 block text-sm font-medium">Title *</label>
+                <Input
+                  {...registerDetails("title")}
+                  error={detailsErrors.title?.message}
+                />
               </div>
-            )}
-            {plan.estimatedTime && (
+
               <div>
-                <div className="text-sm text-gray-500">Estimated Time</div>
-                <div className="mt-1 text-sm font-medium">
-                  {plan.estimatedTime} minutes
+                <label className="mb-1 block text-sm font-medium">Short Description</label>
+                <Input
+                  {...registerDetails("shortDescription")}
+                  error={detailsErrors.shortDescription?.message}
+                  maxLength={130}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">Description</label>
+                <Textarea
+                  {...registerDetails("description")}
+                  rows={6}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Estimated Time (minutes)</label>
+                  <Input
+                    type="number"
+                    {...registerDetails("estimatedTime", { valueAsNumber: true })}
+                    error={detailsErrors.estimatedTime?.message}
+                    placeholder="600 (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Difficulty Level</label>
+                  <Select
+                    {...registerDetails("difficultyLevel")}
+                  >
+                    <option value="">Select difficulty (optional)</option>
+                    <option value="BEGINNER">Beginner</option>
+                    <option value="INTERMEDIATE">Intermediate</option>
+                    <option value="ADVANCED">Advanced</option>
+                  </Select>
                 </div>
               </div>
-            )}
-            <div>
-              <div className="text-sm text-gray-500">Enrollments</div>
-              <div className="mt-1 text-sm font-medium">
-                {plan.enrollmentCount}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Courses</div>
-              <div className="mt-1 text-sm font-medium">{plan.courseCount}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Settings</div>
-              <div className="mt-1 space-y-1 text-sm">
-                {plan.publicAccess && (
-                  <div className="text-green-600">✓ Public Access</div>
-                )}
-                {plan.selfEnrollment && (
-                  <div className="text-green-600">✓ Self-Enrollment</div>
-                )}
-                {plan.requiresApproval && (
-                  <div className="text-blue-600">Requires Approval</div>
-                )}
-                {plan.maxEnrollments && (
-                  <div className="text-gray-600">
-                    Max: {plan.maxEnrollments} enrollments
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
 
-      <Card className="p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Courses</h2>
-          {canEdit && (
-            <Button
-              variant="secondary"
-              onClick={() => setAddCourseModalOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Course
-            </Button>
-          )}
-        </div>
-
-        {plan.courses.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
-            No courses in this learning plan
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {plan.courses.map((course) => (
-              <div
-                key={course.id}
-                className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 font-semibold">
-                    {course.order}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Cover Image
+                </label>
+                {watchDetails("coverImage") || coverImagePreview ? (
+                  <div className="space-y-2">
+                    <div className="relative w-full max-w-2xl aspect-video rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <img
+                        src={coverImagePreview || watchDetails("coverImage") || ""}
+                        alt="Cover preview"
+                        className="w-full h-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoverImage}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleCoverImageUploadClick}
+                      disabled={uploadingCover}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {uploadingCover ? "Uploading..." : "Change Image"}
+                    </Button>
                   </div>
-                  <div>
-                    <div className="font-medium">{course.title}</div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      {course.estimatedTime && (
-                        <span>{course.estimatedTime} min</span>
-                      )}
-                      {course.difficultyLevel && (
-                        <Badge variant="default" className="text-xs">
-                          {course.difficultyLevel}
-                        </Badge>
-                      )}
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleCoverImageUploadClick}
+                    disabled={uploadingCover}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {uploadingCover ? "Uploading..." : "Upload Cover Image"}
+                  </Button>
+                )}
+                <input
+                  ref={coverImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverImageUpload}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB
+                </p>
+                <input type="hidden" {...registerDetails("coverImage")} />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="submit" disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="courses">
+          <Card className="p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Courses</h2>
+              <Button onClick={() => setAddCourseModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Course
+              </Button>
+            </div>
+
+            {plan.courses.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                No courses in this learning plan
+              </div>
+            ) : (
+              <>
+                {selectedCourseIds.size > 0 && (
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {selectedCourseIds.size} course(s) selected
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setBulkDeleteCoursesModalOpen(true)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Selected
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedCourseIds(new Set())}
+                      >
+                        Clear Selection
+                      </Button>
                     </div>
                   </div>
+                )}
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <button
+                            onClick={() => handleSelectAllCourses(plan.courses.length > 0 && plan.courses.every((c) => selectedCourseIds.has(c.id)) ? false : true)}
+                            className="flex items-center justify-center"
+                          >
+                            {plan.courses.length > 0 && plan.courses.every((c) => selectedCourseIds.has(c.id)) ? (
+                              <CheckSquare className="h-5 w-5 text-blue-600" />
+                            ) : (
+                              <Square className="h-5 w-5 text-gray-400" />
+                            )}
+                          </button>
+                        </TableHead>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Order</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Difficulty</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {plan.courses.map((course, index) => (
+                        <TableRow key={course.id}>
+                          <TableCell>
+                            <button
+                              onClick={() => handleSelectCourse(course.id, !selectedCourseIds.has(course.id))}
+                              className="flex items-center justify-center"
+                            >
+                              {selectedCourseIds.has(course.id) ? (
+                                <CheckSquare className="h-5 w-5 text-blue-600" />
+                              ) : (
+                                <Square className="h-5 w-5 text-gray-400" />
+                              )}
+                            </button>
+                          </TableCell>
+                          <TableCell>
+                            {course.coverImage ? (
+                              <div className="w-24 h-14 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                                <img
+                                  src={course.coverImage}
+                                  alt={course.title}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-24 h-14 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 text-xs">
+                                No Image
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{course.title}</div>
+                              {course.shortDescription && (
+                                <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md">
+                                  {course.shortDescription}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold text-sm">
+                              {course.order}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                course.status === "PUBLISHED"
+                                  ? "success"
+                                  : course.status === "DRAFT"
+                                  ? "warning"
+                                  : "default"
+                              }
+                            >
+                              {course.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {course.estimatedTime ? (
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {course.estimatedTime} min
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {course.difficultyLevel ? (
+                              <Badge variant="default" className="text-xs">
+                                {course.difficultyLevel}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMoveCourse(course.id, "up")}
+                                disabled={index === 0}
+                                title="Move up"
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMoveCourse(course.id, "down")}
+                                disabled={index === plan.courses.length - 1}
+                                title="Move down"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(`/courses/${course.id}`)}
+                                title="View course"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveCourse(course.id)}
+                                title="Remove from plan"
+                              >
+                                <X className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push(`/courses/${course.id}`)}
-                  >
-                    View
-                  </Button>
-                  {canEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveCourse(course.id)}
-                    >
-                      <X className="h-4 w-4 text-red-600" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              </>
+            )}
+          </Card>
+        </TabsContent>
 
+        <TabsContent value="enrollments">
+          <Card className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Enrollments</h2>
+              {isAdmin && (
+                <Button onClick={() => setEnrollModalOpen(true)}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Enroll User
+                </Button>
+              )}
+            </div>
+
+            <div className="mb-4 flex gap-4 justify-end">
+              <Select
+                value={enrollmentsStatusFilter}
+                onChange={(e) => {
+                  setEnrollmentsStatusFilter(e.target.value);
+                  setEnrollmentsPagination((p) => ({ ...p, page: 1 }));
+                }}
+                className="w-48"
+              >
+                <option value="">All Status</option>
+                <option value="ENROLLED">Enrolled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="PENDING_APPROVAL">Pending Approval</option>
+                <option value="DROPPED">Dropped</option>
+              </Select>
+              <div className="w-64">
+                <Input
+                  placeholder="Search by name or email..."
+                  value={enrollmentsSearch}
+                  onChange={(e) => {
+                    setEnrollmentsSearch(e.target.value);
+                    setEnrollmentsPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  icon={<Search className="h-4 w-4" />}
+                />
+              </div>
+            </div>
+
+            {enrollmentsLoading ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+            ) : enrollments.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">No enrollments found</div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Enrolled At</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enrollments.map((enrollment) => (
+                        <TableRow key={enrollment.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {enrollment.user.avatar ? (
+                                <img
+                                  src={enrollment.user.avatar}
+                                  alt={`${enrollment.user.firstName} ${enrollment.user.lastName}`}
+                                  className="h-8 w-8 rounded-full"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                    {enrollment.user.firstName[0]}
+                                    {enrollment.user.lastName[0]}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                  {enrollment.user.firstName} {enrollment.user.lastName}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {enrollment.user.email}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {enrollment.user.isInstructor ? (
+                              <Badge variant="primary">Instructor</Badge>
+                            ) : (
+                              <Badge variant="default">Learner</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(enrollment.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{ width: `${enrollment.progress || 0}%` }}
+                                />
+                              </div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {Math.round(enrollment.progress || 0)}%
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {enrollment.dueDate
+                              ? new Date(enrollment.dueDate).toLocaleDateString()
+                              : "-"}
+                          </TableCell>
+                          {isAdmin && (
+                            <TableCell className="text-right">
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => {
+                                  setEnrollmentToDelete(enrollment);
+                                  setDeleteEnrollmentModalOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {enrollmentsPagination.totalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {((enrollmentsPagination.page - 1) * enrollmentsPagination.limit) + 1} to{" "}
+                      {Math.min(enrollmentsPagination.page * enrollmentsPagination.limit, enrollmentsPagination.total)} of{" "}
+                      {enrollmentsPagination.total} enrollments
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={enrollmentsPagination.page === 1}
+                        onClick={() =>
+                          setEnrollmentsPagination((p) => ({ ...p, page: p.page - 1 }))
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={enrollmentsPagination.page >= enrollmentsPagination.totalPages}
+                        onClick={() =>
+                          setEnrollmentsPagination((p) => ({ ...p, page: p.page + 1 }))
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Learning Plan Settings</h2>
+            <form onSubmit={handleSubmitSettings(onSettingsSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("publicAccess")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Public Access</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("selfEnrollment")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Allow Self-Enrollment</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("requiresApproval")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Requires Approval</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("hasCertificate")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Issue Certificate on Completion</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {...registerSettings("hasBadge")}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Issue Badge on Completion</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">Max Enrollments</label>
+                <Input
+                  type="number"
+                  {...registerSettings("maxEnrollments", { valueAsNumber: true })}
+                  error={settingsErrors.maxEnrollments?.message}
+                  placeholder="Unlimited if empty (optional)"
+                />
+              </div>
+
+              {plan.status === "DRAFT" && (
+                <div className="pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handlePublish}
+                    disabled={publishing}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    {publishing ? "Publishing..." : "Publish Learning Plan"}
+                  </Button>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Publishing will make this learning plan available to enrolled users.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="submit" disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Course Modal */}
       <Modal
         isOpen={addCourseModalOpen}
         onClose={() => {
           setAddCourseModalOpen(false);
-          setSelectedCourseId("");
+          setSelectedCourseIdsForAdd(new Set());
         }}
-        title="Add Course to Learning Plan"
+        title="Add Courses to Learning Plan"
       >
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">
-              Select Course
-            </label>
-            <Select
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-            >
-              <option value="">Select a course...</option>
-              {availableCoursesList.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Order</label>
-            <input
-              type="number"
-              value={courseOrder}
-              onChange={(e) => setCourseOrder(parseInt(e.target.value) || 0)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2"
-              min="0"
+          <TableToolbar
+            search={{
+              value: coursesSearch,
+              onChange: (value) => {
+                setCoursesSearch(value);
+                setCoursesPagination((p) => ({ ...p, page: 1 }));
+              },
+              placeholder: "Search courses...",
+            }}
+          />
+
+          {selectedCourseIdsForAdd.size > 0 && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {selectedCourseIdsForAdd.size} course(s) selected
+              </div>
+              <Button onClick={handleBulkAddCourses} variant="primary">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Selected
+              </Button>
+            </div>
+          )}
+
+          <div className="max-h-96 overflow-auto">
+            <DataTable
+              data={availableCourses}
+              columns={{
+                course: {
+                  key: "course",
+                  header: "Course",
+                  render: (course) => (
+                    <div className="flex items-center gap-3">
+                      {course.coverImage ? (
+                        <div className="w-16 h-10 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                          <img
+                            src={course.coverImage}
+                            alt={course.title}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                          <BookOpen className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{course.title}</div>
+                        {course.shortDescription && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
+                            {course.shortDescription}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ),
+                },
+                status: {
+                  key: "status",
+                  header: "Status",
+                  render: (course) => (
+                    <Badge
+                      variant={
+                        course.status === "PUBLISHED"
+                          ? "success"
+                          : course.status === "DRAFT"
+                          ? "warning"
+                          : "default"
+                      }
+                    >
+                      {course.status}
+                    </Badge>
+                  ),
+                },
+                time: {
+                  key: "time",
+                  header: "Time",
+                  render: (course) =>
+                    course.estimatedTime ? (
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {course.estimatedTime} min
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    ),
+                },
+                difficulty: {
+                  key: "difficulty",
+                  header: "Difficulty",
+                  render: (course) =>
+                    course.difficultyLevel ? (
+                      <Badge variant="default" className="text-xs">
+                        {course.difficultyLevel}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    ),
+                },
+              }}
+              loading={coursesLoading}
+              emptyMessage="No courses available"
+              selectedIds={selectedCourseIdsForAdd}
+              onSelectAll={handleSelectAllCoursesForAdd}
+              onSelectItem={handleSelectCourseForAdd}
+              getId={(course) => course.id}
             />
           </div>
-          <div className="flex justify-end gap-2">
+
+          {coursesPagination.totalPages > 1 && (
+            <TablePagination
+              pagination={coursesPagination}
+              onPageChange={(page) => setCoursesPagination((p) => ({ ...p, page }))}
+              itemName="courses"
+            />
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
             <Button
               variant="secondary"
               onClick={() => {
                 setAddCourseModalOpen(false);
-                setSelectedCourseId("");
+                setSelectedCourseIdsForAdd(new Set());
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleAddCourse} disabled={!selectedCourseId}>
-              Add Course
+            <Button onClick={handleBulkAddCourses} disabled={selectedCourseIdsForAdd.size === 0}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add {selectedCourseIdsForAdd.size > 0 ? `${selectedCourseIdsForAdd.size} ` : ""}Course{selectedCourseIdsForAdd.size !== 1 ? "s" : ""}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Enroll User Modal */}
+      <Modal
+        isOpen={enrollModalOpen}
+        onClose={() => {
+          setEnrollModalOpen(false);
+          setSelectedUserIds(new Set());
+          setSelectedRole("LEARNER");
+        }}
+        title="Enroll Users"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Enrollment Role
+            </label>
+            <Select
+              value={selectedRole}
+              onChange={(e) =>
+                setSelectedRole(e.target.value as "LEARNER" | "INSTRUCTOR")
+              }
+              className="w-full"
+            >
+              <option value="LEARNER">Learner</option>
+              <option value="INSTRUCTOR">Instructor</option>
+            </Select>
+          </div>
+
+          <TableToolbar
+            search={{
+              value: usersSearch,
+              onChange: (value) => {
+                setUsersSearch(value);
+                setUsersPagination((p) => ({ ...p, page: 1 }));
+              },
+              placeholder: "Search users...",
+            }}
+          />
+
+          {selectedUserIds.size > 0 && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {selectedUserIds.size} user(s) selected
+              </div>
+              <Button onClick={handleBulkEnroll} variant="primary">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Enroll Selected
+              </Button>
+            </div>
+          )}
+
+          <div className="max-h-96 overflow-auto">
+            <DataTable
+              data={availableUsers}
+              columns={{
+                name: {
+                  key: "name",
+                  header: "Name",
+                  render: (user) => (
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {user.email}
+                      </div>
+                    </div>
+                  ),
+                },
+                roles: {
+                  key: "roles",
+                  header: "Roles",
+                  render: (user) => (
+                    <div className="flex gap-1 flex-wrap">
+                      {user.roles.map((role) => (
+                        <Badge key={role} variant="default" className="text-xs">
+                          {role}
+                        </Badge>
+                      ))}
+                    </div>
+                  ),
+                },
+              }}
+              loading={usersLoading}
+              emptyMessage="No users available"
+              selectedIds={selectedUserIds}
+              onSelectAll={handleSelectAllUsers}
+              onSelectItem={handleSelectUser}
+              getId={(user) => user.id}
+            />
+          </div>
+
+          {usersPagination.totalPages > 1 && (
+            <TablePagination
+              pagination={usersPagination}
+              onPageChange={(page) => setUsersPagination((p) => ({ ...p, page }))}
+              itemName="users"
+            />
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEnrollModalOpen(false);
+                setSelectedUserIds(new Set());
+                setSelectedRole("LEARNER");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkEnroll} disabled={selectedUserIds.size === 0}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Enroll {selectedUserIds.size > 0 ? `${selectedUserIds.size} ` : ""}User{selectedUserIds.size !== 1 ? "s" : ""}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Enrollment Modal */}
+      <Modal
+        isOpen={deleteEnrollmentModalOpen}
+        onClose={() => {
+          setDeleteEnrollmentModalOpen(false);
+          setEnrollmentToDelete(null);
+        }}
+        title="Remove Enrollment"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-400">
+            Are you sure you want to remove{" "}
+            {enrollmentToDelete
+              ? `${enrollmentToDelete.user.firstName} ${enrollmentToDelete.user.lastName}`
+              : "this user"}{" "}
+            from this learning plan? This will revoke their access.
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDeleteEnrollmentModalOpen(false);
+                setEnrollmentToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteEnrollment}>
+              Remove
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Courses Modal */}
+      <Modal
+        isOpen={bulkDeleteCoursesModalOpen}
+        onClose={() => {
+          setBulkDeleteCoursesModalOpen(false);
+        }}
+        title="Remove Selected Courses"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-400">
+            Are you sure you want to remove {selectedCourseIds.size} selected course(s) from this learning plan? This will not delete the courses themselves, only remove them from this plan.
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkDeleteCoursesModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleBulkDeleteCourses}>
+              Remove {selectedCourseIds.size} Course(s)
             </Button>
           </div>
         </div>
@@ -449,4 +1760,3 @@ export default function LearningPlanDetailPage() {
     </div>
   );
 }
-
