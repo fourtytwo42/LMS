@@ -112,6 +112,40 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Find or create Public group for self-enrolled users
+      let publicGroup = await prisma.group.findFirst({
+        where: { name: "Public", type: "PUBLIC" },
+      });
+
+      if (!publicGroup) {
+        publicGroup = await prisma.group.create({
+          data: {
+            name: "Public",
+            type: "PUBLIC",
+            description: "Public group for self-enrolled users",
+          },
+        });
+      }
+
+      // Add user to Public group if not already a member
+      const existingMembership = await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: {
+            userId: user.id,
+            groupId: publicGroup.id,
+          },
+        },
+      });
+
+      if (!existingMembership) {
+        await prisma.groupMember.create({
+          data: {
+            userId: user.id,
+            groupId: publicGroup.id,
+          },
+        });
+      }
+
       // Create enrollment
       const enrollment = await prisma.enrollment.create({
         data: {
@@ -219,6 +253,40 @@ export async function POST(request: NextRequest) {
             { status: 403 }
           );
         }
+      }
+
+      // Find or create Public group for self-enrolled users
+      let publicGroup = await prisma.group.findFirst({
+        where: { name: "Public", type: "PUBLIC" },
+      });
+
+      if (!publicGroup) {
+        publicGroup = await prisma.group.create({
+          data: {
+            name: "Public",
+            type: "PUBLIC",
+            description: "Public group for self-enrolled users",
+          },
+        });
+      }
+
+      // Add user to Public group if not already a member
+      const existingMembership = await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: {
+            userId: user.id,
+            groupId: publicGroup.id,
+          },
+        },
+      });
+
+      if (!existingMembership) {
+        await prisma.groupMember.create({
+          data: {
+            userId: user.id,
+            groupId: publicGroup.id,
+          },
+        });
       }
 
       // Create enrollment

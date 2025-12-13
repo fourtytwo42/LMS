@@ -323,12 +323,35 @@ Create enrollment (Instructor/Admin).
 ```
 
 ### POST /api/enrollments/self
-Self-enroll in a course or learning plan.
+Self-enroll in a course or learning plan. Automatically adds user to "Public" group.
 
 **Request Body:**
 ```json
 {
-  "courseId": "course_id"
+  "courseId": "course_id",
+  "learningPlanId": "learning_plan_id"
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "enrollment": {
+    "id": "enrollment_id",
+    "status": "ENROLLED",
+    "requiresApproval": false,
+    "message": "Successfully enrolled"
+  }
+}
+```
+
+### DELETE /api/enrollments/self/:id
+Self-unenroll from a course or learning plan. Only allows users to unenroll themselves.
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Successfully unenrolled"
 }
 ```
 
@@ -336,7 +359,121 @@ Self-enroll in a course or learning plan.
 Approve pending enrollment (Instructor/Admin).
 
 ### DELETE /api/enrollments/:id
-Cancel enrollment.
+Cancel enrollment (Admin/Instructor or self).
+
+## Course Enrollment Management
+
+### GET /api/courses/:id/enrollments
+Get enrollments for a specific course (Admin/Instructor).
+
+**Query Parameters:**
+- `page` - Page number
+- `limit` - Items per page
+- `search` - Search by user name or email
+- `status` - Filter by status
+
+**Response:** `200 OK`
+```json
+{
+  "enrollments": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 50,
+    "totalPages": 3
+  }
+}
+```
+
+### POST /api/courses/:id/enrollments
+Enroll a user in a course (Admin/Instructor).
+
+**Request Body:**
+```json
+{
+  "userId": "user_id",
+  "role": "LEARNER" | "INSTRUCTOR",
+  "dueDate": "2025-12-31T00:00:00Z"
+}
+```
+
+## Learning Plan Enrollment Management
+
+### GET /api/learning-plans/:id/enrollments
+Get enrollments for a specific learning plan (Admin/Instructor).
+
+**Query Parameters:**
+- `page` - Page number
+- `limit` - Items per page
+- `search` - Search by user name or email
+- `status` - Filter by status
+
+### POST /api/learning-plans/:id/enrollments
+Enroll a user in a learning plan (Admin/Instructor). If enrolling as instructor, automatically creates instructor assignments for all courses in the plan.
+
+**Request Body:**
+```json
+{
+  "userId": "user_id",
+  "role": "LEARNER" | "INSTRUCTOR",
+  "dueDate": "2025-12-31T00:00:00Z"
+}
+```
+
+## Bulk Operations
+
+### DELETE /api/users/bulk
+Bulk delete users (Admin only).
+
+**Request Body:**
+```json
+{
+  "userIds": ["user_id_1", "user_id_2"]
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "deleted": 2,
+  "failed": 0,
+  "errors": []
+}
+```
+
+### PUT /api/users/bulk
+Bulk update users (Admin only).
+
+**Request Body:**
+```json
+{
+  "userIds": ["user_id_1", "user_id_2"],
+  "roles": ["LEARNER"],
+  "groupIds": ["group_id"]
+}
+```
+
+### DELETE /api/enrollments/bulk-delete
+Bulk delete enrollments (Admin/Instructor).
+
+**Request Body:**
+```json
+{
+  "enrollmentIds": ["enrollment_id_1", "enrollment_id_2"]
+}
+```
+
+### PUT /api/enrollments/bulk-update
+Bulk update enrollments (Admin/Instructor).
+
+**Request Body:**
+```json
+{
+  "enrollmentIds": ["enrollment_id_1", "enrollment_id_2"],
+  "status": "COMPLETED",
+  "dueDate": "2025-12-31T00:00:00Z"
+}
+```
 
 ## Progress Tracking
 

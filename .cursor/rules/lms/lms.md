@@ -181,6 +181,18 @@ created: 2025-12-09
 - **Alternatives Considered:** Remix (less mature ecosystem), SvelteKit (smaller community)
 - **Trade-offs:** Some learning curve for Server Components and async params, but worth it for performance
 
+**Demo Accounts:**
+- `admin@lms.com` / `admin123` - Administrator with full system access
+- `instructor@lms.com` / `instructor123` - Instructor for course management
+- `learner@lms.com` / `learner123` - Learner in Public group
+- `learner2@lms.com` / `learner123` - Learner in Staff group
+
+**Database Reset:**
+- Run `npm run db:reset` to wipe and reseed the database with clean demo data
+- Script can be scheduled (e.g., daily via cron) for automatic resets
+- Removes all users except the 4 demo accounts
+- Creates fresh Public and Staff groups
+
 **Why PostgreSQL?**
 - **ACID Compliance:** Critical for enrollment, progress tracking, and financial data integrity
 - **Relational Data:** Perfect for complex relationships (users, courses, enrollments, progress)
@@ -254,13 +266,21 @@ created: 2025-12-09
 - ✅ Dark mode color fixes for all components (badges, icons, tables, forms)
 - ✅ E2E testing suite with Playwright (75+ tests)
 - ✅ Header layout: LMS on left, all navigation items (theme toggle, notifications, user info, logout) on right
-- ✅ Footer: Fixed at bottom of viewport, spanning full page width
+- ✅ Footer: Fixed at bottom of viewport, spanning full page width, centered text with GitHub link
 - ✅ Sidebar: Extended to footer with proper fixed positioning
 - ✅ Courses listing page: Full-width expandable grid (up to 5 columns on 2xl screens) with pagination
 - ✅ Course and learning plan detail pages: Max-width constraints (max-w-7xl) for better readability
 - ✅ Learning plan creation: Estimated time, difficulty level, and max enrollments are now optional fields
 - ✅ Theme toggle: Moon icon changed to black for better visibility
 - ✅ Global UI scaling: 87.5% zoom applied for better content fit
+- ✅ Search inputs: Fixed width (w-64) and positioned on right side of all table sections
+- ✅ Enrollment management pages for courses and learning plans with search, filter, and pagination
+- ✅ Bulk selection and actions: Select one, multiple, or all users/enrollments with bulk delete and update operations
+- ✅ Self-unenroll functionality: Learners can unenroll themselves from courses
+- ✅ Auto-group assignment: Users are automatically added to "Public" group when self-enrolling
+- ✅ Instructor permissions: Instructors enrolled in learning plans get admin access to all courses in the plan
+- ✅ Updated seed script: Creates only 4 demo accounts (admin, instructor, 2 learners) with Public and Staff groups
+- ✅ Database reset script: Automated script to wipe and reseed database for demo purposes (`npm run db:reset`)
 
 ### In Progress 🔄
 

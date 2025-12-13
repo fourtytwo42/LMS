@@ -30,6 +30,16 @@ npx prisma migrate dev
 npx prisma db seed
 ```
 
+**Reset Database (for demo/testing):**
+```bash
+npm run db:reset
+```
+This will wipe all data and reseed with 4 demo accounts:
+- `admin@lms.com` / `admin123` (Admin)
+- `instructor@lms.com` / `instructor123` (Instructor)
+- `learner@lms.com` / `learner123` (Learner - Public group)
+- `learner2@lms.com` / `learner123` (Learner - Staff group)
+
 4. **Start Development Server:**
 ```bash
 npm run dev

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, X } from "lucide-react";
+import { ArrowLeft, Plus, Edit, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -168,14 +168,24 @@ export default function LearningPlanDetailPage() {
         </Button>
         <h1 className="text-3xl font-bold">{plan.title}</h1>
         {canEdit && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => router.push(`/learning-plans/${planId}/edit`)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/learning-plans/${planId}/enrollments`)}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Enrollments
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/learning-plans/${planId}/edit`)}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </>
         )}
       </div>
 

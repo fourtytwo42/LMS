@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { authenticate } from "@/lib/auth/middleware";
+import { isLearningPlanInstructor } from "@/lib/auth/permissions";
 import { z } from "zod";
 
 const updateLearningPlanSchema = z.object({
@@ -168,8 +169,9 @@ export async function PUT(
     // Check permissions
     const isAdmin = user.roles.includes("ADMIN");
     const isCreator = learningPlan.createdById === user.id;
+    const hasInstructorAccess = await isLearningPlanInstructor(user.id, id);
 
-    if (!isAdmin && !isCreator) {
+    if (!isAdmin && !isCreator && !hasInstructorAccess) {
       return NextResponse.json(
         { error: "FORBIDDEN", message: "Insufficient permissions" },
         { status: 403 }

@@ -58,9 +58,13 @@ mkdir -p storage/{videos,pdfs,ppts,repository,avatars,certificates,thumbnails,ba
 npm run dev
 ```
 
-Visit `http://localhost:3000` and log in with:
-- **Email:** `admin@lms.com`
-- **Password:** `admin123`
+Visit `http://localhost:3000` and log in with one of the demo accounts:
+- **Admin:** `admin@lms.com` / `admin123`
+- **Instructor:** `instructor@lms.com` / `instructor123`
+- **Learner (Public):** `learner@lms.com` / `learner123`
+- **Learner (Staff):** `learner2@lms.com` / `learner123`
+
+All demo accounts are available on the login page for quick access.
 
 ## Next Steps
 

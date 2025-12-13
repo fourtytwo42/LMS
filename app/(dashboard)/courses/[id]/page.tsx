@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, BarChart3, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,17 +80,21 @@ export default function CourseDetailPage() {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [expandedContent, setExpandedContent] = useState<ExpandedContentItem | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [userEnrollment, setUserEnrollment] = useState<{ id: string; status: string } | null>(null);
+  const [unenrolling, setUnenrolling] = useState(false);
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
   const isInstructor = user?.roles?.includes("INSTRUCTOR") || false;
   const canEdit = isAdmin || isInstructor;
+  const isLearner = user?.roles?.includes("LEARNER") || false;
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const [courseResponse, contentResponse] = await Promise.all([
+        const [courseResponse, contentResponse, enrollmentsResponse] = await Promise.all([
           fetch(`/api/courses/${courseId}`),
           fetch(`/api/courses/${courseId}/content`),
+          user ? fetch(`/api/enrollments?courseId=${courseId}&userId=${user.id}`) : Promise.resolve(null),
         ]);
 
         if (!courseResponse.ok) throw new Error("Failed to fetch course");
@@ -106,6 +110,14 @@ export default function CourseDetailPage() {
           unlocked: item.unlocked !== undefined ? item.unlocked : true, // Default to unlocked if not specified
         }));
         setContentItems(itemsWithProgress);
+
+        // Check if user is enrolled
+        if (enrollmentsResponse && enrollmentsResponse.ok) {
+          const enrollmentsData = await enrollmentsResponse.json();
+          if (enrollmentsData.enrollments && enrollmentsData.enrollments.length > 0) {
+            setUserEnrollment(enrollmentsData.enrollments[0]);
+          }
+        }
       } catch (error) {
         console.error("Error fetching course:", error);
       } finally {
@@ -114,7 +126,7 @@ export default function CourseDetailPage() {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, user]);
 
   const getContentIcon = (type: string) => {
     switch (type) {
@@ -132,6 +144,33 @@ export default function CourseDetailPage() {
         return <FileText className="h-5 w-5" />;
       default:
         return <FileText className="h-5 w-5" />;
+    }
+  };
+
+  const handleUnenroll = async () => {
+    if (!userEnrollment || !confirm("Are you sure you want to unenroll from this course?")) {
+      return;
+    }
+
+    setUnenrolling(true);
+    try {
+      const response = await fetch(`/api/enrollments/self/${userEnrollment.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to unenroll");
+      }
+
+      setUserEnrollment(null);
+      alert("Successfully unenrolled from course");
+      router.push("/courses");
+    } catch (error: any) {
+      console.error("Error unenrolling:", error);
+      alert(error.message || "Failed to unenroll");
+    } finally {
+      setUnenrolling(false);
     }
   };
 
@@ -241,26 +280,47 @@ export default function CourseDetailPage() {
           Back
         </Button>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{course.title}</h1>
-        {canEdit && (
-          <>
+        <div className="flex gap-2">
+          {canEdit && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/courses/${courseId}/enrollments`)}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Enrollments
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/courses/${courseId}/edit`)}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/analytics/course/${courseId}`)}
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
+              </Button>
+            </>
+          )}
+          {isLearner && userEnrollment && !canEdit && (
             <Button
-              variant="secondary"
+              variant="danger"
               size="sm"
-              onClick={() => router.push(`/courses/${courseId}/edit`)}
+              onClick={handleUnenroll}
+              disabled={unenrolling}
             >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
+              <LogOut className="mr-2 h-4 w-4" />
+              {unenrolling ? "Unenrolling..." : "Unenroll"}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push(`/analytics/course/${courseId}`)}
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Analytics
-            </Button>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

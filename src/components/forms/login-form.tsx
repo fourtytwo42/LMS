@@ -32,7 +32,13 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     email: "learner@lms.com",
     password: "learner123",
     role: "LEARNER",
-    name: "Learner Demo",
+    name: "Learner (Public)",
+  },
+  {
+    email: "learner2@lms.com",
+    password: "learner123",
+    role: "LEARNER",
+    name: "Learner (Staff)",
   },
 ];
 

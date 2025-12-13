@@ -87,10 +87,10 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 ```
 app/api/
 ├── auth/          # Authentication endpoints
-├── users/         # User management
-├── courses/       # Course management
-├── learning-plans/# Learning plan management
-├── enrollments/   # Enrollment management
+├── users/         # User management (includes /bulk for bulk operations)
+├── courses/       # Course management (includes /:id/enrollments)
+├── learning-plans/# Learning plan management (includes /:id/enrollments)
+├── enrollments/   # Enrollment management (includes /self, /bulk-delete, /bulk-update)
 ├── progress/      # Progress tracking
 ├── files/         # File management
 ├── analytics/     # Analytics endpoints
@@ -110,6 +110,8 @@ app/api/
 - Three roles: ADMIN, INSTRUCTOR, LEARNER
 - Permission-based access to resources
 - Middleware checks roles before route access
+- Instructors enrolled in learning plans get admin access to all courses in the plan
+- Permission helpers: `isLearningPlanInstructor()`, `isCourseInstructor()`
 
 ## Data Flow
 

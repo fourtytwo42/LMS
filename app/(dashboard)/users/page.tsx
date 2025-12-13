@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Download, Upload, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Download, Upload, Edit, Trash2, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -44,6 +44,10 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkUpdateModalOpen, setBulkUpdateModalOpen] = useState(false);
+  const [bulkRole, setBulkRole] = useState<string>("");
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -71,6 +75,32 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [pagination.page, search, roleFilter]);
+
+  // Clear selections when page changes
+  useEffect(() => {
+    setSelectedUserIds(new Set());
+  }, [pagination.page]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds(new Set(users.map((u) => u.id)));
+    } else {
+      setSelectedUserIds(new Set());
+    }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    const newSelected = new Set(selectedUserIds);
+    if (checked) {
+      newSelected.add(userId);
+    } else {
+      newSelected.delete(userId);
+    }
+    setSelectedUserIds(newSelected);
+  };
+
+  const isAllSelected = users.length > 0 && users.every((u) => selectedUserIds.has(u.id));
+  const isSomeSelected = selectedUserIds.size > 0;
 
   const handleDelete = async () => {
     if (!userToDelete) return;
@@ -140,6 +170,62 @@ export default function UsersPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedUserIds.size === 0) return;
+
+    try {
+      const response = await fetch("/api/users/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to delete users");
+
+      const data = await response.json();
+      alert(
+        `Deleted ${data.deleted} user(s), ${data.failed} failed`
+      );
+      setBulkDeleteModalOpen(false);
+      setSelectedUserIds(new Set());
+      fetchUsers();
+    } catch (error) {
+      console.error("Error deleting users:", error);
+      alert("Failed to delete users");
+    }
+  };
+
+  const handleBulkUpdate = async () => {
+    if (selectedUserIds.size === 0 || !bulkRole) return;
+
+    try {
+      const response = await fetch("/api/users/bulk", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          roles: [bulkRole],
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update users");
+
+      const data = await response.json();
+      alert(
+        `Updated ${data.updated} user(s), ${data.failed} failed`
+      );
+      setBulkUpdateModalOpen(false);
+      setBulkRole("");
+      setSelectedUserIds(new Set());
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating users:", error);
+      alert("Failed to update users");
+    }
+  };
+
   return (
     <div className="space-y-8 sm:space-y-10">
       <div className="flex items-center justify-between">
@@ -205,10 +291,52 @@ export default function UsersPage() {
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">No users found</div>
         ) : (
           <>
+            {isSomeSelected && (
+              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {selectedUserIds.size} user(s) selected
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setBulkUpdateModalOpen(true)}
+                  >
+                    Change Role
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => setBulkDeleteModalOpen(true)}
+                  >
+                    Delete Selected
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedUserIds(new Set())}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-12">
+                      <button
+                        onClick={() => handleSelectAll(!isAllSelected)}
+                        className="flex items-center justify-center"
+                      >
+                        {isAllSelected ? (
+                          <CheckSquare className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <Square className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       User
                     </th>
@@ -238,6 +366,18 @@ export default function UsersPage() {
                       key={user.id}
                       className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                        <button
+                          onClick={() => handleSelectUser(user.id, !selectedUserIds.has(user.id))}
+                          className="flex items-center justify-center"
+                        >
+                          {selectedUserIds.has(user.id) ? (
+                            <CheckSquare className="h-5 w-5 text-blue-600" />
+                          ) : (
+                            <Square className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         <div className="flex items-center gap-3">
                           <Avatar
@@ -375,6 +515,77 @@ export default function UsersPage() {
             </Button>
             <Button variant="danger" onClick={handleDelete}>
               Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={bulkDeleteModalOpen}
+        onClose={() => {
+          setBulkDeleteModalOpen(false);
+        }}
+        title="Delete Selected Users"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-900 dark:text-gray-100">
+            Are you sure you want to delete {selectedUserIds.size} selected user(s)? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkDeleteModalOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleBulkDelete}>
+              Delete {selectedUserIds.size} User(s)
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={bulkUpdateModalOpen}
+        onClose={() => {
+          setBulkUpdateModalOpen(false);
+          setBulkRole("");
+        }}
+        title="Change Role for Selected Users"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            This will replace the current role(s) for {selectedUserIds.size} selected user(s) with the role below.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              New Role
+            </label>
+            <Select
+              value={bulkRole}
+              onChange={(e) => setBulkRole(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Select a role...</option>
+              <option value="LEARNER">Learner</option>
+              <option value="INSTRUCTOR">Instructor</option>
+              <option value="ADMIN">Admin</option>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkUpdateModalOpen(false);
+                setBulkRole("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkUpdate} disabled={!bulkRole}>
+              Update {selectedUserIds.size} User(s)
             </Button>
           </div>
         </div>
