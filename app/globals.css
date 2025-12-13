@@ -86,6 +86,14 @@ body {
   font-size: 0.875rem; /* 14px base font size */
 }
 
+/* Force center text on root page - must be very specific */
+.root-page main section p[class*="text-center"],
+.root-page main section p {
+  text-align: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 /* Force background colors on all containers with bg-white or dark:bg-gray classes */
 .bg-white,
 [class*="bg-white"] {
@@ -119,6 +127,12 @@ html.dark [class*="dark:bg-gray-800"] {
 
 html.dark * {
   color: inherit;
+}
+
+/* Force center text on root page - override any conflicting rules */
+.root-page p,
+.root-page div:not(.grid > div):not([class*="flex"]):not([class*="grid"]) {
+  text-align: center !important;
 }
 
 /* SVG icons in badges inherit the badge's text color */
@@ -355,6 +369,57 @@ html.dark .ps-sidebar-root.collapsed .ps-menu-button:hover::before {
 /* Using zoom which works in Chrome/Edge/Safari and doesn't break layout */
 html {
   zoom: 0.875; /* 87.5% scale - makes everything 12.5% smaller */
+}
+
+/* Ensure root page (/) sections and text are centered */
+.root-page main section {
+  text-align: center !important;
+}
+
+/* Force center ALL paragraphs and text elements in root page */
+.root-page main section p {
+  text-align: center !important;
+}
+
+.root-page main section h1,
+.root-page main section h2,
+.root-page main section h3,
+.root-page main section h4,
+.root-page main section h5,
+.root-page main section h6 {
+  text-align: center !important;
+}
+
+/* Force center divs that contain text */
+.root-page main section > div {
+  text-align: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.root-page main section > div > div {
+  text-align: center !important;
+}
+
+/* Force center text in nested divs */
+.root-page main section div p,
+.root-page main section div div {
+  text-align: center !important;
+}
+
+/* Ensure grid items in root page are centered */
+.root-page main section .grid {
+  justify-items: center;
+}
+
+/* Override for specific elements that should not be centered */
+.root-page main section .grid > div {
+  text-align: left !important; /* Card content should be left-aligned */
+}
+
+/* Force center all text in root page main content */
+.root-page main {
+  text-align: center !important;
 }
 
 /* Firefox fallback - apply scale to a wrapper instead of body to preserve layout */
