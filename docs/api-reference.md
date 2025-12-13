@@ -419,27 +419,52 @@ Upload a file.
 }
 ```
 
-**Note:** For content items (VIDEO, PDF, PPT), the URL points to `/api/files/serve?path=...`. For repository files, the URL points to `/api/files/{id}/download`.
+**Note:** 
+- Content items (VIDEO, PDF, PPT) and user files (AVATAR, THUMBNAIL, COVER) use `/api/files/serve?path=...`
+- Repository files use `/api/files/{id}/download`
+
+**Avatar Upload:**
+When uploading an avatar (`type: "AVATAR"`), the response includes a full URL that can be directly saved to the user's profile. The avatar is automatically saved when uploaded via the profile page.
+
+**Example Response for Avatar:**
+```json
+{
+  "file": {
+    "id": "avatar-123",
+    "fileName": "avatar.jpg",
+    "fileSize": 52428,
+    "mimeType": "image/jpeg",
+    "url": "/api/files/serve?path=/avatars/avatar.jpg"
+  }
+}
+```
 
 ### GET /api/files/serve
-Serve content item files (VIDEO, PDF, PPT) with authentication and course access checks.
+Serve files (content items and user files) with authentication and access checks.
 
 **Query Parameters:**
-- `path` - Relative file path (e.g., `/videos/{courseId}/{filename}`)
+- `path` - Relative file path (e.g., `/videos/{courseId}/{filename}`, `/avatars/{filename}`)
 - `mimeType` - Optional MIME type override
 
 **Response:** File stream with proper MIME type headers
 
+**File Types Supported:**
+- Content items: `VIDEO`, `PDF`, `PPT` - Requires course access verification
+- User files: `AVATAR`, `THUMBNAIL`, `COVER` - Requires authentication only
+
 **Features:**
 - Authentication required
-- Course access verification
+- Course access verification (for content items)
 - Path validation to prevent directory traversal
 - Range request support for video streaming
-- Sequential content unlocking checks
+- Sequential content unlocking checks (for course content)
+- Proper MIME type headers for images (avatars, thumbnails)
 
-**Example:**
+**Examples:**
 ```
 GET /api/files/serve?path=/videos/course-123/video.mp4
+GET /api/files/serve?path=/avatars/avatar.jpg
+GET /api/files/serve?path=/pdfs/course-123/document.pdf
 ```
 
 ### GET /api/files/:id/download

@@ -50,15 +50,17 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ User management with role-based access control
 - ✅ Course and learning plan management
 - ✅ Content management (videos, PDFs, PPTs, YouTube, HTML, external links)
-- ✅ Expandable content items with inline players
+- ✅ Expandable content items with inline players (video, PDF, PPT)
 - ✅ Assessment engine with auto-grading
-- ✅ Video progress tracking with duration detection
-- ✅ Progress tracking and analytics
+- ✅ Video progress tracking with duration detection and periodic DB updates
+- ✅ Progress tracking and analytics with enrolled users details
 - ✅ Certificate generation
 - ✅ Notifications system
 - ✅ File repository system with secure file serving
-- ✅ Dark/light mode toggle with persistent preferences
-- ✅ Collapsible sidebar with unique icons and tooltips
+- ✅ Avatar upload with auto-save and full URL generation
+- ✅ Dark/light mode toggle with persistent preferences and centralized theme management
+- ✅ Collapsible sidebar with unique icons, tooltips, and localStorage persistence (defaults to collapsed)
+- ✅ UI spacing and padding improvements across all pages
 - ✅ Comprehensive test coverage (80%+)
 - ✅ Demo accounts for quick testing
 - ✅ E2E testing with Playwright (75+ tests passing)

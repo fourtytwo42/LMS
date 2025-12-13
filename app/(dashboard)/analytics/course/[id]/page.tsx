@@ -31,6 +31,33 @@ interface CourseAnalytics {
     averageScore?: number;
     completions?: number;
   }>;
+  enrolledUsers?: Array<{
+    userId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    enrollmentStatus: string;
+    enrolledAt: string;
+    startedAt: string | null;
+    completedAt: string | null;
+    overallProgress: number;
+    contentProgress: Array<{
+      contentItemId: string;
+      type: string;
+      progress: number;
+      completed: boolean;
+      watchTime?: number;
+      totalDuration?: number;
+      score?: number | null;
+      passed?: boolean;
+      attempts?: number;
+    }>;
+    testScores: Array<{
+      contentItemId: string;
+      score: number;
+      passed: boolean;
+    }>;
+  }>;
 }
 
 export default function CourseAnalyticsPage() {
@@ -112,7 +139,7 @@ export default function CourseAnalyticsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
@@ -149,9 +176,9 @@ export default function CourseAnalyticsPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 mb-6">
         <Card>
-          <h2 className="mb-4 text-xl font-semibold">Enrollment Status</h2>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Enrollment Status</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={enrollmentData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -164,7 +191,7 @@ export default function CourseAnalyticsPage() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 text-xl font-semibold">Content Item Performance</h2>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Content Item Performance</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={contentItemData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -180,7 +207,7 @@ export default function CourseAnalyticsPage() {
       </div>
 
       <Card className="p-6">
-        <h2 className="mb-4 text-xl font-semibold">Content Items Detail</h2>
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Content Items Detail</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -216,6 +243,96 @@ export default function CourseAnalyticsPage() {
           </table>
         </div>
       </Card>
+
+      {analytics.enrolledUsers && analytics.enrolledUsers.length > 0 && (
+        <Card className="p-6">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Enrolled Users</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="px-4 py-2 text-left">Name</th>
+                  <th className="px-4 py-2 text-left">Email</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-right">Progress</th>
+                  <th className="px-4 py-2 text-right">Test Scores</th>
+                  <th className="px-4 py-2 text-left">Enrolled</th>
+                  {analytics.enrolledUsers.some((u) => u.completedAt) && (
+                    <th className="px-4 py-2 text-left">Completed</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {analytics.enrolledUsers.map((user) => (
+                  <tr key={user.userId} className="border-b">
+                    <td className="px-4 py-2">
+                      {user.firstName} {user.lastName}
+                    </td>
+                    <td className="px-4 py-2">{user.email}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                          user.enrollmentStatus === "COMPLETED"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : user.enrollmentStatus === "IN_PROGRESS"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            : user.enrollmentStatus === "DROPPED"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        }`}
+                      >
+                        {user.enrollmentStatus}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-medium">{user.overallProgress.toFixed(1)}%</span>
+                        <div className="h-2 w-24 rounded-full bg-gray-200 dark:bg-gray-700">
+                          <div
+                            className="h-2 rounded-full bg-blue-600 dark:bg-blue-500"
+                            style={{ width: `${user.overallProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {user.testScores.length > 0 ? (
+                        <div className="flex flex-col items-end gap-1">
+                          {user.testScores.map((test, idx) => (
+                            <span
+                              key={idx}
+                              className={`text-sm ${
+                                test.passed
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {test.score.toFixed(1)}%
+                              {test.passed ? " ✓" : " ✗"}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                      {new Date(user.enrolledAt).toLocaleDateString()}
+                    </td>
+                    {analytics.enrolledUsers.some((u) => u.completedAt) && (
+                      <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                        {user.completedAt
+                          ? new Date(user.completedAt).toLocaleDateString()
+                          : "-"}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

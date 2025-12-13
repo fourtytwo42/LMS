@@ -16,7 +16,7 @@ const updateProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   bio: z.string().optional(),
-  avatar: z.string().url().optional().or(z.literal("")),
+  avatar: z.string().optional(),
 });
 
 type UpdateProfileForm = z.infer<typeof updateProfileSchema>;
@@ -120,13 +120,36 @@ export default function ProfilePage() {
 
       const result = await response.json();
       
-      // Update the avatar URL in the form
-      setValue("avatar", result.file.url);
+      // Construct full URL from the relative URL
+      const fullUrl = result.file.url.startsWith("http")
+        ? result.file.url
+        : `${window.location.origin}${result.file.url}`;
+      
+      // Update the avatar URL in the form (hidden field)
+      setValue("avatar", fullUrl);
+      
+      // Auto-save the profile with the new avatar URL
+      const updateResponse = await fetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          bio: user.bio || "",
+          avatar: fullUrl,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error("Failed to save avatar to profile");
+      }
+
+      const updateResult = await updateResponse.json();
       
       // Update the user in the auth store
-      login({ ...user, avatar: result.file.url });
+      login(updateResult.user);
       
-      alert("Avatar uploaded successfully! Click 'Save Changes' to save your profile.");
+      alert("Avatar uploaded and saved successfully!");
     } catch (error) {
       console.error("Error uploading avatar:", error);
       alert(error instanceof Error ? error.message : "Failed to upload avatar");
@@ -150,17 +173,17 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Profile</h1>
-        <p className="mt-2 text-sm sm:text-base text-gray-600">Manage your profile information and preferences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">My Profile</h1>
+        <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage your profile information and preferences</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card>
-          <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900">Edit Profile</h2>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Edit Profile</h2>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   First Name
                 </label>
                 <Input
@@ -169,7 +192,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Last Name
                 </label>
                 <Input
@@ -180,32 +203,24 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <Input value={user.email} disabled className="bg-gray-50" />
-              <p className="mt-1.5 text-xs text-gray-500">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+              <Input value={user.email} disabled className="bg-gray-50 dark:bg-gray-700" />
+              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                 Email cannot be changed
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Bio</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
               <textarea
                 {...register("bio")}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:border-blue-500 transition-colors duration-200 resize-y"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:border-blue-500 transition-colors duration-200 resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 rows={4}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">
-                Avatar URL
-              </label>
-              <Input
-                {...register("avatar")}
-                error={errors.avatar?.message}
-                placeholder="https://example.com/avatar.jpg"
-              />
-            </div>
+            {/* Hidden avatar field - auto-populated by upload */}
+            <input type="hidden" {...register("avatar")} />
 
             <div className="flex justify-end pt-2">
               <Button type="submit" disabled={saving}>
@@ -217,7 +232,7 @@ export default function ProfilePage() {
         </Card>
 
         <Card>
-          <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900">Profile Info</h2>
+          <h2 className="mb-5 sm:mb-6 text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Profile Info</h2>
           <div className="space-y-5 sm:space-y-6">
             <div className="flex justify-center">
               <Avatar
@@ -227,7 +242,7 @@ export default function ProfilePage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Upload Avatar
               </label>
               <Button
@@ -247,12 +262,12 @@ export default function ProfilePage() {
                 className="hidden"
                 onChange={handleAvatarUpload}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Supported formats: JPG, PNG, GIF. Max size: 5MB
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB. Avatar will be saved automatically.
               </p>
             </div>
             <div className="space-y-2">
-              <div className="text-sm font-medium text-gray-700">Roles</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Roles</div>
               <div className="flex flex-wrap gap-2">
                 {user.roles?.map((role) => (
                   <Badge key={role} variant="default">

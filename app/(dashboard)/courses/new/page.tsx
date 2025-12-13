@@ -16,7 +16,6 @@ const createCourseSchema = z.object({
   title: z.string().min(1, "Title is required"),
   shortDescription: z.string().max(130).optional(),
   description: z.string().optional(),
-  type: z.enum(["E-LEARNING", "BLENDED", "IN_PERSON"]).default("E-LEARNING"),
   categoryId: z.string().optional(),
   estimatedTime: z.number().int().positive().optional(),
   difficultyLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
@@ -40,7 +39,6 @@ export default function NewCoursePage() {
   } = useForm({
     resolver: zodResolver(createCourseSchema),
     defaultValues: {
-      type: "E-LEARNING",
       publicAccess: false,
       selfEnrollment: false,
       sequentialRequired: true,
@@ -93,28 +91,18 @@ export default function NewCoursePage() {
 
       <Card className="p-6">
         <h2 className="mb-4 text-xl font-semibold">Course Information</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Code</label>
-              <Input
-                {...register("code")}
-                error={errors.code?.message}
-                placeholder="COURSE-001 (optional)"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Type *</label>
-              <Select {...register("type")} error={errors.type?.message}>
-                <option value="E-LEARNING">E-Learning</option>
-                <option value="BLENDED">Blended</option>
-                <option value="IN_PERSON">In-Person</option>
-              </Select>
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
+            <Input
+              {...register("code")}
+              error={errors.code?.message}
+              placeholder="COURSE-001 (optional)"
+            />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Title *</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Title *</label>
             <Input
               {...register("title")}
               error={errors.title?.message}
@@ -135,7 +123,7 @@ export default function NewCoursePage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Description</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
             <textarea
               {...register("description")}
               className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -157,7 +145,7 @@ export default function NewCoursePage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Difficulty Level
               </label>
               <Select
@@ -207,7 +195,7 @@ export default function NewCoursePage() {
             </label>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"
               variant="secondary"

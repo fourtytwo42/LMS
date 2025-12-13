@@ -172,8 +172,8 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       {/* Demo Accounts Section */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <p className="mb-3 text-sm font-medium text-gray-700">Demo Accounts (Click to fill)</p>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+        <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Demo Accounts (Click to fill)</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {DEMO_ACCOUNTS.map((account) => (
             <button
@@ -184,11 +184,11 @@ export function LoginForm() {
                 e.stopPropagation();
                 handleDemoAccountClick(account);
               }}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm transition-colors hover:border-blue-500 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 cursor-pointer"
+              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-left text-sm transition-colors hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 cursor-pointer"
             >
-              <div className="font-medium text-gray-900">{account.name}</div>
-              <div className="text-xs text-gray-500">{account.role}</div>
-              <div className="mt-1 truncate text-xs text-gray-400">{account.email}</div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">{account.name}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{account.role}</div>
+              <div className="mt-1 truncate text-xs text-gray-400 dark:text-gray-500">{account.email}</div>
             </button>
           ))}
         </div>
@@ -232,7 +232,7 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Password
         </label>
         <Controller

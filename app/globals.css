@@ -184,11 +184,104 @@ button {
   transition: all 0.2s ease-in-out;
 }
 
+/* Add spacing between form field wrappers (when form doesn't use space-y) */
+form:not([class*="space-y"]) > div:not(:last-child) {
+  margin-bottom: 1.5rem;
+}
+
+/* Add spacing between label and form control */
+label + div,
+label + input:not([type="checkbox"]):not([type="radio"]),
+label + select,
+label + textarea {
+  margin-top: 0.5rem;
+  display: block;
+}
+
+/* Ensure buttons in button groups have proper spacing */
+.flex.gap-2,
+.flex.gap-3,
+.flex.gap-4 {
+  /* Gap utility handles spacing - ensure it's applied */
+}
+
+/* Add minimum spacing to form elements when in space-y containers */
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-5 > * + * {
+  margin-top: 1.25rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+.space-y-8 > * + * {
+  margin-top: 2rem;
+}
+
 /* Card spacing is handled by Tailwind classes - removed to avoid conflicts */
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* React Pro Sidebar Custom Styles */
+.ps-sidebar-container {
+  background-color: var(--bg-primary) !important;
+  border-right: 1px solid #e5e7eb !important;
+}
+
+html.dark .ps-sidebar-container {
+  background-color: var(--bg-primary) !important;
+  border-right-color: #374151 !important;
+}
+
+.ps-sidebar-root {
+  background-color: var(--bg-primary) !important;
+}
+
+.ps-menu-button {
+  color: var(--text-primary) !important;
+}
+
+.ps-menu-button:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+html.dark .ps-menu-button:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.ps-menu-button.ps-active {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: #2563eb !important;
+}
+
+html.dark .ps-menu-button.ps-active {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #93c5fd !important;
+}
+
+.ps-sidebar-footer {
+  border-top: 1px solid #e5e7eb !important;
+}
+
+html.dark .ps-sidebar-footer {
+  border-top-color: #374151 !important;
+}
+
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
 }
 

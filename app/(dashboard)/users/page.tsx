@@ -140,9 +140,9 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">User Management</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">User Management</h1>
         <div className="flex gap-2">
           <label htmlFor="import-file" className="cursor-pointer">
             <div className="inline-block">
@@ -199,31 +199,31 @@ export default function UsersPage() {
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading...</div>
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
         ) : users.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">No users found</div>
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">No users found</div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       User
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Email
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Roles
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Created
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Actions
                     </th>
                   </tr>
@@ -232,9 +232,9 @@ export default function UsersPage() {
                   {users.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-gray-200 hover:bg-gray-50"
+                      className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         <div className="flex items-center gap-3">
                           <Avatar
                             src={user.avatar || undefined}
@@ -242,16 +242,16 @@ export default function UsersPage() {
                             size="sm"
                           />
                           <div>
-                            <div className="font-medium">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {user.firstName} {user.lastName}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {user.email}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         <div className="flex gap-1">
                           {user.roles.map((role) => (
                             <Badge key={role} variant="default">
@@ -260,17 +260,17 @@ export default function UsersPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {user.emailVerified ? (
                           <Badge variant="success">Verified</Badge>
                         ) : (
                           <Badge variant="warning">Unverified</Badge>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
@@ -298,7 +298,7 @@ export default function UsersPage() {
             </div>
 
             <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
                 of {pagination.total} users
@@ -339,7 +339,7 @@ export default function UsersPage() {
         title="Delete User"
       >
         <div className="space-y-4">
-          <p>
+          <p className="text-gray-900 dark:text-gray-100">
             Are you sure you want to delete{" "}
             <strong>
               {userToDelete?.firstName} {userToDelete?.lastName}

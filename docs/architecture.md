@@ -62,11 +62,11 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 
 **Layout Components:**
 - `DashboardLayout` - Main dashboard wrapper with theme provider
-- `Header` - Top navigation bar with theme toggle button
-- `Sidebar` - Collapsible side navigation menu with unique icons and tooltips
+- `Header` - Top navigation bar with theme toggle button (Moon/Sun icon)
+- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed)
 - `Footer` - Page footer
-- `ThemeProvider` - Dark/light mode theme management
-- `ThemeToggle` - Theme toggle button (Moon/Sun icon)
+- `ThemeProvider` - Dark/light mode theme management with centralized CSS variables
+- `ThemeToggle` - Theme toggle button with persistent localStorage state
 
 **UI Components:**
 - `Button`, `Input`, `Select`, `Textarea` - Form controls
@@ -74,11 +74,12 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 - `Table` - Data tables
 
 **Feature Components:**
-- `VideoPlayer` - Video playback with progress tracking, duration detection, and stored duration support
+- `VideoPlayer` - Video playback with progress tracking, duration detection, stored duration support, and periodic DB updates (every 5 seconds)
 - `PDFViewer` - PDF document viewer with inline page navigation
 - `TestViewer` - Assessment interface
-- `AnalyticsDashboard` - Analytics visualizations
+- `AnalyticsDashboard` - Analytics visualizations with enrolled users details
 - `NotificationCenter` - Notification management
+- `Avatar` - User avatar display with upload support and auto-save
 
 ### Backend Architecture
 

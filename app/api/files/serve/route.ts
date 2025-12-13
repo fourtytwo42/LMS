@@ -38,12 +38,50 @@ export async function GET(request: NextRequest) {
     // Normalize path (remove leading slash if present)
     const normalizedPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
 
-    // Extract course ID from path
-    // Path format: videos/{courseId}/file.mp4
-    // or: videos/course-{id}/content-{id}/file.mp4 (new format)
-    // or: pdfs/{courseId}/file.pdf
-    // or: ppts/{courseId}/file.pptx
     const pathParts = normalizedPath.split("/");
+    if (pathParts.length < 1) {
+      return NextResponse.json(
+        { error: "BAD_REQUEST", message: "Invalid file path format" },
+        { status: 400 }
+      );
+    }
+
+    // Handle avatar, thumbnail, and cover files (user files - no course association)
+    if (pathParts[0] === "avatars" || pathParts[0] === "thumbnails") {
+      // For avatars and thumbnails, allow access if:
+      // 1. User is authenticated (already checked)
+      // 2. For avatars: user owns the avatar or is admin
+      // 3. For thumbnails: user has access (can be viewed by anyone authenticated)
+      
+      if (pathParts[0] === "avatars") {
+        // Extract user ID from path if available (avatars/{userId}/filename)
+        // For now, allow any authenticated user to view avatars
+        // In the future, we could add ownership checks here
+      }
+      
+      // Determine content type from file extension
+      const fileExtension = normalizedPath.split(".").pop()?.toLowerCase() || "";
+      const imageContentTypeMap: Record<string, string> = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+      };
+      
+      const contentType = imageContentTypeMap[fileExtension] || "image/jpeg";
+      
+      // Serve file directly without course checks
+      const range = request.headers.get("range");
+      return serveFile(normalizedPath, {
+        filename: pathParts[pathParts.length - 1],
+        contentType,
+        range,
+        download: false,
+      });
+    }
+
+    // Handle course content files (VIDEO, PDF, PPT)
     if (pathParts.length < 2) {
       return NextResponse.json(
         { error: "BAD_REQUEST", message: "Invalid file path format" },
@@ -51,8 +89,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find course ID from path
-    // Support both formats: {courseId} or course-{id}
+    // Extract course ID from path
+    // Path format: videos/{courseId}/file.mp4
+    // or: videos/course-{id}/content-{id}/file.mp4 (new format)
+    // or: pdfs/{courseId}/file.pdf
+    // or: ppts/{courseId}/file.pptx
     const courseIdPart = pathParts[1];
     let courseId: string;
     

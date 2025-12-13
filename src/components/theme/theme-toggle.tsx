@@ -14,10 +14,10 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
       title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-      className="!text-gray-700 hover:!text-gray-900 dark:!text-gray-200 dark:hover:!text-white border border-gray-300 dark:border-gray-600"
+      className="!text-gray-900 hover:!text-gray-700 dark:!text-gray-200 dark:hover:!text-white focus:outline-none focus:ring-0"
     >
       {theme === "light" ? (
-        <Moon className="h-5 w-5" />
+        <Moon className="h-5 w-5 text-gray-900" />
       ) : (
         <Sun className="h-5 w-5" />
       )}

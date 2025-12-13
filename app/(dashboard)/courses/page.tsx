@@ -54,7 +54,6 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
@@ -70,7 +69,6 @@ export default function CoursesPage() {
       });
       if (search) params.append("search", search);
       if (statusFilter) params.append("status", statusFilter);
-      if (typeFilter) params.append("type", typeFilter);
 
       const response = await fetch(`/api/courses?${params}`);
       if (!response.ok) throw new Error("Failed to fetch courses");
@@ -87,7 +85,7 @@ export default function CoursesPage() {
 
   useEffect(() => {
     fetchCourses();
-  }, [pagination.page, search, statusFilter, typeFilter]);
+  }, [pagination.page, search, statusFilter]);
 
   const handleDelete = async () => {
     if (!courseToDelete) return;
@@ -139,11 +137,11 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Courses</h1>
-          <p className="mt-1 text-sm sm:text-base text-gray-600">Manage and view all courses</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Courses</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage and view all courses</p>
         </div>
         {(isAdmin || isInstructor) && (
           <Button onClick={() => router.push("/courses/new")}>
@@ -181,19 +179,6 @@ export default function CoursesPage() {
               <option value="ARCHIVED">Archived</option>
             </Select>
           )}
-          <Select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPagination((p) => ({ ...p, page: 1 }));
-            }}
-            className="w-40"
-          >
-            <option value="">All Types</option>
-            <option value="E-LEARNING">E-Learning</option>
-            <option value="BLENDED">Blended</option>
-            <option value="IN_PERSON">In-Person</option>
-          </Select>
         </div>
 
         {loading ? (
@@ -307,35 +292,39 @@ export default function CoursesPage() {
               ))}
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
-                of {pagination.total} courses
+            {pagination.totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+                  of {pagination.total} courses
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={pagination.page === 1}
+                    onClick={() =>
+                      setPagination((p) => ({ ...p, page: p.page - 1 }))
+                    }
+                    className="text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() =>
+                      setPagination((p) => ({ ...p, page: p.page + 1 }))
+                    }
+                    className="text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() =>
-                    setPagination((p) => ({ ...p, page: p.page - 1 }))
-                  }
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() =>
-                    setPagination((p) => ({ ...p, page: p.page + 1 }))
-                  }
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            )}
           </>
         )}
       </Card>

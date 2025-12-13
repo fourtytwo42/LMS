@@ -31,6 +31,7 @@ export function VideoPlayer({
     lastPosition: 0,
     completed: false,
   });
+  const [currentTime, setCurrentTime] = useState(0); // Track current time for display
   const [loading, setLoading] = useState(true);
   const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -102,19 +103,21 @@ export function VideoPlayer({
     if (!video) return;
 
     const updateProgress = async () => {
-      const watchTime = Math.floor(video.currentTime);
-      // Use video duration if available, otherwise use stored duration or progress state
-      const duration = video.duration && !isNaN(video.duration) && isFinite(video.duration)
-        ? Math.floor(video.duration)
-        : (progress.totalDuration || videoDuration || 0);
-      
-      const lastPosition = duration > 0 ? video.currentTime / duration : 0;
-      const completionPercentage = duration > 0 ? watchTime / duration : 0;
+      if (!video.duration || isNaN(video.duration) || !isFinite(video.duration)) {
+        return;
+      }
+
+      const currentTime = video.currentTime;
+      const duration = video.duration;
+      const watchTime = Math.floor(currentTime);
+      const totalDuration = Math.floor(duration);
+      const lastPosition = duration > 0 ? currentTime / duration : 0;
+      const completionPercentage = duration > 0 ? watchTime / totalDuration : 0;
       const completed = completionPercentage >= completionThreshold;
 
       const newProgress = {
         watchTime,
-        totalDuration: duration,
+        totalDuration,
         lastPosition,
         completed,
       };
@@ -122,7 +125,7 @@ export function VideoPlayer({
       setProgress(newProgress);
 
       // Only update server if we have valid duration
-      if (duration > 0) {
+      if (totalDuration > 0) {
         try {
           const response = await fetch("/api/progress/video", {
             method: "POST",
@@ -130,7 +133,7 @@ export function VideoPlayer({
             body: JSON.stringify({
               contentItemId,
               watchTime,
-              totalDuration: duration,
+              totalDuration,
               lastPosition,
               timesWatched: completed ? 1 : 0,
             }),
@@ -153,33 +156,48 @@ export function VideoPlayer({
 
     // Also update on timeupdate (more frequent for UI)
     const handleTimeUpdate = () => {
-      const watchTime = Math.floor(video.currentTime);
-      // Use video duration if available, otherwise use stored duration or progress state
-      const duration = video.duration && !isNaN(video.duration) && isFinite(video.duration)
-        ? Math.floor(video.duration)
-        : (progress.totalDuration || videoDuration || 0);
+      const video = videoRef.current;
+      if (!video) return;
       
-      const lastPosition = duration > 0 ? video.currentTime / duration : 0;
-      const completionPercentage = duration > 0 ? watchTime / duration : 0;
+      const currentTimeValue = video.currentTime || 0;
+      setCurrentTime(currentTimeValue); // Update current time for display
+      
+      if (!video.duration || isNaN(video.duration) || !isFinite(video.duration)) {
+        return;
+      }
+      
+      const duration = video.duration;
+      const watchTime = Math.floor(currentTimeValue);
+      const totalDuration = Math.floor(duration);
+      const lastPosition = duration > 0 ? currentTimeValue / duration : 0;
+      const completionPercentage = duration > 0 ? watchTime / totalDuration : 0;
       const completed = completionPercentage >= completionThreshold;
 
-      setProgress({
+      setProgress((prev) => ({
+        ...prev,
         watchTime,
-        totalDuration: duration,
+        totalDuration,
         lastPosition,
         completed,
-      });
+      }));
     };
 
-    video.addEventListener("timeupdate", handleTimeUpdate);
+    // Add event listener to the video element
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      videoElement.addEventListener("timeupdate", handleTimeUpdate);
+    }
 
     return () => {
       if (progressUpdateIntervalRef.current) {
         clearInterval(progressUpdateIntervalRef.current);
       }
-      video.removeEventListener("timeupdate", handleTimeUpdate);
+      const videoElement = videoRef.current;
+      if (videoElement) {
+        videoElement.removeEventListener("timeupdate", handleTimeUpdate);
+      }
     };
-  }, [contentItemId, completionThreshold, onProgressUpdate, videoDuration, progress.totalDuration]);
+  }, [contentItemId, completionThreshold, onProgressUpdate]);
 
   if (loading) {
     return (
@@ -197,6 +215,29 @@ export function VideoPlayer({
         controls
         controlsList={allowSeeking ? undefined : "nodownload nofullscreen"}
         className="w-full rounded-lg"
+        onTimeUpdate={(e) => {
+          const video = e.currentTarget;
+          const currentTimeValue = video.currentTime || 0;
+          setCurrentTime(currentTimeValue);
+          
+          // Also update progress state
+          if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+            const duration = video.duration;
+            const watchTime = Math.floor(currentTimeValue);
+            const totalDuration = Math.floor(duration);
+            const lastPosition = duration > 0 ? currentTimeValue / duration : 0;
+            const completionPercentage = duration > 0 ? watchTime / totalDuration : 0;
+            const completed = completionPercentage >= completionThreshold;
+            
+            setProgress((prev) => ({
+              ...prev,
+              watchTime,
+              totalDuration,
+              lastPosition,
+              completed,
+            }));
+          }
+        }}
       />
       {progress.completed && (
         <div className="mt-4 rounded-lg bg-green-100 dark:bg-green-900 p-4 text-green-800 dark:text-green-200">
@@ -218,13 +259,15 @@ export function VideoPlayer({
           </div>
         </div>
       )}
-      <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        Progress: {Math.round(progress.lastPosition * 100)}% (
-        {Math.floor(progress.watchTime / 60)}:
-        {String(Math.floor(progress.watchTime % 60)).padStart(2, "0")} /{" "}
-        {Math.floor(progress.totalDuration / 60)}:
-        {String(Math.floor(progress.totalDuration % 60)).padStart(2, "0")})
-      </div>
+      {progress.totalDuration > 0 && (
+        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Progress: {Math.round(progress.lastPosition * 100)}% (
+          {Math.floor(currentTime / 60)}:
+          {String(Math.floor(currentTime % 60)).padStart(2, "0")} /{" "}
+          {Math.floor(progress.totalDuration / 60)}:
+          {String(Math.floor(progress.totalDuration % 60)).padStart(2, "0")})
+        </div>
+      )}
     </div>
   );
 }

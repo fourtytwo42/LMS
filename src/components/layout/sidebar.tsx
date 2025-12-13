@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Sidebar,
+  Menu,
+  MenuItem,
+} from "react-pro-sidebar";
+import {
   LayoutDashboard,
   BookOpen,
   GraduationCap,
@@ -17,8 +22,8 @@ import {
   UsersRound,
   FolderTree,
   TrendingUp,
+  Menu as MenuIcon,
   ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils/cn";
@@ -57,39 +62,29 @@ const menuItems = {
 
 const SIDEBAR_STORAGE_KEY = "lms-sidebar-collapsed";
 
-export function Sidebar() {
+interface SidebarContentProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+function SidebarContent({ collapsed, onToggle }: SidebarContentProps) {
   const pathname = usePathname();
   const { user, isLoading } = useAuthStore();
-  const [isCollapsed, setIsCollapsed] = useState(true); // Default to collapsed
 
-  // Load sidebar state from localStorage
+  // Update CSS variable for main content margin
   useEffect(() => {
-    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    if (stored !== null) {
-      setIsCollapsed(stored === "true");
-    }
-  }, []);
-
-  // Save sidebar state to localStorage
-  const toggleSidebar = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(newState));
-  };
+    const root = document.documentElement;
+    root.style.setProperty("--sidebar-width", collapsed ? "80px" : "250px");
+  }, [collapsed]);
 
   if (isLoading || !user) {
     return (
-      <aside className={cn(
-        "border-r bg-gray-50 transition-all duration-300",
-        isCollapsed ? "w-16" : "w-64"
-      )} aria-label="Loading navigation">
-        <nav className="p-4">
-          <div className="animate-pulse" aria-busy="true" aria-label="Loading menu">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        </nav>
-      </aside>
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse space-y-2">
+          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+        </div>
+      </div>
     );
   }
 
@@ -108,72 +103,133 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className={cn(
-        "border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 relative",
-        isCollapsed ? "w-16" : "w-64"
-      )}
-      aria-label="Main navigation"
-    >
-      {/* Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className={cn(
-          "absolute -right-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-gray-700",
-          isCollapsed ? "rotate-180" : ""
-        )}
-        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        aria-expanded={!isCollapsed}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-        ) : (
-          <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-        )}
-      </button>
+    <div className="flex flex-col h-full">
+      {/* Header with Toggle */}
+      <div className={cn(
+        "flex items-center p-4 border-b border-gray-200 dark:border-gray-700",
+        collapsed ? "justify-center" : "justify-end"
+      )}>
+        <button
+          onClick={onToggle}
+          className={cn(
+            "flex items-center justify-center rounded-lg p-2",
+            "text-gray-700 dark:text-gray-300",
+            "hover:bg-gray-100 dark:hover:bg-gray-700",
+            "transition-colors duration-200",
+            "focus:outline-none",
+            collapsed && "w-full"
+          )}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <MenuIcon className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
+        </button>
+      </div>
 
-      <nav className={cn("p-4 sm:p-5", isCollapsed && "px-2")}>
-        <ul className="space-y-1.5" role="list">
+      {/* Navigation Menu */}
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <Menu
+          menuItemStyles={{
+            button: {
+              [`&.ps-active`]: {
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                color: "#2563eb",
+              },
+              [`&:hover`]: {
+                backgroundColor: "rgba(0, 0, 0, 0.05)",
+              },
+            },
+          }}
+        >
           {items.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            const isActive =
+              pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
             return (
-              <li key={item.href} role="listitem">
-                <Link
-                  href={item.href}
-                    className={cn(
-                      "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 group relative",
-                      isCollapsed ? "justify-center" : "gap-3",
-                      isActive
-                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shadow-sm"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
-                    )}
-                  aria-current={isActive ? "page" : undefined}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 flex-shrink-0",
-                      isActive ? "text-blue-700 dark:text-blue-300" : "text-gray-600 dark:text-gray-400"
-                    )}
-                    aria-hidden="true"
-                  />
-                  {!isCollapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                  {/* Tooltip for collapsed state */}
-                      {isCollapsed && (
-                        <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-gray-900 dark:text-gray-800 bg-gray-100 dark:bg-gray-50 border border-gray-300 dark:border-gray-500 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
-                          {item.label}
-                        </span>
-                      )}
-                </Link>
-              </li>
+              <MenuItem
+                key={item.href}
+                icon={<Icon className="h-5 w-5" />}
+                active={isActive}
+                component={<Link href={item.href} />}
+              >
+                {item.label}
+              </MenuItem>
             );
           })}
-        </ul>
-      </nav>
-    </aside>
+        </Menu>
+      </div>
+    </div>
   );
 }
 
+export function SidebarComponent() {
+  // Read from localStorage synchronously on client side, default to true (collapsed)
+  const getInitialCollapsed = (): boolean => {
+    if (typeof window === "undefined") {
+      return true; // Default to collapsed on server
+    }
+    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    return stored === null ? true : stored === "true";
+  };
+
+  const [collapsed, setCollapsed] = useState<boolean>(() => getInitialCollapsed());
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Save to localStorage whenever collapsed state changes
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+    }
+  }, [collapsed, isMounted]);
+
+  // Update CSS variable for main content margin
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--sidebar-width", collapsed ? "80px" : "250px");
+  }, [collapsed]);
+
+  const handleToggle = () => {
+    setCollapsed((prev) => !prev);
+  };
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!isMounted) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          top: 64,
+          width: "80px",
+          height: "calc(100vh - 64px)",
+          zIndex: 1000,
+          backgroundColor: "var(--bg-primary)",
+          borderRight: "1px solid var(--border-color)",
+        }}
+      />
+    );
+  }
+
+  return (
+    <Sidebar
+      collapsed={collapsed}
+      style={{
+        position: "fixed",
+        left: 0,
+        top: 64,
+        height: "calc(100vh - 64px)",
+        zIndex: 1000,
+      }}
+    >
+      <SidebarContent collapsed={collapsed} onToggle={handleToggle} />
+    </Sidebar>
+  );
+}

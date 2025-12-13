@@ -16,7 +16,6 @@ const updateCourseSchema = z.object({
   title: z.string().min(1, "Title is required"),
   shortDescription: z.string().max(130).optional(),
   description: z.string().optional(),
-  type: z.enum(["E-LEARNING", "BLENDED", "IN_PERSON"]).optional(),
   categoryId: z.string().optional().nullable(),
   estimatedTime: z.number().int().positive().optional().nullable(),
   difficultyLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional().nullable(),
@@ -60,7 +59,6 @@ export default function EditCoursePage() {
         setValue("title", courseData.title);
         setValue("shortDescription", courseData.shortDescription || "");
         setValue("description", courseData.description || "");
-        setValue("type", courseData.type);
         setValue("categoryId", courseData.category?.id || "");
         setValue("estimatedTime", courseData.estimatedTime);
         setValue("difficultyLevel", courseData.difficultyLevel);
@@ -131,23 +129,13 @@ export default function EditCoursePage() {
       <Card className="p-6">
         <h2 className="mb-4 text-xl font-semibold">Course Information</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Code</label>
-              <Input
-                {...register("code")}
-                error={errors.code?.message}
-                placeholder="COURSE-001 (optional)"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Type</label>
-              <Select {...register("type")} error={errors.type?.message}>
-                <option value="E-LEARNING">E-Learning</option>
-                <option value="BLENDED">Blended</option>
-                <option value="IN_PERSON">In-Person</option>
-              </Select>
-            </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Code</label>
+            <Input
+              {...register("code")}
+              error={errors.code?.message}
+              placeholder="COURSE-001 (optional)"
+            />
           </div>
 
           <div>

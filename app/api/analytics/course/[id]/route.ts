@@ -120,6 +120,118 @@ export async function GET(
     const averageTimeToComplete =
       completedEnrollments.length > 0 ? totalTime / completedEnrollments.length : 0;
 
+    // Get enrolled users with their progress and test scores
+    const enrolledUsers = await Promise.all(
+      course.enrollments.map(async (enrollment) => {
+        const user = await prisma.user.findUnique({
+          where: { id: enrollment.userId },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        });
+
+        if (!user) return null;
+
+        // Get user's progress for all content items
+        const contentProgress = await Promise.all(
+          course.contentItems.map(async (item) => {
+            if (item.type === "VIDEO") {
+              const videoProgress = await prisma.videoProgress.findUnique({
+                where: {
+                  userId_contentItemId: {
+                    userId: user.id,
+                    contentItemId: item.id,
+                  },
+                },
+              });
+              return {
+                contentItemId: item.id,
+                type: "VIDEO",
+                progress: videoProgress
+                  ? videoProgress.totalDuration > 0
+                    ? (videoProgress.watchTime / videoProgress.totalDuration) * 100
+                    : 0
+                  : 0,
+                completed: videoProgress?.completed || false,
+                watchTime: videoProgress?.watchTime || 0,
+                totalDuration: videoProgress?.totalDuration || 0,
+              };
+            } else if (item.type === "TEST") {
+              const test = await prisma.test.findUnique({
+                where: { contentItemId: item.id },
+                include: {
+                  attempts: {
+                    where: { userId: user.id },
+                    orderBy: { createdAt: "desc" },
+                    take: 1,
+                  },
+                },
+              });
+              const bestAttempt = test?.attempts[0];
+              return {
+                contentItemId: item.id,
+                type: "TEST",
+                progress: bestAttempt ? (bestAttempt.score || 0) * 100 : 0,
+                completed: bestAttempt?.passed || false,
+                score: bestAttempt?.score || null,
+                passed: bestAttempt?.passed || false,
+                attempts: test?.attempts.length || 0,
+              };
+            } else {
+              const completion = await prisma.completion.findFirst({
+                where: {
+                  userId: user.id,
+                  contentItemId: item.id,
+                  courseId: id,
+                },
+              });
+              return {
+                contentItemId: item.id,
+                type: item.type,
+                progress: completion ? 100 : 0,
+                completed: !!completion,
+              };
+            }
+          })
+        );
+
+        // Calculate overall course progress
+        const totalProgress = contentProgress.reduce((sum, cp) => sum + cp.progress, 0);
+        const overallProgress = course.contentItems.length > 0
+          ? totalProgress / course.contentItems.length
+          : 0;
+
+        // Get all test scores for this user
+        const testScores = contentProgress
+          .filter((cp) => cp.type === "TEST" && "score" in cp && cp.score !== null)
+          .map((cp) => ({
+            contentItemId: cp.contentItemId,
+            score: (cp as any).score as number,
+            passed: (cp as any).passed as boolean,
+          }));
+
+        return {
+          userId: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          enrollmentStatus: enrollment.status,
+          enrolledAt: enrollment.createdAt,
+          startedAt: enrollment.startedAt,
+          completedAt: enrollment.completedAt,
+          overallProgress: Math.round(overallProgress * 10) / 10,
+          contentProgress,
+          testScores,
+        };
+      })
+    );
+
+    // Filter out null users
+    const enrolledUsersData = enrolledUsers.filter((u) => u !== null);
+
     // Content item analytics
     const contentItemsAnalytics = await Promise.all(
       course.contentItems.map(async (item) => {
@@ -219,6 +331,7 @@ export async function GET(
       averageScore: Math.round(averageScore * 10) / 10,
       averageTimeToComplete: Math.round(averageTimeToComplete),
       contentItems: contentItemsAnalytics,
+      enrolledUsers: enrolledUsersData,
     });
   } catch (error) {
     console.error("Error fetching course analytics:", error);

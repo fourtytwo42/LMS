@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -230,7 +230,7 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -242,18 +242,28 @@ export default function CourseDetailPage() {
         </Button>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{course.title}</h1>
         {canEdit && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => router.push(`/courses/${courseId}/edit`)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/courses/${courseId}/edit`)}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/analytics/course/${courseId}`)}
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Analytics
+            </Button>
+          </>
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <Card className="p-6 lg:col-span-2">
           {course.coverImage && (
             <img
@@ -352,7 +362,7 @@ export default function CourseDetailPage() {
       </div>
 
       <Card className="p-6">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Content Items</h2>
           {canEdit && (
             <Button
@@ -369,7 +379,7 @@ export default function CourseDetailPage() {
             No content items yet
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {contentItems.map((item) => {
               const isExpanded = expandedItemId === item.id;
               const isLocked = item.unlocked === false;

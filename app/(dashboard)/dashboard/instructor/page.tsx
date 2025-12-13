@@ -124,16 +124,16 @@ export default function InstructorDashboardPage() {
   }
 
   return (
-    <div className="w-full space-y-6 sm:space-y-8">
+    <div className="w-full space-y-8 sm:space-y-10">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Instructor Dashboard</h1>
-        <p className="text-gray-600 text-sm sm:text-base">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Instructor Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
           Welcome back, {user?.firstName} {user?.lastName}! Manage your courses and track learner progress.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -155,7 +155,7 @@ export default function InstructorDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-6 sm:mb-8">
+      <div>
         <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-5">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {quickActions.map((action) => {

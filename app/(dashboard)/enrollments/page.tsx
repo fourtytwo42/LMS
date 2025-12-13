@@ -144,9 +144,9 @@ export default function EnrollmentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Enrollments</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Enrollments</h1>
       </div>
 
       <Card>
@@ -169,9 +169,9 @@ export default function EnrollmentsPage() {
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading...</div>
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
         ) : enrollments.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">No enrollments found</div>
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">No enrollments found</div>
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -199,54 +199,54 @@ export default function EnrollmentsPage() {
                               className="h-8 w-8 rounded-full"
                             />
                           ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold">
+                            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-300">
                               {enrollment.user.firstName[0]}
                               {enrollment.user.lastName[0]}
                             </div>
                           )}
                           <div>
-                            <div className="font-medium">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {enrollment.user.firstName} {enrollment.user.lastName}
                             </div>
-                            <div className="text-sm text-gray-500">{enrollment.user.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.user.email}</div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         {enrollment.course ? (
                           <div>
-                            <div className="font-medium">{enrollment.course.title}</div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">{enrollment.course.title}</div>
                             {enrollment.course.code && (
-                              <div className="text-sm text-gray-500">{enrollment.course.code}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.course.code}</div>
                             )}
                           </div>
                         ) : enrollment.learningPlan ? (
                           <div>
-                            <div className="font-medium">{enrollment.learningPlan.title}</div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">{enrollment.learningPlan.title}</div>
                             {enrollment.learningPlan.code && (
-                              <div className="text-sm text-gray-500">{enrollment.learningPlan.code}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.learningPlan.code}</div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-gray-500">-</span>
+                          <span className="text-gray-500 dark:text-gray-400">-</span>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(enrollment.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
+                          <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
-                              className="bg-blue-600 h-2 rounded-full"
+                              className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
                               style={{ width: `${enrollment.progress}%` }}
                             ></div>
                           </div>
-                          <span className="text-sm">{enrollment.progress}%</span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100">{enrollment.progress}%</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-gray-900 dark:text-gray-100">
                         {new Date(enrollment.enrolledAt).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-gray-900 dark:text-gray-100">
                         {enrollment.dueDate
                           ? new Date(enrollment.dueDate).toLocaleDateString()
                           : "-"}
@@ -283,7 +283,7 @@ export default function EnrollmentsPage() {
             </div>
 
             <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
                 {pagination.total} enrollments
@@ -324,7 +324,7 @@ export default function EnrollmentsPage() {
         title="Delete Enrollment"
       >
         <div className="space-y-4">
-          <p>
+          <p className="text-gray-900 dark:text-gray-100">
             Are you sure you want to remove this enrollment? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2">

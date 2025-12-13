@@ -25,7 +25,7 @@ export const TableHeader = forwardRef<
   return (
     <thead
       ref={ref}
-      className={cn("bg-gray-50", className)}
+      className={cn("bg-gray-50 dark:bg-gray-800", className)}
       {...props}
     />
   );
@@ -47,7 +47,7 @@ export const TableRow = forwardRef<
   return (
     <tr
       ref={ref}
-      className={cn("border-b border-gray-200 hover:bg-gray-50", className)}
+      className={cn("border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800", className)}
       {...props}
     />
   );
@@ -61,7 +61,7 @@ export const TableHead = forwardRef<
   return (
     <th
       ref={ref}
-      className={cn("px-4 py-3 text-left text-sm font-semibold text-gray-900", className)}
+      className={cn("px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100", className)}
       {...props}
     />
   );
@@ -75,7 +75,7 @@ export const TableCell = forwardRef<
   return (
     <td
       ref={ref}
-      className={cn("px-4 py-3 text-sm text-gray-700", className)}
+      className={cn("px-4 py-3 text-sm text-gray-700 dark:text-gray-300", className)}
       {...props}
     />
   );
