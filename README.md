@@ -175,7 +175,18 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ## 📄 License
 
-ISC License
+**PROPRIETARY - All Rights Reserved**
+
+This software is proprietary and confidential. Unauthorized use, copying, modification, 
+distribution, or disclosure is strictly prohibited.
+
+**Permission Required:** Any use of this software requires explicit written permission 
+from the copyright holder. To request permission, please contact the repository owner 
+through GitHub issues or the contact information provided in the repository.
+
+For full license terms, see [LICENSE](./LICENSE) file.
+
+Copyright (c) 2025 Hendo420. All Rights Reserved.
 
 ## 🐛 Issues
 
