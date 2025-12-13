@@ -16,16 +16,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <AuthProvider>
         <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
           <Header />
-          <div className="flex flex-1 flex-col md:flex-row bg-white dark:bg-gray-900">
+          <div className="flex flex-1 flex-col md:flex-row bg-white dark:bg-gray-900" style={{ paddingBottom: "60px" }}>
             <SidebarComponent />
             <main 
-              className="flex-1 p-6 sm:p-8 lg:p-10 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-all duration-300" 
+              className="flex-1 p-4 sm:p-5 lg:p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-all duration-300" 
               role="main"
               style={{
                 marginLeft: "var(--sidebar-width, 80px)",
               }}
             >
-              <div className="max-w-7xl mx-auto w-full">
+              <div className="w-full max-w-full">
                 {children}
               </div>
             </main>

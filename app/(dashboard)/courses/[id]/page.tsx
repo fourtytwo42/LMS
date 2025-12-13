@@ -230,7 +230,7 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div className="space-y-8 sm:space-y-10 max-w-7xl mx-auto w-full">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"

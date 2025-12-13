@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -23,8 +23,8 @@ const updateCourseSchema = z.object({
   selfEnrollment: z.boolean().optional(),
   sequentialRequired: z.boolean().optional(),
   allowSkipping: z.boolean().optional(),
-  thumbnail: z.string().url().optional().or(z.literal("")),
-  coverImage: z.string().url().optional().or(z.literal("")),
+  thumbnail: z.string().optional(),
+  coverImage: z.string().optional(),
 });
 
 type UpdateCourseForm = z.infer<typeof updateCourseSchema>;
@@ -36,15 +36,25 @@ export default function EditCoursePage() {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<UpdateCourseForm>({
     resolver: zodResolver(updateCourseSchema),
   });
+
+  const coverImage = watch("coverImage");
+  const thumbnail = watch("thumbnail");
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -68,6 +78,14 @@ export default function EditCoursePage() {
         setValue("allowSkipping", courseData.allowSkipping);
         setValue("thumbnail", courseData.thumbnail || "");
         setValue("coverImage", courseData.coverImage || "");
+        
+        // Set previews if images exist
+        if (courseData.coverImage) {
+          setCoverImagePreview(courseData.coverImage);
+        }
+        if (courseData.thumbnail) {
+          setThumbnailPreview(courseData.thumbnail);
+        }
       } catch (error) {
         console.error("Error fetching course:", error);
       } finally {
@@ -77,6 +95,128 @@ export default function EditCoursePage() {
 
     fetchCourse();
   }, [courseId, setValue]);
+
+  const handleCoverImageUploadClick = () => {
+    coverImageInputRef.current?.click();
+  };
+
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "COVER");
+
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload image");
+      }
+
+      const result = await response.json();
+      const fullUrl = result.file.url.startsWith("http")
+        ? result.file.url
+        : `${window.location.origin}${result.file.url}`;
+      
+      setValue("coverImage", fullUrl);
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImagePreview(previewUrl);
+    } catch (error) {
+      console.error("Error uploading cover image:", error);
+      alert(error instanceof Error ? error.message : "Failed to upload image");
+    } finally {
+      setUploadingCover(false);
+      if (coverImageInputRef.current) {
+        coverImageInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleThumbnailUploadClick = () => {
+    thumbnailInputRef.current?.click();
+  };
+
+  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "THUMBNAIL");
+
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload image");
+      }
+
+      const result = await response.json();
+      const fullUrl = result.file.url.startsWith("http")
+        ? result.file.url
+        : `${window.location.origin}${result.file.url}`;
+      
+      setValue("thumbnail", fullUrl);
+      const previewUrl = URL.createObjectURL(file);
+      setThumbnailPreview(previewUrl);
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error);
+      alert(error instanceof Error ? error.message : "Failed to upload image");
+    } finally {
+      setUploadingThumbnail(false);
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setValue("coverImage", "");
+    setCoverImagePreview(null);
+    if (coverImageInputRef.current) {
+      coverImageInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveThumbnail = () => {
+    setValue("thumbnail", "");
+    setThumbnailPreview(null);
+    if (thumbnailInputRef.current) {
+      thumbnailInputRef.current.value = "";
+    }
+  };
 
   const onSubmit = async (data: UpdateCourseForm) => {
     setSaving(true);
@@ -173,8 +313,12 @@ export default function EditCoursePage() {
               </label>
               <Input
                 type="number"
-                {...register("estimatedTime", { valueAsNumber: true })}
+                {...register("estimatedTime", { 
+                  valueAsNumber: true,
+                  setValueAs: (v) => v === "" ? undefined : Number(v)
+                })}
                 error={errors.estimatedTime?.message}
+                placeholder="120 (optional)"
               />
             </div>
             <div>
@@ -185,7 +329,7 @@ export default function EditCoursePage() {
                 {...register("difficultyLevel")}
                 error={errors.difficultyLevel?.message}
               >
-                <option value="">Select difficulty</option>
+                <option value="">Select difficulty (optional)</option>
                 <option value="BEGINNER">Beginner</option>
                 <option value="INTERMEDIATE">Intermediate</option>
                 <option value="ADVANCED">Advanced</option>
@@ -193,27 +337,116 @@ export default function EditCoursePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Thumbnail URL
-              </label>
-              <Input
-                {...register("thumbnail")}
-                error={errors.thumbnail?.message}
-                placeholder="https://example.com/thumbnail.jpg"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Cover Image URL
-              </label>
-              <Input
-                {...register("coverImage")}
-                error={errors.coverImage?.message}
-                placeholder="https://example.com/cover.jpg"
-              />
-            </div>
+          {/* Cover Image Upload */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Cover Image
+            </label>
+            {coverImage || coverImagePreview ? (
+              <div className="space-y-2">
+                <div className="relative w-full h-48 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800">
+                  <img
+                    src={coverImagePreview || coverImage || ""}
+                    alt="Cover preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoverImage}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    aria-label="Remove cover image"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCoverImageUploadClick}
+                  disabled={uploadingCover}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploadingCover ? "Uploading..." : "Change Image"}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCoverImageUploadClick}
+                disabled={uploadingCover}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {uploadingCover ? "Uploading..." : "Upload Cover Image"}
+              </Button>
+            )}
+            <input
+              ref={coverImageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverImageUpload}
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB
+            </p>
+            <input type="hidden" {...register("coverImage")} />
+          </div>
+
+          {/* Thumbnail Upload */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Thumbnail Image
+            </label>
+            {thumbnail || thumbnailPreview ? (
+              <div className="space-y-2">
+                <div className="relative w-32 h-32 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800">
+                  <img
+                    src={thumbnailPreview || thumbnail || ""}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveThumbnail}
+                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    aria-label="Remove thumbnail"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleThumbnailUploadClick}
+                  disabled={uploadingThumbnail}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploadingThumbnail ? "Uploading..." : "Change Thumbnail"}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleThumbnailUploadClick}
+                disabled={uploadingThumbnail}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {uploadingThumbnail ? "Uploading..." : "Upload Thumbnail"}
+              </Button>
+            )}
+            <input
+              ref={thumbnailInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleThumbnailUpload}
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB
+            </p>
+            <input type="hidden" {...register("thumbnail")} />
           </div>
 
           <div className="space-y-2">

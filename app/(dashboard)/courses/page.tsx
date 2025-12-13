@@ -137,7 +137,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div className="space-y-8 sm:space-y-10 w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Courses</h1>
@@ -187,7 +187,7 @@ export default function CoursesPage() {
           <div className="py-8 text-center text-gray-500">No courses found</div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {courses.map((course) => (
                 <Card key={course.id} className="hover:shadow-lg transition-shadow">
                   <div className="mb-4">

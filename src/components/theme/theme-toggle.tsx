@@ -17,7 +17,7 @@ export function ThemeToggle() {
       className="!text-gray-900 hover:!text-gray-700 dark:!text-gray-200 dark:hover:!text-white focus:outline-none focus:ring-0"
     >
       {theme === "light" ? (
-        <Moon className="h-5 w-5 text-gray-900" />
+        <Moon className="h-5 w-5 !text-black" />
       ) : (
         <Sun className="h-5 w-5" />
       )}

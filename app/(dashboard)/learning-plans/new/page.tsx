@@ -16,12 +16,12 @@ const createLearningPlanSchema = z.object({
   title: z.string().min(1, "Title is required"),
   shortDescription: z.string().max(130).optional(),
   description: z.string().min(1, "Description is required"),
-  estimatedTime: z.number().int().positive().optional(),
-  difficultyLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
+  estimatedTime: z.union([z.number().int().positive(), z.literal(""), z.undefined()]).optional().transform(e => e === "" ? undefined : e),
+  difficultyLevel: z.union([z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]), z.literal(""), z.undefined()]).optional().transform(e => e === "" ? undefined : e),
   publicAccess: z.boolean().default(false),
   selfEnrollment: z.boolean().default(false),
   requiresApproval: z.boolean().default(false),
-  maxEnrollments: z.number().int().positive().optional(),
+  maxEnrollments: z.union([z.number().int().positive(), z.literal(""), z.undefined()]).optional().transform(e => e === "" ? undefined : e),
   hasCertificate: z.boolean().default(false),
   hasBadge: z.boolean().default(false),
 });
@@ -50,10 +50,18 @@ export default function NewLearningPlanPage() {
   const onSubmit = async (data: CreateLearningPlanForm) => {
     setSaving(true);
     try {
+      // Convert empty strings to undefined for optional number fields
+      const submitData = {
+        ...data,
+        estimatedTime: data.estimatedTime === "" || data.estimatedTime === undefined ? undefined : data.estimatedTime,
+        maxEnrollments: data.maxEnrollments === "" || data.maxEnrollments === undefined ? undefined : data.maxEnrollments,
+        difficultyLevel: data.difficultyLevel === "" ? undefined : data.difficultyLevel,
+      };
+
       const response = await fetch("/api/learning-plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
@@ -142,20 +150,23 @@ export default function NewLearningPlanPage() {
               </label>
               <Input
                 type="number"
-                {...register("estimatedTime", { valueAsNumber: true })}
+                {...register("estimatedTime", { 
+                  valueAsNumber: true,
+                  setValueAs: (v) => v === "" ? undefined : (isNaN(Number(v)) ? undefined : Number(v))
+                })}
                 error={errors.estimatedTime?.message}
-                placeholder="600"
+                placeholder="600 (optional)"
               />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">
-                Difficulty Level
+                Difficulty Level (optional)
               </label>
               <Select
                 {...register("difficultyLevel")}
                 error={errors.difficultyLevel?.message}
               >
-                <option value="">Select difficulty</option>
+                <option value="">Select difficulty (optional)</option>
                 <option value="BEGINNER">Beginner</option>
                 <option value="INTERMEDIATE">Intermediate</option>
                 <option value="ADVANCED">Advanced</option>
@@ -170,9 +181,12 @@ export default function NewLearningPlanPage() {
               </label>
               <Input
                 type="number"
-                {...register("maxEnrollments", { valueAsNumber: true })}
+                {...register("maxEnrollments", { 
+                  valueAsNumber: true,
+                  setValueAs: (v) => v === "" ? undefined : (isNaN(Number(v)) ? undefined : Number(v))
+                })}
                 error={errors.maxEnrollments?.message}
-                placeholder="Unlimited if empty"
+                placeholder="Unlimited if empty (optional)"
               />
             </div>
           </div>

@@ -61,12 +61,12 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 ### Frontend Components
 
 **Layout Components:**
-- `DashboardLayout` - Main dashboard wrapper with theme provider
-- `Header` - Top navigation bar with theme toggle button (Moon/Sun icon)
-- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed)
-- `Footer` - Page footer
+- `DashboardLayout` - Main dashboard wrapper with theme provider, full-width content area
+- `Header` - Top navigation bar with LMS on left, navigation items (theme toggle, notifications, user info, logout) on right. Theme toggle has black moon icon.
+- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed). Fixed positioning, extends to footer.
+- `Footer` - Fixed at bottom of viewport, spanning full page width
 - `ThemeProvider` - Dark/light mode theme management with centralized CSS variables
-- `ThemeToggle` - Theme toggle button with persistent localStorage state
+- `ThemeToggle` - Theme toggle button with persistent localStorage state, black moon icon
 
 **UI Components:**
 - `Button`, `Input`, `Select`, `Textarea` - Form controls
@@ -138,6 +138,28 @@ Key models:
 - Enrollment, Progress, Completion
 - Test, Question, TestAttempt
 - File, Certificate, Notification
+
+## UI Layout & Responsive Design
+
+**Layout Structure:**
+- **Header:** Fixed at top, full-width. LMS logo on left, navigation items (theme toggle, notifications, user info, logout) on right using `justify-between` flex layout.
+- **Sidebar:** Fixed at left, extends from header to footer. Collapsible with localStorage persistence (defaults to collapsed). Unique icons with hover tooltips when collapsed.
+- **Main Content:** Scrollable area with proper margins for sidebar. Full-width on listing pages, max-width constraints (max-w-7xl) on detail pages for optimal readability.
+- **Footer:** Fixed at bottom of viewport, spanning full page width.
+
+**Responsive Grid:**
+- **Courses Listing:** Expandable grid that adapts to screen size:
+  - Mobile: 1 column
+  - Medium (md): 2 columns
+  - Large (lg): 3 columns
+  - Extra Large (xl): 4 columns
+  - 2XL (2xl): 5 columns
+- **Pagination:** Automatic pagination when course count exceeds limit (20 per page)
+
+**Global Scaling:**
+- 87.5% zoom applied globally for better content fit
+- Base font size reduced to 14px
+- Consistent spacing and padding adjustments
 
 ## File Storage
 

@@ -155,6 +155,7 @@ function SidebarContent({ collapsed, onToggle }: SidebarContentProps) {
                 icon={<Icon className="h-5 w-5" />}
                 active={isActive}
                 component={<Link href={item.href} />}
+                title={collapsed ? item.label : undefined}
               >
                 {item.label}
               </MenuItem>
@@ -225,7 +226,7 @@ export function SidebarComponent() {
         position: "fixed",
         left: 0,
         top: 64,
-        height: "calc(100vh - 64px)",
+        bottom: 60, /* Extend to footer */
         zIndex: 1000,
       }}
     >

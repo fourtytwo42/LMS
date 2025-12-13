@@ -1,6 +1,6 @@
 ---
 title: Learning Management System (LMS)
-status: planning
+status: production-ready
 category: SaaS / Education
 tags: [lms, nextjs, postgresql, education, e-learning, tailwind]
 created: 2025-12-09
@@ -253,6 +253,14 @@ created: 2025-12-09
 - ✅ UI spacing improvements across all pages
 - ✅ Dark mode color fixes for all components (badges, icons, tables, forms)
 - ✅ E2E testing suite with Playwright (75+ tests)
+- ✅ Header layout: LMS on left, all navigation items (theme toggle, notifications, user info, logout) on right
+- ✅ Footer: Fixed at bottom of viewport, spanning full page width
+- ✅ Sidebar: Extended to footer with proper fixed positioning
+- ✅ Courses listing page: Full-width expandable grid (up to 5 columns on 2xl screens) with pagination
+- ✅ Course and learning plan detail pages: Max-width constraints (max-w-7xl) for better readability
+- ✅ Learning plan creation: Estimated time, difficulty level, and max enrollments are now optional fields
+- ✅ Theme toggle: Moon icon changed to black for better visibility
+- ✅ Global UI scaling: 87.5% zoom applied for better content fit
 
 ### In Progress 🔄
 

@@ -69,6 +69,7 @@ html {
   padding: 0;
   overflow-x: hidden;
   background-color: var(--bg-primary) !important;
+  font-size: 14px; /* Reduced from default 16px (87.5% scale) */
 }
 
 body {
@@ -82,6 +83,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
+  font-size: 0.875rem; /* 14px base font size */
 }
 
 /* Force background colors on all containers with bg-white or dark:bg-gray classes */
@@ -131,7 +133,7 @@ svg {
   color: currentColor;
 }
 
-/* Improve form element spacing */
+/* Improve form element spacing - scaled down */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -141,12 +143,13 @@ input[type="time"],
 input[type="url"],
 select,
 textarea {
-  padding: 0.625rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem; /* Reduced from 0.625rem 1rem */
+  border-radius: 0.375rem; /* Reduced from 0.5rem */
   border: 1px solid #d1d5db;
   background-color: white;
   color: #111827;
   transition: all 0.2s ease-in-out;
+  font-size: 0.875rem; /* 14px */
 }
 
 html.dark input[type="text"],
@@ -177,24 +180,25 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Improve button spacing */
+/* Improve button spacing - scaled down */
 button {
-  padding: 0.625rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.5rem 0.875rem; /* Reduced from 0.625rem 1rem */
+  border-radius: 0.375rem; /* Reduced from 0.5rem */
   transition: all 0.2s ease-in-out;
+  font-size: 0.875rem; /* 14px */
 }
 
-/* Add spacing between form field wrappers (when form doesn't use space-y) */
+/* Add spacing between form field wrappers (when form doesn't use space-y) - scaled down */
 form:not([class*="space-y"]) > div:not(:last-child) {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem; /* Reduced from 1.5rem */
 }
 
-/* Add spacing between label and form control */
+/* Add spacing between label and form control - scaled down */
 label + div,
 label + input:not([type="checkbox"]):not([type="radio"]),
 label + select,
 label + textarea {
-  margin-top: 0.5rem;
+  margin-top: 0.375rem; /* Reduced from 0.5rem */
   display: block;
 }
 
@@ -205,21 +209,25 @@ label + textarea {
   /* Gap utility handles spacing - ensure it's applied */
 }
 
-/* Add minimum spacing to form elements when in space-y containers */
+/* Add minimum spacing to form elements when in space-y containers - scaled down */
 .space-y-4 > * + * {
-  margin-top: 1rem;
+  margin-top: 0.75rem; /* Reduced from 1rem */
 }
 
 .space-y-5 > * + * {
-  margin-top: 1.25rem;
+  margin-top: 1rem; /* Reduced from 1.25rem */
 }
 
 .space-y-6 > * + * {
-  margin-top: 1.5rem;
+  margin-top: 1.125rem; /* Reduced from 1.5rem */
 }
 
 .space-y-8 > * + * {
-  margin-top: 2rem;
+  margin-top: 1.5rem; /* Reduced from 2rem */
+}
+
+.space-y-10 > * + * {
+  margin-top: 1.75rem; /* Reduced from 2.5rem */
 }
 
 /* Card spacing is handled by Tailwind classes - removed to avoid conflicts */
@@ -283,5 +291,84 @@ html.dark .ps-sidebar-footer {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Custom tooltip styles for collapsed sidebar menu items */
+.ps-sidebar-root.collapsed .ps-menu-button {
+  position: relative;
+}
+
+.ps-sidebar-root.collapsed .ps-menu-button:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 8px 12px;
+  background-color: #1f2937;
+  color: #f9fafb;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 10000;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 1;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+html.dark .ps-sidebar-root.collapsed .ps-menu-button:hover::after {
+  background-color: #374151;
+  color: #f9fafb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.ps-sidebar-root.collapsed .ps-menu-button:hover::before {
+  content: "";
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #1f2937;
+  z-index: 10001;
+  pointer-events: none;
+}
+
+html.dark .ps-sidebar-root.collapsed .ps-menu-button:hover::before {
+  border-right-color: #374151;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Global scale reduction for all pages - reduces overall size by ~12.5% */
+/* Using zoom which works in Chrome/Edge/Safari and doesn't break layout */
+html {
+  zoom: 0.875; /* 87.5% scale - makes everything 12.5% smaller */
+}
+
+/* Firefox fallback - apply scale to a wrapper instead of body to preserve layout */
+@-moz-document url-prefix() {
+  body {
+    transform: scale(0.875);
+    transform-origin: top left;
+    width: 114.2857%; /* Compensate for scale: 100% / 0.875 */
+  }
+  
+  /* Ensure fixed elements work correctly with transform */
+  header,
+  .ps-sidebar-root {
+    position: fixed !important;
+  }
 }
 

@@ -17,6 +17,8 @@ const createCourseSchema = z.object({
   selfEnrollment: z.boolean().default(false),
   sequentialRequired: z.boolean().default(true),
   allowSkipping: z.boolean().default(false),
+  coverImage: z.string().optional(),
+  thumbnail: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -247,6 +249,8 @@ export async function POST(request: NextRequest) {
         description: validated.description || "",
         type: validated.type || "E-LEARNING",
         categoryId: validated.categoryId,
+        coverImage: validated.coverImage,
+        thumbnail: validated.thumbnail,
         tags: validated.tags || [],
         estimatedTime: validated.estimatedTime,
         difficultyLevel: validated.difficultyLevel,
@@ -254,6 +258,8 @@ export async function POST(request: NextRequest) {
         selfEnrollment: validated.selfEnrollment,
         sequentialRequired: validated.sequentialRequired,
         allowSkipping: validated.allowSkipping,
+        coverImage: validated.coverImage,
+        thumbnail: validated.thumbnail,
         status: "DRAFT",
         createdById: user.id,
         instructorAssignments: {

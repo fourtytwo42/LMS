@@ -61,6 +61,12 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ Dark/light mode toggle with persistent preferences and centralized theme management
 - ✅ Collapsible sidebar with unique icons, tooltips, and localStorage persistence (defaults to collapsed)
 - ✅ UI spacing and padding improvements across all pages
+- ✅ Header layout: LMS on left, navigation items on right
+- ✅ Footer: Fixed at bottom, spanning full page width
+- ✅ Courses listing: Full-width expandable grid with pagination (up to 5 columns on large screens)
+- ✅ Course/learning plan detail pages: Max-width constraints for optimal readability
+- ✅ Learning plan creation: Optional fields (estimated time, difficulty, max enrollments)
+- ✅ Global UI scaling: 87.5% zoom for better content fit
 - ✅ Comprehensive test coverage (80%+)
 - ✅ Demo accounts for quick testing
 - ✅ E2E testing with Playwright (75+ tests passing)
