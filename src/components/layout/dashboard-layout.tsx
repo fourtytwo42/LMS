@@ -14,11 +14,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
           <Header />
-          <div className="flex flex-1 flex-col md:flex-row bg-gray-50 dark:bg-gray-900">
+          <div className="flex flex-1 flex-col md:flex-row bg-white dark:bg-gray-900">
             <Sidebar />
-            <main className="flex-1 p-6 sm:p-8 lg:p-10 bg-gray-50 dark:bg-gray-900" role="main">
+            <main className="flex-1 p-6 sm:p-8 lg:p-10 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" role="main">
               <div className="max-w-7xl mx-auto w-full">
                 {children}
               </div>

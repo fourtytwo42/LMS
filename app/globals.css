@@ -6,17 +6,69 @@
   /* Don't reset padding - let Tailwind classes handle it */
 }
 
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  
+  /* Badge Background Colors - Light Mode */
+  --badge-success-bg: #10b981;      /* green-500 */
+  --badge-warning-bg: #f59e0b;      /* yellow-500 */
+  --badge-danger-bg: #ef4444;       /* red-500 */
+  --badge-info-bg: #3b82f6;        /* blue-500 */
+  --badge-default-bg: #e5e7eb;     /* gray-200 */
+  
+  /* Badge Text Colors - Light Mode (always white on colored backgrounds) */
+  --badge-success-text: #ffffff;
+  --badge-warning-text: #ffffff;
+  --badge-danger-text: #ffffff;
+  --badge-info-text: #ffffff;
+  --badge-default-text: #111827;   /* gray-900 */
+  
+  /* Icon Container Colors - Light Mode */
+  --icon-container-primary-bg: #3b82f6;    /* blue-500 */
+  --icon-container-primary-text: #ffffff;
+  --icon-container-locked-bg: #e5e7eb;     /* gray-200 */
+  --icon-container-locked-text: #4b5563;   /* gray-600 */
+}
+
+html.dark {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  
+  /* Badge Background Colors - Dark Mode */
+  --badge-success-bg: #065f46;      /* green-900 */
+  --badge-warning-bg: #78350f;      /* yellow-900 */
+  --badge-danger-bg: #991b1b;       /* red-900 */
+  --badge-info-bg: #1e3a8a;         /* blue-900 */
+  --badge-default-bg: #374151;      /* gray-700 */
+  
+  /* Badge Text Colors - Dark Mode */
+  --badge-success-text: #dcfce7;   /* green-200 */
+  --badge-warning-text: #fef3c7;    /* yellow-200 */
+  --badge-danger-text: #fee2e2;     /* red-200 */
+  --badge-info-text: #dbeafe;       /* blue-200 */
+  --badge-default-text: #e5e7eb;   /* gray-200 */
+  
+  /* Icon Container Colors - Dark Mode */
+  --icon-container-primary-bg: #1e3a8a;    /* blue-900 */
+  --icon-container-primary-text: #dbeafe;   /* blue-200 */
+  --icon-container-locked-bg: #374151;      /* gray-700 */
+  --icon-container-locked-text: #9ca3af;    /* gray-400 */
+}
+
 html {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  background-color: #f9fafb;
-}
-
-html.dark {
-  background-color: #111827;
+  background-color: var(--bg-primary) !important;
 }
 
 body {
@@ -25,22 +77,53 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  background-color: #f9fafb;
-  color: #111827;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
 }
 
-body.dark {
-  background-color: #111827;
-  color: #f9fafb;
+/* Force background colors on all containers with bg-white or dark:bg-gray classes */
+.bg-white,
+[class*="bg-white"] {
+  background-color: var(--bg-primary) !important;
 }
 
-/* Ensure all text defaults to dark unless explicitly styled */
+.dark\:bg-gray-900,
+[class*="dark:bg-gray-900"] {
+  background-color: var(--bg-primary) !important;
+}
+
+html.dark .dark\:bg-gray-900,
+html.dark [class*="dark:bg-gray-900"] {
+  background-color: var(--bg-primary) !important;
+}
+
+.dark\:bg-gray-800,
+[class*="dark:bg-gray-800"] {
+  background-color: var(--bg-secondary) !important;
+}
+
+html.dark .dark\:bg-gray-800,
+html.dark [class*="dark:bg-gray-800"] {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Ensure text colors are properly inherited */
 * {
   color: inherit;
+}
+
+html.dark * {
+  color: inherit;
+}
+
+/* SVG icons in badges inherit the badge's text color */
+.badge-icon svg {
+  color: inherit;
+  stroke: currentColor;
+  fill: currentColor;
 }
 
 /* Ensure icons have proper default colors */
@@ -66,15 +149,15 @@ textarea {
   transition: all 0.2s ease-in-out;
 }
 
-.dark input[type="text"],
-.dark input[type="email"],
-.dark input[type="password"],
-.dark input[type="number"],
-.dark input[type="date"],
-.dark input[type="time"],
-.dark input[type="url"],
-.dark select,
-.dark textarea {
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="number"],
+html.dark input[type="date"],
+html.dark input[type="time"],
+html.dark input[type="url"],
+html.dark select,
+html.dark textarea {
   border-color: #4b5563;
   background-color: #1f2937;
   color: #f9fafb;

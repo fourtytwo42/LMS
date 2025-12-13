@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
 import { cn } from "@/lib/utils/cn";
+import { getIconContainerClasses, getIconContainerStyle } from "@/lib/utils/icon-container";
 
 interface Course {
   id: string;
@@ -221,11 +222,11 @@ export default function CourseDetailPage() {
   };
 
   if (loading) {
-    return <div className="py-8 text-center">Loading...</div>;
+    return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Loading...</div>;
   }
 
   if (!course) {
-    return <div className="py-8 text-center">Course not found</div>;
+    return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Course not found</div>;
   }
 
   return (
@@ -239,7 +240,7 @@ export default function CourseDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold">{course.title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{course.title}</h1>
         {canEdit && (
           <Button
             variant="secondary"
@@ -282,13 +283,13 @@ export default function CourseDetailPage() {
             )}
           </div>
           {course.shortDescription && (
-            <p className="mb-4 text-lg text-gray-700">
+            <p className="mb-4 text-lg text-gray-700 dark:text-gray-300">
               {course.shortDescription}
             </p>
           )}
           {course.description && (
             <div className="prose max-w-none">
-              <p className="text-gray-600 whitespace-pre-wrap">
+              <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
                 {course.description}
               </p>
             </div>
@@ -296,53 +297,53 @@ export default function CourseDetailPage() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="mb-4 text-xl font-semibold">Course Info</h2>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Course Info</h2>
           <div className="space-y-4">
             {course.code && (
               <div>
-                <div className="text-sm text-gray-500">Code</div>
-                <div className="mt-1 text-sm font-medium">{course.code}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Code</div>
+                <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{course.code}</div>
               </div>
             )}
             {course.estimatedTime && (
               <div>
-                <div className="text-sm text-gray-500">Estimated Time</div>
-                <div className="mt-1 text-sm font-medium">
+                <div className="text-sm text-gray-500 dark:text-gray-400">Estimated Time</div>
+                <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                   {course.estimatedTime} minutes
                 </div>
               </div>
             )}
             <div>
-              <div className="text-sm text-gray-500">Enrollments</div>
-              <div className="mt-1 text-sm font-medium">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Enrollments</div>
+              <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                 {course.enrollmentCount}
               </div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Content Items</div>
-              <div className="mt-1 text-sm font-medium">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Content Items</div>
+              <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                 {course.contentItemCount}
               </div>
             </div>
             {course.rating && (
               <div>
-                <div className="text-sm text-gray-500">Rating</div>
-                <div className="mt-1 text-sm font-medium">
+                <div className="text-sm text-gray-500 dark:text-gray-400">Rating</div>
+                <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                   {course.rating.toFixed(1)} ({course.reviewCount} reviews)
                 </div>
               </div>
             )}
             <div>
-              <div className="text-sm text-gray-500">Settings</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Settings</div>
               <div className="mt-1 space-y-1 text-sm">
                 {course.publicAccess && (
-                  <div className="text-green-600">✓ Public Access</div>
+                  <div className="text-green-600 dark:text-green-400">✓ Public Access</div>
                 )}
                 {course.selfEnrollment && (
-                  <div className="text-green-600">✓ Self-Enrollment</div>
+                  <div className="text-green-600 dark:text-green-400">✓ Self-Enrollment</div>
                 )}
                 {course.sequentialRequired && (
-                  <div className="text-blue-600">Sequential Required</div>
+                  <div className="text-blue-600 dark:text-blue-400">Sequential Required</div>
                 )}
               </div>
             </div>
@@ -352,7 +353,7 @@ export default function CourseDetailPage() {
 
       <Card className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Content Items</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Content Items</h2>
           {canEdit && (
             <Button
               onClick={() => router.push(`/courses/${courseId}/content/new`)}
@@ -364,7 +365,7 @@ export default function CourseDetailPage() {
         </div>
 
         {contentItems.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
             No content items yet
           </div>
         ) : (
@@ -381,16 +382,18 @@ export default function CourseDetailPage() {
                   <div
                     className={cn(
                       "flex items-center justify-between p-4 cursor-pointer transition-colors",
-                      isExpanded ? "bg-blue-50" : "hover:bg-gray-50",
+                      isExpanded 
+                        ? "bg-blue-50 dark:bg-blue-900/20" 
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800",
                       isLocked && "opacity-60"
                     )}
                     onClick={() => !canEdit && handleContentItemClick(item)}
                   >
                     <div className="flex items-center gap-4 flex-1">
-                      <div className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-lg",
-                        isLocked ? "bg-gray-200 text-gray-400" : "bg-blue-100 text-blue-600"
-                      )}>
+                      <div
+                        className={getIconContainerClasses(isLocked ? "locked" : "primary")}
+                        style={getIconContainerStyle(isLocked ? "locked" : "primary")}
+                      >
                         {isLocked ? (
                           <Lock className="h-5 w-5" />
                         ) : (
@@ -398,16 +401,16 @@ export default function CourseDetailPage() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium flex items-center gap-2">
+                        <div className="font-medium flex items-center gap-2 text-gray-900 dark:text-gray-100">
                           {item.title}
                           {isLocked && (
-                            <Badge variant="default" className="text-xs bg-gray-200 text-gray-600">
+                            <Badge variant="default" className="text-xs">
                               Locked
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Badge variant="default" className="text-xs">
+                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                          <Badge variant="info" className="text-xs">
                             {item.type}
                           </Badge>
                           {item.required && (
@@ -421,7 +424,7 @@ export default function CourseDetailPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {item.progress !== undefined && (
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {Math.round(item.progress * 100)}%
                         </div>
                       )}
@@ -485,15 +488,15 @@ export default function CourseDetailPage() {
                   
                   {/* Expanded Content */}
                   {isExpanded && !canEdit && (
-                    <div className="border-t bg-white p-6">
+                    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
                       {loadingContent ? (
-                        <div className="py-8 text-center text-gray-500">
+                        <div className="py-8 text-center text-gray-500 dark:text-gray-400">
                           Loading content...
                         </div>
                       ) : expandedContent ? (
                         <div className="space-y-4">
                           {expandedContent.description && (
-                            <p className="text-gray-600">{expandedContent.description}</p>
+                            <p className="text-gray-700 dark:text-gray-300">{expandedContent.description}</p>
                           )}
                           
                           {expandedContent.type === "VIDEO" && expandedContent.videoUrl && (
@@ -512,8 +515,8 @@ export default function CourseDetailPage() {
                           )}
 
                           {expandedContent.type === "PPT" && expandedContent.pptUrl && (
-                            <div className="rounded-lg border p-4">
-                              <p className="mb-4 text-sm text-gray-600">
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
                                 PowerPoint presentation. Click to download or view.
                               </p>
                               <Button
@@ -532,8 +535,8 @@ export default function CourseDetailPage() {
                           )}
 
                           {expandedContent.type === "EXTERNAL" && expandedContent.externalUrl && (
-                            <div className="rounded-lg border p-4">
-                              <p className="mb-4 text-sm text-gray-600">
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
                                 External content link.
                               </p>
                               <Button
@@ -545,8 +548,8 @@ export default function CourseDetailPage() {
                           )}
 
                           {expandedContent.type === "TEST" && (
-                            <div className="rounded-lg border p-4">
-                              <p className="mb-4 text-sm text-gray-600">
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
                                 Test content. Click to take the test.
                               </p>
                               <Button
@@ -560,7 +563,7 @@ export default function CourseDetailPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="py-8 text-center text-gray-500">
+                        <div className="py-8 text-center text-gray-500 dark:text-gray-400">
                           Failed to load content
                         </div>
                       )}

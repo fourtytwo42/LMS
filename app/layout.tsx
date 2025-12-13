@@ -17,8 +17,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('lms-theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const isDark = theme === 'dark' || (!theme && prefersDark);
+                  const root = document.documentElement;
+                  const body = document.body;
+                  
+                  if (isDark) {
+                    root.classList.add('dark');
+                    root.style.setProperty('background-color', '#111827', 'important');
+                    body.style.setProperty('background-color', '#111827', 'important');
+                    body.style.setProperty('color', '#f9fafb', 'important');
+                  } else {
+                    root.classList.remove('dark');
+                    root.style.setProperty('background-color', '#ffffff', 'important');
+                    body.style.setProperty('background-color', '#ffffff', 'important');
+                    body.style.setProperty('color', '#111827', 'important');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={inter.className} suppressHydrationWarning>{children}</body>
     </html>
   );
 }

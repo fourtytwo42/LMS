@@ -199,7 +199,7 @@ export function VideoPlayer({
         className="w-full rounded-lg"
       />
       {progress.completed && (
-        <div className="mt-4 rounded-lg bg-green-100 p-4 text-green-800">
+        <div className="mt-4 rounded-lg bg-green-100 dark:bg-green-900 p-4 text-green-800 dark:text-green-200">
           <div className="flex items-center gap-2">
             <svg
               className="h-5 w-5"
@@ -218,7 +218,7 @@ export function VideoPlayer({
           </div>
         </div>
       )}
-      <div className="mt-2 text-sm text-gray-600">
+      <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
         Progress: {Math.round(progress.lastPosition * 100)}% (
         {Math.floor(progress.watchTime / 60)}:
         {String(Math.floor(progress.watchTime % 60)).padStart(2, "0")} /{" "}

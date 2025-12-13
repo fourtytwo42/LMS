@@ -131,8 +131,8 @@ export default function AdminDashboardPage() {
   return (
     <div className="w-full space-y-6 sm:space-y-8">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-600 text-sm sm:text-base">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Admin Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
           Welcome back, {user?.firstName} {user?.lastName}! Here's an overview of your LMS.
         </p>
       </div>
@@ -146,8 +146,8 @@ export default function AdminDashboardPage() {
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
                   </div>
                   <div className={`${stat.color} p-3 rounded-lg`}>
                     <Icon className="h-6 w-6 text-white" />
@@ -161,7 +161,7 @@ export default function AdminDashboardPage() {
 
       {/* Quick Actions */}
       <div className="mb-6 sm:mb-8">
-        <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-5">Quick Actions</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-5">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -170,7 +170,7 @@ export default function AdminDashboardPage() {
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5 text-gray-600" />
-                    <span className="font-medium text-gray-900">{action.label}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{action.label}</span>
                   </div>
                 </Card>
               </Link>
@@ -181,8 +181,8 @@ export default function AdminDashboardPage() {
 
       {/* Recent Activity or Additional Info */}
       <Card>
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">System Overview</h2>
-        <div className="space-y-2.5 sm:space-y-3 text-sm text-gray-600">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">System Overview</h2>
+        <div className="space-y-2.5 sm:space-y-3 text-sm text-gray-600 dark:text-gray-400">
           <p>• Manage all users, courses, and learning plans from this dashboard</p>
           <p>• View detailed analytics and reports in the Analytics section</p>
           <p>• Monitor enrollments and track learner progress</p>

@@ -146,7 +146,7 @@ export function Sidebar() {
                       isCollapsed ? "justify-center" : "gap-3",
                       isActive
                         ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shadow-sm"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
                     )}
                   aria-current={isActive ? "page" : undefined}
                   title={isCollapsed ? item.label : undefined}
@@ -163,7 +163,7 @@ export function Sidebar() {
                   )}
                   {/* Tooltip for collapsed state */}
                       {isCollapsed && (
-                        <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
+                        <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-gray-900 dark:text-gray-800 bg-gray-100 dark:bg-gray-50 border border-gray-300 dark:border-gray-500 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
                           {item.label}
                         </span>
                       )}
