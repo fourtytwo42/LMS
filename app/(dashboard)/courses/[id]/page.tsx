@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/auth-store";
+import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
+import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
+import { cn } from "@/lib/utils/cn";
 
 interface Course {
   id: string;
@@ -45,6 +48,24 @@ interface ContentItem {
   required: boolean;
   completed?: boolean;
   progress?: number;
+  unlocked?: boolean;
+}
+
+interface ExpandedContentItem {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  videoUrl: string | null;
+  videoDuration: number | null;
+  pdfUrl: string | null;
+  pptUrl: string | null;
+  htmlContent: string | null;
+  externalUrl: string | null;
+  completionThreshold: number | null;
+  allowSeeking: boolean;
+  unlocked: boolean;
+  completed: boolean;
 }
 
 export default function CourseDetailPage() {
@@ -55,6 +76,9 @@ export default function CourseDetailPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [expandedContent, setExpandedContent] = useState<ExpandedContentItem | null>(null);
+  const [loadingContent, setLoadingContent] = useState(false);
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
   const isInstructor = user?.roles?.includes("INSTRUCTOR") || false;
@@ -75,7 +99,12 @@ export default function CourseDetailPage() {
         const contentData = await contentResponse.json();
 
         setCourse(courseData);
-        setContentItems(contentData.contentItems);
+        // Map content items with unlocked status from progress
+        const itemsWithProgress = contentData.contentItems.map((item: any) => ({
+          ...item,
+          unlocked: item.unlocked !== undefined ? item.unlocked : true, // Default to unlocked if not specified
+        }));
+        setContentItems(itemsWithProgress);
       } catch (error) {
         console.error("Error fetching course:", error);
       } finally {
@@ -103,6 +132,92 @@ export default function CourseDetailPage() {
       default:
         return <FileText className="h-5 w-5" />;
     }
+  };
+
+  const handleContentItemClick = async (item: ContentItem) => {
+    // If clicking the same item, collapse it
+    if (expandedItemId === item.id) {
+      setExpandedItemId(null);
+      setExpandedContent(null);
+      return;
+    }
+
+    // Check if content is unlocked
+    if (item.unlocked === false) {
+      // Find previous incomplete content
+      const previousItems = contentItems.filter((i) => i.order < item.order);
+      const incompleteItem = previousItems.find((i) => !i.completed && i.required);
+      
+      if (incompleteItem) {
+        alert(`Please complete "${incompleteItem.title}" before accessing this content.`);
+      } else {
+        alert("This content is locked. Please complete the previous required content first.");
+      }
+      return;
+    }
+
+    // Expand the item and fetch full content
+    setExpandedItemId(item.id);
+    setLoadingContent(true);
+
+    try {
+      // Fetch full content item details
+      const contentResponse = await fetch(`/api/content/${item.id}`);
+      if (!contentResponse.ok) {
+        throw new Error("Failed to fetch content item");
+      }
+
+      const contentData = await contentResponse.json();
+      
+      // Get progress to check unlocked status
+      const progressResponse = await fetch(`/api/progress/course/${courseId}`);
+      if (progressResponse.ok) {
+        const progressData = await progressResponse.json();
+        const itemProgress = progressData.contentItems.find(
+          (p: any) => p.id === item.id
+        );
+
+        setExpandedContent({
+          ...contentData,
+          videoDuration: contentData.videoDuration || null,
+          unlocked: itemProgress?.unlocked !== false,
+          completed: itemProgress?.completed || false,
+        });
+      } else {
+        setExpandedContent({
+          ...contentData,
+          videoDuration: contentData.videoDuration || null,
+          unlocked: true,
+          completed: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching content:", error);
+      alert("Failed to load content. Please try again.");
+      setExpandedItemId(null);
+    } finally {
+      setLoadingContent(false);
+    }
+  };
+
+  const handleProgressUpdate = () => {
+    // Refresh course content to update progress
+    const fetchContent = async () => {
+      try {
+        const contentResponse = await fetch(`/api/courses/${courseId}/content`);
+        if (contentResponse.ok) {
+          const contentData = await contentResponse.json();
+          const itemsWithProgress = contentData.contentItems.map((item: any) => ({
+            ...item,
+            unlocked: item.unlocked !== undefined ? item.unlocked : true,
+          }));
+          setContentItems(itemsWithProgress);
+        }
+      } catch (error) {
+        console.error("Error refreshing content:", error);
+      }
+    };
+    fetchContent();
   };
 
   if (loading) {
@@ -254,90 +369,206 @@ export default function CourseDetailPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {contentItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                    {getContentIcon(item.type)}
-                  </div>
-                  <div>
-                    <div className="font-medium">{item.title}</div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Badge variant="default" className="text-xs">
-                        {item.type}
-                      </Badge>
-                      {item.required && (
-                        <Badge variant="warning" className="text-xs">
-                          Required
-                        </Badge>
+            {contentItems.map((item) => {
+              const isExpanded = expandedItemId === item.id;
+              const isLocked = item.unlocked === false;
+              
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-lg border overflow-hidden"
+                >
+                  <div
+                    className={cn(
+                      "flex items-center justify-between p-4 cursor-pointer transition-colors",
+                      isExpanded ? "bg-blue-50" : "hover:bg-gray-50",
+                      isLocked && "opacity-60"
+                    )}
+                    onClick={() => !canEdit && handleContentItemClick(item)}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-lg",
+                        isLocked ? "bg-gray-200 text-gray-400" : "bg-blue-100 text-blue-600"
+                      )}>
+                        {isLocked ? (
+                          <Lock className="h-5 w-5" />
+                        ) : (
+                          getContentIcon(item.type)
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2">
+                          {item.title}
+                          {isLocked && (
+                            <Badge variant="default" className="text-xs bg-gray-200 text-gray-600">
+                              Locked
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Badge variant="default" className="text-xs">
+                            {item.type}
+                          </Badge>
+                          {item.required && (
+                            <Badge variant="warning" className="text-xs">
+                              Required
+                            </Badge>
+                          )}
+                          <span>Order: {item.order}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.progress !== undefined && (
+                        <div className="text-sm text-gray-500">
+                          {Math.round(item.progress * 100)}%
+                        </div>
                       )}
-                      <span>Order: {item.order}</span>
+                      {canEdit && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/courses/${courseId}/content/${item.id}/edit`);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (
+                                confirm(
+                                  "Are you sure you want to delete this content item?"
+                                )
+                              ) {
+                                try {
+                                  const response = await fetch(
+                                    `/api/content/${item.id}`,
+                                    { method: "DELETE" }
+                                  );
+                                  if (response.ok) {
+                                    setContentItems((items) =>
+                                      items.filter((i) => i.id !== item.id)
+                                    );
+                                    if (expandedItemId === item.id) {
+                                      setExpandedItemId(null);
+                                      setExpandedContent(null);
+                                    }
+                                  }
+                                } catch (error) {
+                                  alert("Failed to delete content item");
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </>
+                      )}
+                      {!canEdit && (
+                        <div className="text-gray-400">
+                          {isExpanded ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {item.progress !== undefined && (
-                    <div className="text-sm text-gray-500">
-                      {Math.round(item.progress * 100)}%
+                  
+                  {/* Expanded Content */}
+                  {isExpanded && !canEdit && (
+                    <div className="border-t bg-white p-6">
+                      {loadingContent ? (
+                        <div className="py-8 text-center text-gray-500">
+                          Loading content...
+                        </div>
+                      ) : expandedContent ? (
+                        <div className="space-y-4">
+                          {expandedContent.description && (
+                            <p className="text-gray-600">{expandedContent.description}</p>
+                          )}
+                          
+                          {expandedContent.type === "VIDEO" && expandedContent.videoUrl && (
+                            <VideoPlayerLazy
+                              contentItemId={expandedContent.id}
+                              videoUrl={expandedContent.videoUrl}
+                              videoDuration={expandedContent.videoDuration || undefined}
+                              completionThreshold={expandedContent.completionThreshold || 0.8}
+                              allowSeeking={expandedContent.allowSeeking}
+                              onProgressUpdate={handleProgressUpdate}
+                            />
+                          )}
+
+                          {expandedContent.type === "PDF" && expandedContent.pdfUrl && (
+                            <PdfViewerLazy fileUrl={expandedContent.pdfUrl} />
+                          )}
+
+                          {expandedContent.type === "PPT" && expandedContent.pptUrl && (
+                            <div className="rounded-lg border p-4">
+                              <p className="mb-4 text-sm text-gray-600">
+                                PowerPoint presentation. Click to download or view.
+                              </p>
+                              <Button
+                                onClick={() => window.open(expandedContent.pptUrl!, "_blank")}
+                              >
+                                Open Presentation
+                              </Button>
+                            </div>
+                          )}
+
+                          {expandedContent.type === "HTML" && expandedContent.htmlContent && (
+                            <div
+                              className="prose max-w-none"
+                              dangerouslySetInnerHTML={{ __html: expandedContent.htmlContent }}
+                            />
+                          )}
+
+                          {expandedContent.type === "EXTERNAL" && expandedContent.externalUrl && (
+                            <div className="rounded-lg border p-4">
+                              <p className="mb-4 text-sm text-gray-600">
+                                External content link.
+                              </p>
+                              <Button
+                                onClick={() => window.open(expandedContent.externalUrl!, "_blank")}
+                              >
+                                Open External Link
+                              </Button>
+                            </div>
+                          )}
+
+                          {expandedContent.type === "TEST" && (
+                            <div className="rounded-lg border p-4">
+                              <p className="mb-4 text-sm text-gray-600">
+                                Test content. Click to take the test.
+                              </p>
+                              <Button
+                                onClick={() =>
+                                  router.push(`/courses/${courseId}/tests/${expandedContent.id}`)
+                                }
+                              >
+                                Take Test
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="py-8 text-center text-gray-500">
+                          Failed to load content
+                        </div>
+                      )}
                     </div>
                   )}
-                  {canEdit && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/courses/${courseId}/content/${item.id}/edit`)
-                        }
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          if (
-                            confirm(
-                              "Are you sure you want to delete this content item?"
-                            )
-                          ) {
-                            try {
-                              const response = await fetch(
-                                `/api/content/${item.id}`,
-                                { method: "DELETE" }
-                              );
-                              if (response.ok) {
-                                setContentItems((items) =>
-                                  items.filter((i) => i.id !== item.id)
-                                );
-                              }
-                            } catch (error) {
-                              alert("Failed to delete content item");
-                            }
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </>
-                  )}
-                  {!canEdit && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/courses/${courseId}/content/${item.id}`)
-                      }
-                    >
-                      View
-                    </Button>
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>

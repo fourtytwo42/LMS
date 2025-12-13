@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function Header() {
   const router = useRouter();
@@ -19,10 +20,10 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm" role="banner">
+    <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm" role="banner">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
               LMS
             </Link>
@@ -31,6 +32,7 @@ export function Header() {
 
         {user && (
           <nav className="flex items-center gap-4" aria-label="User menu">
+            <ThemeToggle />
             <NotificationCenter />
             <div className="flex items-center gap-2" aria-label={`Logged in as ${user.firstName} ${user.lastName}`}>
               <Avatar
@@ -38,7 +40,7 @@ export function Header() {
                 name={`${user.firstName} ${user.lastName}`}
                 size="sm"
               />
-              <span className="text-sm font-medium hidden sm:inline">
+              <span className="text-sm font-medium hidden sm:inline text-gray-900 dark:text-white">
                 {user.firstName} {user.lastName}
               </span>
             </div>
@@ -48,7 +50,7 @@ export function Header() {
               onClick={handleLogout}
               aria-label="Logout"
               title="Logout"
-              className="text-gray-700 hover:text-gray-900"
+              className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
             >
               <LogOut className="h-4 w-4" />
             </Button>

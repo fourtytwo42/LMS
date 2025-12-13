@@ -77,18 +77,18 @@ export default function CatalogPage() {
           setCategories(categoriesData.categories || []);
         }
 
-        // Fetch courses
+        // Fetch courses - show public courses (selfEnrollment is optional)
         const coursesResponse = await fetch(
-          `/api/courses?status=PUBLISHED&publicAccess=true&selfEnrollment=true&limit=100`
+          `/api/courses?status=PUBLISHED&publicAccess=true&limit=100`
         );
         if (coursesResponse.ok) {
           const coursesData = await coursesResponse.json();
           setCourses(coursesData.courses || []);
         }
 
-        // Fetch learning plans
+        // Fetch learning plans - show public learning plans (selfEnrollment is optional)
         const plansResponse = await fetch(
-          `/api/learning-plans?status=PUBLISHED&publicAccess=true&selfEnrollment=true&limit=100`
+          `/api/learning-plans?status=PUBLISHED&publicAccess=true&limit=100`
         );
         if (plansResponse.ok) {
           const plansData = await plansResponse.json();

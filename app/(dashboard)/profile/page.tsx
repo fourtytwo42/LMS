@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -81,33 +82,60 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
     setUploading(true);
     try {
-      // In a real implementation, you would upload to a file storage service
-      // For now, we'll just use a placeholder URL
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("type", "AVATAR");
 
-      // TODO: Implement actual file upload endpoint
-      // const response = await fetch("/api/files/upload", {
-      //   method: "POST",
-      //   body: formData,
-      // });
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      // For now, create a local object URL
-      const objectUrl = URL.createObjectURL(file);
-      setValue("avatar", objectUrl);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload avatar");
+      }
+
+      const result = await response.json();
       
-      alert("Avatar upload will be implemented with file storage");
+      // Update the avatar URL in the form
+      setValue("avatar", result.file.url);
+      
+      // Update the user in the auth store
+      login({ ...user, avatar: result.file.url });
+      
+      alert("Avatar uploaded successfully! Click 'Save Changes' to save your profile.");
     } catch (error) {
       console.error("Error uploading avatar:", error);
-      alert("Failed to upload avatar");
+      alert(error instanceof Error ? error.message : "Failed to upload avatar");
     } finally {
       setUploading(false);
+      // Reset the file input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -202,21 +230,26 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-gray-700">
                 Upload Avatar
               </label>
-              <label htmlFor="avatar-upload" className="cursor-pointer">
-                <div className="inline-block">
-                  <Button variant="secondary" type="button">
-                    <Upload className="mr-2 h-4 w-4" />
-                    {uploading ? "Uploading..." : "Choose File"}
-                  </Button>
-                </div>
-              </label>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={handleAvatarUploadClick}
+                disabled={uploading}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {uploading ? "Uploading..." : "Choose File"}
+              </Button>
               <input
+                ref={fileInputRef}
                 id="avatar-upload"
                 type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handleAvatarUpload}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Supported formats: JPG, PNG, GIF. Max size: 5MB
+              </p>
             </div>
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-700">Roles</div>

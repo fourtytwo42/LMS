@@ -91,8 +91,10 @@ export async function GET(request: NextRequest) {
     }
 
     // If user is not admin/instructor, filter by access
-    if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
-      where.OR = [
+    // But if publicAccess=true is explicitly requested, don't add OR condition (it's already filtered)
+    if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR") && publicAccess !== "true") {
+      // Merge with existing OR from search if it exists
+      const accessOr = [
         { publicAccess: true },
         {
           enrollments: {
@@ -109,6 +111,18 @@ export async function GET(request: NextRequest) {
           },
         },
       ];
+
+      if (where.OR) {
+        // If search OR exists, combine them with AND logic
+        // This means: (search matches) AND (public OR enrolled OR instructor)
+        where.AND = [
+          { OR: where.OR },
+          { OR: accessOr },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = accessOr;
+      }
     }
 
     // Build orderBy

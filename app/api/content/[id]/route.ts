@@ -9,13 +9,13 @@ const updateContentItemSchema = z.object({
   order: z.number().int().min(0).optional(),
   priority: z.number().int().optional(),
   required: z.boolean().optional(),
-  videoUrl: z.string().url().optional().or(z.literal("")),
+  videoUrl: z.string().optional().or(z.literal("")), // Allow relative URLs
   videoDuration: z.number().optional(),
   completionThreshold: z.number().min(0).max(1).optional(),
   allowSeeking: z.boolean().optional(),
-  pdfUrl: z.string().url().optional().or(z.literal("")),
+  pdfUrl: z.string().optional().or(z.literal("")), // Allow relative URLs
   pdfPages: z.number().optional(),
-  pptUrl: z.string().url().optional().or(z.literal("")),
+  pptUrl: z.string().optional().or(z.literal("")), // Allow relative URLs
   pptSlides: z.number().optional(),
   htmlContent: z.string().optional(),
   externalUrl: z.string().url().optional().or(z.literal("")),

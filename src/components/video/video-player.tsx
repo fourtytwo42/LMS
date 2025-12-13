@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 interface VideoPlayerProps {
   contentItemId: string;
   videoUrl: string;
+  videoDuration?: number; // Duration in seconds from content item
   completionThreshold?: number;
   allowSeeking?: boolean;
   onProgressUpdate?: (progress: {
@@ -18,6 +19,7 @@ interface VideoPlayerProps {
 export function VideoPlayer({
   contentItemId,
   videoUrl,
+  videoDuration,
   completionThreshold = 0.8,
   allowSeeking = true,
   onProgressUpdate,
@@ -25,7 +27,7 @@ export function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [progress, setProgress] = useState({
     watchTime: 0,
-    totalDuration: 0,
+    totalDuration: videoDuration || 0, // Use stored duration if available
     lastPosition: 0,
     completed: false,
   });
@@ -64,6 +66,36 @@ export function VideoPlayer({
     loadProgress();
   }, [contentItemId]);
 
+  // Update progress when video metadata loads
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      // Use video duration if available, otherwise use stored duration
+      const duration = video.duration && !isNaN(video.duration) && isFinite(video.duration)
+        ? Math.floor(video.duration)
+        : (videoDuration || 0);
+      
+      setProgress((prev) => ({
+        ...prev,
+        totalDuration: duration,
+      }));
+      setLoading(false);
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    
+    // If video already has metadata, handle it immediately
+    if (video.readyState >= 1) {
+      handleLoadedMetadata();
+    }
+
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    };
+  }, [videoDuration]);
+
   // Update progress periodically
   useEffect(() => {
     const video = videoRef.current;
@@ -71,42 +103,48 @@ export function VideoPlayer({
 
     const updateProgress = async () => {
       const watchTime = Math.floor(video.currentTime);
-      const totalDuration = Math.floor(video.duration);
-      const lastPosition = totalDuration > 0 ? video.currentTime / totalDuration : 0;
-      const completionPercentage = totalDuration > 0 ? watchTime / totalDuration : 0;
+      // Use video duration if available, otherwise use stored duration or progress state
+      const duration = video.duration && !isNaN(video.duration) && isFinite(video.duration)
+        ? Math.floor(video.duration)
+        : (progress.totalDuration || videoDuration || 0);
+      
+      const lastPosition = duration > 0 ? video.currentTime / duration : 0;
+      const completionPercentage = duration > 0 ? watchTime / duration : 0;
       const completed = completionPercentage >= completionThreshold;
 
       const newProgress = {
         watchTime,
-        totalDuration,
+        totalDuration: duration,
         lastPosition,
         completed,
       };
 
       setProgress(newProgress);
 
-      // Update server every 5 seconds
-      try {
-        const response = await fetch("/api/progress/video", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contentItemId,
-            watchTime,
-            totalDuration,
-            lastPosition,
-            timesWatched: completed ? 1 : 0,
-          }),
-        });
+      // Only update server if we have valid duration
+      if (duration > 0) {
+        try {
+          const response = await fetch("/api/progress/video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contentItemId,
+              watchTime,
+              totalDuration: duration,
+              lastPosition,
+              timesWatched: completed ? 1 : 0,
+            }),
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.unlockedNext && onProgressUpdate) {
-            onProgressUpdate(newProgress);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.unlockedNext && onProgressUpdate) {
+              onProgressUpdate(newProgress);
+            }
           }
+        } catch (error) {
+          console.error("Error updating video progress:", error);
         }
-      } catch (error) {
-        console.error("Error updating video progress:", error);
       }
     };
 
@@ -114,28 +152,34 @@ export function VideoPlayer({
     progressUpdateIntervalRef.current = setInterval(updateProgress, 5000);
 
     // Also update on timeupdate (more frequent for UI)
-    video.addEventListener("timeupdate", () => {
+    const handleTimeUpdate = () => {
       const watchTime = Math.floor(video.currentTime);
-      const totalDuration = Math.floor(video.duration);
-      const lastPosition = totalDuration > 0 ? video.currentTime / totalDuration : 0;
-      const completionPercentage = totalDuration > 0 ? watchTime / totalDuration : 0;
+      // Use video duration if available, otherwise use stored duration or progress state
+      const duration = video.duration && !isNaN(video.duration) && isFinite(video.duration)
+        ? Math.floor(video.duration)
+        : (progress.totalDuration || videoDuration || 0);
+      
+      const lastPosition = duration > 0 ? video.currentTime / duration : 0;
+      const completionPercentage = duration > 0 ? watchTime / duration : 0;
       const completed = completionPercentage >= completionThreshold;
 
       setProgress({
         watchTime,
-        totalDuration,
+        totalDuration: duration,
         lastPosition,
         completed,
       });
-    });
+    };
+
+    video.addEventListener("timeupdate", handleTimeUpdate);
 
     return () => {
       if (progressUpdateIntervalRef.current) {
         clearInterval(progressUpdateIntervalRef.current);
       }
-      video.removeEventListener("timeupdate", updateProgress);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
     };
-  }, [contentItemId, completionThreshold, onProgressUpdate]);
+  }, [contentItemId, completionThreshold, onProgressUpdate, videoDuration, progress.totalDuration]);
 
   if (loading) {
     return (

@@ -9,6 +9,7 @@ const updateCourseSchema = z.object({
   shortDescription: z.string().optional(),
   description: z.string().optional(),
   type: z.enum(["E-LEARNING", "BLENDED", "IN_PERSON"]).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   categoryId: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
   estimatedTime: z.number().optional().nullable(),
@@ -189,6 +190,7 @@ export async function PUT(
     if (validated.description !== undefined)
       updateData.description = validated.description;
     if (validated.type) updateData.type = validated.type;
+    if (validated.status !== undefined) updateData.status = validated.status;
     if (validated.categoryId !== undefined)
       updateData.categoryId = validated.categoryId || null;
     if (validated.tags) updateData.tags = validated.tags;

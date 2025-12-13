@@ -6,20 +6,20 @@ import { z } from "zod";
 const createContentItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  type: z.enum(["VIDEO", "PDF", "PPT", "HTML", "EXTERNAL", "TEST"]),
+  type: z.enum(["VIDEO", "YOUTUBE", "PDF", "PPT", "HTML", "EXTERNAL", "TEST"]),
   order: z.number().int().min(0),
   priority: z.number().int().default(0),
   required: z.boolean().default(true),
   // Video-specific
-  videoUrl: z.string().url().optional(),
+  videoUrl: z.string().optional(), // Allow relative URLs for uploaded files
   videoDuration: z.number().optional(),
   completionThreshold: z.number().min(0).max(1).default(0.8),
   allowSeeking: z.boolean().default(true),
   // PDF-specific
-  pdfUrl: z.string().url().optional(),
+  pdfUrl: z.string().optional(), // Allow relative URLs for uploaded files
   pdfPages: z.number().optional(),
   // PPT-specific
-  pptUrl: z.string().url().optional(),
+  pptUrl: z.string().optional(), // Allow relative URLs for uploaded files
   pptSlides: z.number().optional(),
   // HTML-specific
   htmlContent: z.string().optional(),
@@ -209,6 +209,12 @@ export async function POST(
     if (validated.type === "VIDEO" && !validated.videoUrl) {
       return NextResponse.json(
         { error: "VALIDATION_ERROR", message: "videoUrl is required for VIDEO type" },
+        { status: 400 }
+      );
+    }
+    if (validated.type === "YOUTUBE" && !validated.videoUrl) {
+      return NextResponse.json(
+        { error: "VALIDATION_ERROR", message: "videoUrl (YouTube URL) is required for YOUTUBE type" },
         { status: 400 }
       );
     }

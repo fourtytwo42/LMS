@@ -15,6 +15,7 @@ interface ContentItem {
   description: string | null;
   order: number;
   videoUrl: string | null;
+  videoDuration: number | null;
   pdfUrl: string | null;
   externalUrl: string | null;
   htmlContent: string | null;
@@ -52,14 +53,15 @@ export default function ContentItemPage() {
         }
 
         // Get full content item details
-        const contentResponse = await fetch(`/api/courses/${courseId}/content/${contentItemId}`);
+        const contentResponse = await fetch(`/api/content/${contentItemId}`);
         if (!contentResponse.ok) {
           throw new Error("Failed to fetch content item");
         }
 
         const contentData = await contentResponse.json();
         setContentItem({
-          ...contentData.contentItem,
+          ...contentData,
+          videoDuration: contentData.videoDuration || null,
           unlocked: itemProgress.unlocked,
           completed: itemProgress.completed,
         });
@@ -146,6 +148,7 @@ export default function ContentItemPage() {
             <VideoPlayerLazy
               contentItemId={contentItem.id}
               videoUrl={contentItem.videoUrl}
+              videoDuration={contentItem.videoDuration || undefined}
               completionThreshold={contentItem.completionThreshold || 0.8}
               allowSeeking={contentItem.allowSeeking}
               onProgressUpdate={handleProgressUpdate}
