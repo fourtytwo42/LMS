@@ -18,6 +18,7 @@ const createLearningPlanSchema = z.object({
   maxEnrollments: z.union([z.number().int().positive(), z.null(), z.undefined()]).optional().nullable(),
   hasCertificate: z.boolean().default(false),
   hasBadge: z.boolean().default(false),
+  coverImage: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
         code: plan.code,
         title: plan.title,
         shortDescription: plan.shortDescription,
-        thumbnail: plan.thumbnail,
+        coverImage: plan.coverImage,
         status: plan.status,
         estimatedTime: plan.estimatedTime,
         difficultyLevel: plan.difficultyLevel,
@@ -217,6 +218,7 @@ export async function POST(request: NextRequest) {
         maxEnrollments: validated.maxEnrollments,
         hasCertificate: validated.hasCertificate,
         hasBadge: validated.hasBadge,
+        coverImage: validated.coverImage || null,
         status: "DRAFT",
         createdById: user.id,
       },

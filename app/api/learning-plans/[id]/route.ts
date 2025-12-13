@@ -19,8 +19,7 @@ const updateLearningPlanSchema = z.object({
   maxEnrollments: z.number().int().positive().optional().nullable(),
   hasCertificate: z.boolean().optional(),
   hasBadge: z.boolean().optional(),
-  thumbnail: z.string().url().optional().or(z.literal("")),
-  coverImage: z.string().url().optional().or(z.literal("")),
+  coverImage: z.string().optional(),
 });
 
 export async function GET(
@@ -106,7 +105,6 @@ export async function GET(
       title: learningPlan.title,
       shortDescription: learningPlan.shortDescription,
       description: learningPlan.description,
-      thumbnail: learningPlan.thumbnail,
       coverImage: learningPlan.coverImage,
       status: learningPlan.status,
       estimatedTime: learningPlan.estimatedTime,
@@ -207,8 +205,6 @@ export async function PUT(
       updateData.hasCertificate = validated.hasCertificate;
     if (validated.hasBadge !== undefined)
       updateData.hasBadge = validated.hasBadge;
-    if (validated.thumbnail !== undefined)
-      updateData.thumbnail = validated.thumbnail || null;
     if (validated.coverImage !== undefined)
       updateData.coverImage = validated.coverImage || null;
 

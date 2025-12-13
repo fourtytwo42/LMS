@@ -157,10 +157,10 @@ export default function LearningPlansPage() {
               {plans.map((plan) => (
                 <Card key={plan.id} className="p-4 hover:shadow-lg transition-shadow">
                   <div className="mb-3">
-                    {plan.thumbnail ? (
+                    {plan.coverImage ? (
                       <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                         <img
-                          src={plan.thumbnail}
+                          src={plan.coverImage}
                           alt={plan.title}
                           className="w-full h-full object-contain"
                         />

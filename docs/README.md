@@ -78,7 +78,7 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ Database reset script: Automated reset and reseed (`npm run db:reset`)
 - ✅ E2E testing with Playwright (75+ tests passing)
 - ✅ Course code field removed: Simplified course creation/editing
-- ✅ Learning plan image uploads: Direct upload for thumbnail and cover images (no URL inputs)
+- ✅ Learning plan image uploads: Direct upload for cover image (single coverImage field used for both thumbnail and cover purposes, no URL inputs)
 - ✅ Optional field validation: Estimated time, difficulty level, and max enrollments are truly optional
 - ✅ Fixed header: Sticky header that stays at top while content scrolls
 - ✅ Standardized image format: Wide format (16:9) with full image display (no cropping) for all course/learning plan images

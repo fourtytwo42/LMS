@@ -51,7 +51,6 @@ const updateLearningPlanSchema = z.object({
   ),
   hasCertificate: z.boolean().default(false),
   hasBadge: z.boolean().default(false),
-  thumbnail: z.string().optional(),
   coverImage: z.string().optional(),
 });
 
@@ -64,11 +63,8 @@ export default function EditLearningPlanPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
-  const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const [, setCategories] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -83,7 +79,6 @@ export default function EditLearningPlanPage() {
     resolver: zodResolver(updateLearningPlanSchema),
   });
 
-  const thumbnail = watch("thumbnail");
   const coverImage = watch("coverImage");
 
   useEffect(() => {
@@ -115,14 +110,10 @@ export default function EditLearningPlanPage() {
           maxEnrollments: planData.maxEnrollments,
           hasCertificate: planData.hasCertificate,
           hasBadge: planData.hasBadge,
-          thumbnail: planData.thumbnail || "",
           coverImage: planData.coverImage || "",
         });
 
-        // Set previews if images exist
-        if (planData.thumbnail) {
-          setThumbnailPreview(planData.thumbnail);
-        }
+        // Set preview if image exists
         if (planData.coverImage) {
           setCoverImagePreview(planData.coverImage);
         }
@@ -137,59 +128,6 @@ export default function EditLearningPlanPage() {
 
     fetchData();
   }, [planId, router, reset]);
-
-  const handleThumbnailUploadClick = () => {
-    thumbnailInputRef.current?.click();
-  };
-
-  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB");
-      return;
-    }
-
-    setUploadingThumbnail(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", "THUMBNAIL");
-
-      const response = await fetch("/api/files/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to upload image");
-      }
-
-      const result = await response.json();
-      const fullUrl = result.file.url.startsWith("http")
-        ? result.file.url
-        : `${window.location.origin}${result.file.url}`;
-      
-      setValue("thumbnail", fullUrl);
-      const previewUrl = URL.createObjectURL(file);
-      setThumbnailPreview(previewUrl);
-    } catch (error) {
-      console.error("Error uploading thumbnail:", error);
-      alert(error instanceof Error ? error.message : "Failed to upload image");
-    } finally {
-      setUploadingThumbnail(false);
-      if (thumbnailInputRef.current) {
-        thumbnailInputRef.current.value = "";
-      }
-    }
-  };
 
   const handleCoverImageUploadClick = () => {
     coverImageInputRef.current?.click();
@@ -244,14 +182,6 @@ export default function EditLearningPlanPage() {
     }
   };
 
-  const handleRemoveThumbnail = () => {
-    setValue("thumbnail", "");
-    setThumbnailPreview(null);
-    if (thumbnailInputRef.current) {
-      thumbnailInputRef.current.value = "";
-    }
-  };
-
   const handleRemoveCoverImage = () => {
     setValue("coverImage", "");
     setCoverImagePreview(null);
@@ -271,7 +201,6 @@ export default function EditLearningPlanPage() {
           estimatedTime: data.estimatedTime || null,
           difficultyLevel: data.difficultyLevel || null,
           maxEnrollments: data.maxEnrollments || null,
-          thumbnail: data.thumbnail || null,
           coverImage: data.coverImage || null,
         }),
       });
@@ -403,62 +332,6 @@ export default function EditLearningPlanPage() {
               error={errors.maxEnrollments?.message}
               placeholder="Unlimited if empty"
             />
-          </div>
-
-          {/* Thumbnail Upload */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Thumbnail Image
-            </label>
-            {thumbnail || thumbnailPreview ? (
-              <div className="space-y-2">
-                <div className="relative w-full max-w-2xl aspect-video rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <img
-                    src={thumbnailPreview || thumbnail || ""}
-                    alt="Thumbnail preview"
-                    className="w-full h-full object-contain"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveThumbnail}
-                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                    aria-label="Remove thumbnail"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleThumbnailUploadClick}
-                  disabled={uploadingThumbnail}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {uploadingThumbnail ? "Uploading..." : "Change Image"}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleThumbnailUploadClick}
-                disabled={uploadingThumbnail}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {uploadingThumbnail ? "Uploading..." : "Upload Thumbnail Image"}
-              </Button>
-            )}
-            <input
-              ref={thumbnailInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleThumbnailUpload}
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB
-            </p>
-            <input type="hidden" {...register("thumbnail")} />
           </div>
 
           {/* Cover Image Upload */}

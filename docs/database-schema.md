@@ -111,7 +111,7 @@ Collection of courses organized as a learning path.
 - `title` (String)
 - `description` (String)
 - `shortDescription` (String, Optional)
-- `thumbnail` (String, Optional)
+- `coverImage` (String, Optional) - Used for both thumbnail and cover image display
 - `status` (String) - DRAFT, PUBLISHED, ARCHIVED
 - `publicAccess` (Boolean)
 - `selfEnrollment` (Boolean)
