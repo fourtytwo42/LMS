@@ -325,13 +325,15 @@ export default function CourseDetailPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <Card className="p-6 lg:col-span-2">
-          {course.coverImage && (
-            <img
-              src={course.coverImage}
-              alt={course.title}
-              className="w-full h-64 object-cover rounded-lg mb-4"
-            />
-          )}
+          {course.coverImage ? (
+            <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+              <img
+                src={course.coverImage}
+                alt={course.title}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ) : null}
           <div className="mb-4 flex flex-wrap gap-2">
             <Badge
               variant={
@@ -369,12 +371,6 @@ export default function CourseDetailPage() {
         <Card className="p-6">
           <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Course Info</h2>
           <div className="space-y-4">
-            {course.code && (
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Code</div>
-                <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">{course.code}</div>
-              </div>
-            )}
             {course.estimatedTime && (
               <div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">Estimated Time</div>

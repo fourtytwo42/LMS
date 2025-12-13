@@ -192,20 +192,19 @@ export default function CoursesPage() {
                 <Card key={course.id} className="hover:shadow-lg transition-shadow">
                   <div className="mb-4">
                     {course.thumbnail ? (
-                      <img
-                        src={course.thumbnail}
-                        alt={course.title}
-                        className="w-full h-40 object-cover rounded-lg mb-3"
-                      />
+                      <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={course.thumbnail}
+                          alt={course.title}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
                     ) : (
-                      <div className="w-full h-40 bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 flex items-center justify-center">
                         <BookOpen className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1.5">{course.title}</h3>
-                    {course.code && (
-                      <p className="text-sm text-gray-500 mb-2">{course.code}</p>
-                    )}
                     {course.shortDescription && (
                       <p className="text-sm text-gray-600 line-clamp-2">
                         {course.shortDescription}

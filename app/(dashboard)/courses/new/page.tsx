@@ -12,21 +12,29 @@ import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 
 const createCourseSchema = z.object({
-  code: z.string().optional(),
   title: z.string().min(1, "Title is required"),
   shortDescription: z.string().max(130).optional(),
   description: z.string().optional(),
   categoryId: z.string().optional(),
-  estimatedTime: z.union([
-    z.number().int().positive(),
-    z.literal(""),
-    z.undefined(),
-  ]).optional(),
-  difficultyLevel: z.union([
-    z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]),
-    z.literal(""),
-    z.undefined(),
-  ]).optional(),
+  estimatedTime: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) {
+        return undefined;
+      }
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().int().positive().optional()
+  ),
+  difficultyLevel: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined) {
+        return undefined;
+      }
+      return val;
+    },
+    z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional()
+  ),
   publicAccess: z.boolean().default(false),
   selfEnrollment: z.boolean().default(false),
   sequentialRequired: z.boolean().default(true),
@@ -178,15 +186,6 @@ export default function NewCoursePage() {
         <h2 className="mb-4 text-xl font-semibold">Course Information</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
-            <Input
-              {...register("code")}
-              error={errors.code?.message}
-              placeholder="COURSE-001 (optional)"
-            />
-          </div>
-
-          <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Title *</label>
             <Input
               {...register("title")}
@@ -224,11 +223,11 @@ export default function NewCoursePage() {
             </label>
             {coverImage || coverImagePreview ? (
               <div className="space-y-2">
-                <div className="relative w-full h-48 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800">
+                <div className="relative w-full max-w-2xl aspect-video rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                   <img
                     src={coverImagePreview || coverImage || ""}
                     alt="Cover preview"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                   <button
                     type="button"
@@ -281,10 +280,7 @@ export default function NewCoursePage() {
               </label>
               <Input
                 type="number"
-                {...register("estimatedTime", { 
-                  valueAsNumber: true,
-                  setValueAs: (v) => v === "" ? undefined : Number(v)
-                })}
+                {...register("estimatedTime")}
                 error={errors.estimatedTime?.message}
                 placeholder="120 (optional)"
               />

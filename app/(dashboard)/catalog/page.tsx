@@ -240,12 +240,18 @@ export default function CatalogPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredCourses.map((course) => (
                 <Card key={course.id} className="hover:shadow-lg transition-shadow">
-                  {course.thumbnail && (
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-full h-48 object-cover rounded-lg mb-4"
-                    />
+                  {course.thumbnail ? (
+                    <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
+                      <BookOpen className="h-12 w-12 text-gray-400" />
+                    </div>
                   )}
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{course.title}</h3>
                   {course.shortDescription && (

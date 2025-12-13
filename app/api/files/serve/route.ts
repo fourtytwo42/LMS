@@ -35,8 +35,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Normalize path (remove leading slash if present)
-    const normalizedPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+    // Normalize path (remove leading slash if present, and remove /storage prefix if present)
+    let normalizedPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+    // Remove /storage prefix if present (for backwards compatibility with old URLs)
+    if (normalizedPath.startsWith("storage/")) {
+      normalizedPath = normalizedPath.replace(/^storage\//, "");
+    }
 
     const pathParts = normalizedPath.split("/");
     if (pathParts.length < 1) {
@@ -47,11 +51,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle avatar, thumbnail, and cover files (user files - no course association)
-    if (pathParts[0] === "avatars" || pathParts[0] === "thumbnails") {
-      // For avatars and thumbnails, allow access if:
+    // Note: Cover images are stored in the thumbnails directory
+    if (pathParts[0] === "avatars" || pathParts[0] === "thumbnails" || pathParts[0] === "covers") {
+      // For avatars, thumbnails, and covers, allow access if:
       // 1. User is authenticated (already checked)
       // 2. For avatars: user owns the avatar or is admin
-      // 3. For thumbnails: user has access (can be viewed by anyone authenticated)
+      // 3. For thumbnails/covers: user has access (can be viewed by anyone authenticated)
       
       if (pathParts[0] === "avatars") {
         // Extract user ID from path if available (avatars/{userId}/filename)

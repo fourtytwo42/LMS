@@ -281,6 +281,13 @@ created: 2025-12-09
 - ✅ Instructor permissions: Instructors enrolled in learning plans get admin access to all courses in the plan
 - ✅ Updated seed script: Creates only 4 demo accounts (admin, instructor, 2 learners) with Public and Staff groups
 - ✅ Database reset script: Automated script to wipe and reseed database for demo purposes (`npm run db:reset`)
+- ✅ Course code field removed: No longer required or displayed in course forms
+- ✅ Learning plan code field removed: No longer required in create form (optional in edit)
+- ✅ Learning plan image uploads: Added thumbnail and cover image upload functionality (replaces URL inputs)
+- ✅ Optional field validation: Fixed validation for estimated time, difficulty level, and max enrollments in courses and learning plans
+- ✅ Cover image path handling: Fixed file serving to handle paths with/without `/storage` prefix
+- ✅ Fixed header: Header now stays fixed at top while content scrolls
+- ✅ Standardized image format: All course and learning plan images use wide format (16:9) with `object-contain` to show full image without cropping
 
 ### In Progress 🔄
 

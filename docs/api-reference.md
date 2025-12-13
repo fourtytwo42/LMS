@@ -588,6 +588,7 @@ Serve files (content items and user files) with authentication and access checks
 **File Types Supported:**
 - Content items: `VIDEO`, `PDF`, `PPT` - Requires course access verification
 - User files: `AVATAR`, `THUMBNAIL`, `COVER` - Requires authentication only
+- Course/Learning Plan images: `THUMBNAIL`, `COVER` - Stored in thumbnails directory, served via `/api/files/serve?path=/thumbnails/...`
 
 **Features:**
 - Authentication required

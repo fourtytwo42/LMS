@@ -16,7 +16,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <AuthProvider>
         <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
           <Header />
-          <div className="flex flex-1 flex-col md:flex-row bg-white dark:bg-gray-900" style={{ paddingBottom: "60px" }}>
+          <div className="flex flex-1 flex-col md:flex-row bg-white dark:bg-gray-900 pt-16" style={{ paddingBottom: "60px" }}>
             <SidebarComponent />
             <main 
               className="flex-1 p-4 sm:p-5 lg:p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-all duration-300" 

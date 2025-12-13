@@ -56,7 +56,6 @@ Main course entity.
 
 **Fields:**
 - `id` (String, Primary Key)
-- `code` (String, Optional, Unique) - Course code
 - `title` (String) - Course title
 - `description` (String) - Full description
 - `shortDescription` (String, Optional) - Brief description
@@ -351,7 +350,6 @@ System audit log for tracking changes.
 
 Key indexes for performance:
 - `User.email` - Unique index
-- `Course.code` - Unique index (where not null)
 - `Enrollment.userId` - Index for user enrollments
 - `Enrollment.courseId` - Index for course enrollments
 - `VideoProgress.userId` - Index for user progress

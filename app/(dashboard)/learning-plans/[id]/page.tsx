@@ -191,13 +191,15 @@ export default function LearningPlanDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="p-6 lg:col-span-2">
-          {plan.coverImage && (
-            <img
-              src={plan.coverImage}
-              alt={plan.title}
-              className="w-full h-64 object-cover rounded-lg mb-4"
-            />
-          )}
+          {plan.coverImage ? (
+            <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+              <img
+                src={plan.coverImage}
+                alt={plan.title}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ) : null}
           <div className="mb-4 flex flex-wrap gap-2">
             <Badge
               variant={

@@ -12,13 +12,29 @@ import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 
 const updateCourseSchema = z.object({
-  code: z.string().optional(),
   title: z.string().min(1, "Title is required"),
   shortDescription: z.string().max(130).optional(),
   description: z.string().optional(),
   categoryId: z.string().optional().nullable(),
-  estimatedTime: z.number().int().positive().optional().nullable(),
-  difficultyLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional().nullable(),
+  estimatedTime: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) {
+        return undefined;
+      }
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().int().positive().optional().nullable()
+  ),
+  difficultyLevel: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined) {
+        return undefined;
+      }
+      return val;
+    },
+    z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional().nullable()
+  ),
   publicAccess: z.boolean().optional(),
   selfEnrollment: z.boolean().optional(),
   sequentialRequired: z.boolean().optional(),
@@ -65,7 +81,6 @@ export default function EditCoursePage() {
         const courseData = await response.json();
         setCourse(courseData);
 
-        setValue("code", courseData.code || "");
         setValue("title", courseData.title);
         setValue("shortDescription", courseData.shortDescription || "");
         setValue("description", courseData.description || "");
@@ -270,15 +285,6 @@ export default function EditCoursePage() {
         <h2 className="mb-4 text-xl font-semibold">Course Information</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">Code</label>
-            <Input
-              {...register("code")}
-              error={errors.code?.message}
-              placeholder="COURSE-001 (optional)"
-            />
-          </div>
-
-          <div>
             <label className="mb-1 block text-sm font-medium">Title *</label>
             <Input
               {...register("title")}
@@ -313,10 +319,7 @@ export default function EditCoursePage() {
               </label>
               <Input
                 type="number"
-                {...register("estimatedTime", { 
-                  valueAsNumber: true,
-                  setValueAs: (v) => v === "" ? undefined : Number(v)
-                })}
+                {...register("estimatedTime")}
                 error={errors.estimatedTime?.message}
                 placeholder="120 (optional)"
               />
@@ -344,11 +347,11 @@ export default function EditCoursePage() {
             </label>
             {coverImage || coverImagePreview ? (
               <div className="space-y-2">
-                <div className="relative w-full h-48 rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800">
+                <div className="relative w-full max-w-2xl aspect-video rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                   <img
                     src={coverImagePreview || coverImage || ""}
                     alt="Cover preview"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                   <button
                     type="button"

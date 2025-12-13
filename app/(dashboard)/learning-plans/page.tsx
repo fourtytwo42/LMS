@@ -158,13 +158,15 @@ export default function LearningPlansPage() {
                 <Card key={plan.id} className="p-4 hover:shadow-lg transition-shadow">
                   <div className="mb-3">
                     {plan.thumbnail ? (
-                      <img
-                        src={plan.thumbnail}
-                        alt={plan.title}
-                        className="w-full h-40 object-cover rounded-lg mb-3"
-                      />
+                      <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={plan.thumbnail}
+                          alt={plan.title}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
                     ) : (
-                      <div className="w-full h-40 bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                      <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 flex items-center justify-center">
                         <BookOpen className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
