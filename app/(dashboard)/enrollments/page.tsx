@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle, Trash2, Search } from "lucide-react";
+import { CheckCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Modal } from "@/components/ui/modal";
 import { useAuthStore } from "@/store/auth-store";
+import { IconButton } from "@/components/ui/icon-button";
+import { DataTable } from "@/components/tables/data-table";
+import type { Column } from "@/components/tables/data-table";
+import { TableToolbar } from "@/components/tables/table-toolbar";
+import { TablePagination } from "@/components/tables/table-pagination";
 
 interface Enrollment {
   id: string;
@@ -26,12 +27,10 @@ interface Enrollment {
   course: {
     id: string;
     title: string;
-    code: string | null;
   } | null;
   learningPlan: {
     id: string;
     title: string;
-    code: string | null;
   } | null;
   user: {
     id: string;
@@ -82,8 +81,13 @@ export default function EnrollmentsPage() {
       if (!response.ok) throw new Error("Failed to fetch enrollments");
 
       const data = await response.json();
-      setEnrollments(data.enrollments);
-      setPagination(data.pagination);
+      setEnrollments(data.enrollments || []);
+      setPagination({
+        page: data.pagination?.page || pagination.page,
+        limit: data.pagination?.limit || pagination.limit,
+        total: data.pagination?.total || 0,
+        totalPages: data.pagination?.totalPages || 0,
+      });
     } catch (error) {
       console.error("Error fetching enrollments:", error);
     } finally {
@@ -146,188 +150,165 @@ export default function EnrollmentsPage() {
     }
   };
 
-  return (
-    <div className="space-y-8 sm:space-y-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Enrollments</h1>
-      </div>
-
-      <Card>
-        <div className="mb-4 flex gap-4 justify-end">
-          <Select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPagination((p) => ({ ...p, page: 1 }));
-            }}
-            className="w-48"
-          >
-            <option value="">All Status</option>
-            <option value="ENROLLED">Enrolled</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="PENDING_APPROVAL">Pending Approval</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="DROPPED">Dropped</option>
-          </Select>
-          <div className="w-64">
-            <Input
-              placeholder="Search enrollments..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPagination((p) => ({ ...p, page: 1 }));
-              }}
-              icon={<Search className="h-4 w-4" />}
+  const columns: Record<string, Column<Enrollment>> = {
+    user: {
+      key: "user",
+      header: "User",
+      render: (enrollment) => (
+        <div className="flex items-center gap-2">
+          {enrollment.user.avatar ? (
+            <img
+              src={enrollment.user.avatar}
+              alt={`${enrollment.user.firstName} ${enrollment.user.lastName}`}
+              className="h-8 w-8 rounded-full"
             />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-300">
+              {enrollment.user.firstName[0]}
+              {enrollment.user.lastName[0]}
+            </div>
+          )}
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {enrollment.user.firstName} {enrollment.user.lastName}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.user.email}</div>
           </div>
         </div>
+      ),
+    },
+    coursePlan: {
+      key: "coursePlan",
+      header: "Course/Plan",
+      render: (enrollment) => (
+        <div className="font-medium text-gray-900 dark:text-gray-100">
+          {enrollment.course?.title || enrollment.learningPlan?.title || "-"}
+        </div>
+      ),
+    },
+    status: {
+      key: "status",
+      header: "Status",
+      render: (enrollment) => getStatusBadge(enrollment.status),
+    },
+    progress: {
+      key: "progress",
+      header: "Progress",
+      render: (enrollment) => (
+        <div className="flex items-center gap-2">
+          <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full"
+              style={{ width: `${enrollment.progress}%` }}
+            />
+          </div>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{enrollment.progress}%</span>
+        </div>
+      ),
+    },
+    enrolledAt: {
+      key: "enrolledAt",
+      header: "Enrolled At",
+      render: (enrollment) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          {new Date(enrollment.enrolledAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    dueDate: {
+      key: "dueDate",
+      header: "Due Date",
+      render: (enrollment) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          {enrollment.dueDate ? new Date(enrollment.dueDate).toLocaleDateString() : "-"}
+        </span>
+      ),
+    },
+    actions: {
+      key: "actions",
+      header: "Actions",
+      className: "text-right",
+      render: (enrollment) => (
+        <div className="flex items-center justify-end gap-1">
+          {enrollment.status === "PENDING_APPROVAL" && (isAdmin || isInstructor) && (
+            <IconButton
+              icon={<CheckCircle className="h-4 w-4" />}
+              label="Approve Enrollment"
+              onClick={() => handleApprove(enrollment.id)}
+              variant="ghost"
+              size="sm"
+            />
+          )}
+          {(isAdmin || isInstructor) && (
+            <IconButton
+              icon={<Trash2 className="h-4 w-4" />}
+              label="Delete Enrollment"
+              onClick={() => {
+                setEnrollmentToDelete(enrollment);
+                setDeleteModalOpen(true);
+              }}
+              variant="ghost"
+              size="sm"
+            />
+          )}
+        </div>
+      ),
+    },
+  };
 
-        {loading ? (
-          <div className="py-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
-        ) : enrollments.length === 0 ? (
-          <div className="py-8 text-center text-gray-500 dark:text-gray-400">No enrollments found</div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Course/Plan</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Enrolled At</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    {(isAdmin || isInstructor) && <TableHead className="text-right">Actions</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {enrollments.map((enrollment) => (
-                    <TableRow key={enrollment.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {enrollment.user.avatar ? (
-                            <img
-                              src={enrollment.user.avatar}
-                              alt={`${enrollment.user.firstName} ${enrollment.user.lastName}`}
-                              className="h-8 w-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-300">
-                              {enrollment.user.firstName[0]}
-                              {enrollment.user.lastName[0]}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {enrollment.user.firstName} {enrollment.user.lastName}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.user.email}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {enrollment.course ? (
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">{enrollment.course.title}</div>
-                            {enrollment.course.code && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.course.code}</div>
-                            )}
-                          </div>
-                        ) : enrollment.learningPlan ? (
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">{enrollment.learningPlan.title}</div>
-                            {enrollment.learningPlan.code && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{enrollment.learningPlan.code}</div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(enrollment.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
-                              style={{ width: `${enrollment.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm text-gray-900 dark:text-gray-100">{enrollment.progress}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-900 dark:text-gray-100">
-                        {new Date(enrollment.enrolledAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-gray-900 dark:text-gray-100">
-                        {enrollment.dueDate
-                          ? new Date(enrollment.dueDate).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      {(isAdmin || isInstructor) && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {enrollment.status === "PENDING_APPROVAL" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleApprove(enrollment.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEnrollmentToDelete(enrollment);
-                                setDeleteModalOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Enrollments</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage all course and learning plan enrollments</p>
+        </div>
+      </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                {pagination.total} enrollments
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() =>
-                    setPagination((p) => ({ ...p, page: p.page - 1 }))
-                  }
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() =>
-                    setPagination((p) => ({ ...p, page: p.page + 1 }))
-                  }
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-      </Card>
+      <TableToolbar
+        search={{
+          value: search,
+          onChange: (value) => {
+            setSearch(value);
+            setPagination((p) => ({ ...p, page: 1 }));
+          },
+          placeholder: "Search enrollments...",
+        }}
+        filters={[
+          {
+            value: statusFilter,
+            onChange: (value) => {
+              setStatusFilter(value);
+              setPagination((p) => ({ ...p, page: 1 }));
+            },
+            options: [
+              { value: "", label: "All Status" },
+              { value: "ENROLLED", label: "Enrolled" },
+              { value: "IN_PROGRESS", label: "In Progress" },
+              { value: "PENDING_APPROVAL", label: "Pending Approval" },
+              { value: "COMPLETED", label: "Completed" },
+              { value: "DROPPED", label: "Dropped" },
+            ],
+            placeholder: "All Status",
+          },
+        ]}
+      />
+
+      <DataTable
+        data={enrollments}
+        columns={columns}
+        loading={loading}
+        emptyMessage="No enrollments found"
+        getId={(enrollment) => enrollment.id}
+      />
+
+      {pagination.totalPages > 1 && (
+        <TablePagination
+          pagination={pagination}
+          onPageChange={(page) => setPagination((p) => ({ ...p, page }))}
+          itemName="enrollments"
+        />
+      )}
 
       <Modal
         isOpen={deleteModalOpen}
@@ -338,8 +319,8 @@ export default function EnrollmentsPage() {
         title="Delete Enrollment"
       >
         <div className="space-y-4">
-          <p className="text-gray-900 dark:text-gray-100">
-            Are you sure you want to remove this enrollment? This action cannot be undone.
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Are you sure you want to delete this enrollment? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2">
             <Button
@@ -360,4 +341,3 @@ export default function EnrollmentsPage() {
     </div>
   );
 }
-

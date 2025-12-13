@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Plus, Edit, X, Users } from "lucide-react";
+import { ArrowLeft, Plus, Edit, X, Users, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,7 @@ export default function LearningPlanDetailPage() {
   const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [courseOrder, setCourseOrder] = useState(0);
+  const [publishing, setPublishing] = useState(false);
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
   const isInstructor = user?.roles?.includes("INSTRUCTOR") || false;
@@ -142,6 +143,35 @@ export default function LearningPlanDetailPage() {
     }
   };
 
+  const handlePublish = async () => {
+    if (!plan || plan.status !== "DRAFT") return;
+    if (!confirm("Are you sure you want to publish this learning plan? Enrolled users will be able to access the content.")) return;
+
+    setPublishing(true);
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}/publish`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to publish learning plan");
+      }
+
+      // Refresh plan data
+      const planResponse = await fetch(`/api/learning-plans/${planId}`);
+      if (planResponse.ok) {
+        const planData = await planResponse.json();
+        setPlan(planData);
+      }
+    } catch (error) {
+      console.error("Error publishing learning plan:", error);
+      alert(error instanceof Error ? error.message : "Failed to publish learning plan");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   if (loading) {
     return <div className="py-8 text-center">Loading...</div>;
   }
@@ -177,6 +207,17 @@ export default function LearningPlanDetailPage() {
               <Users className="mr-2 h-4 w-4" />
               Enrollments
             </Button>
+            {plan.status === "DRAFT" && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handlePublish}
+                disabled={publishing}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {publishing ? "Publishing..." : "Publish"}
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"

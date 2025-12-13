@@ -227,7 +227,7 @@ created: 2025-12-09
 
 **Current Phase:** Production Ready - Feature Complete
 
-**Last Updated:** December 13, 2025
+**Last Updated:** December 14, 2025
 
 ### Completed ✅
 
@@ -288,6 +288,10 @@ created: 2025-12-09
 - ✅ Cover image path handling: Fixed file serving to handle paths with/without `/storage` prefix
 - ✅ Fixed header: Header now stays fixed at top while content scrolls
 - ✅ Standardized image format: All course and learning plan images use wide format (16:9) with `object-contain` to show full image without cropping
+- ✅ Reusable table components: Created DataTable, TableToolbar, and TablePagination components for consistent table UI across all pages
+- ✅ Table view standardization: All pages (courses, learning plans, users, groups, categories, enrollments) now use unified table template
+- ✅ Card view removal: Removed card/toggle views from courses and learning plans pages, all pages now use table view only
+- ✅ Bulk actions standardization: Consistent bulk action patterns across all table pages with reusable components
 
 ### In Progress 🔄
 

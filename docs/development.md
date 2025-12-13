@@ -240,6 +240,101 @@ npx tsc --noEmit
 4. Write component tests
 5. Add to Storybook (if applicable)
 
+### Using Reusable Table Components
+
+All table pages should use the reusable table components for consistency:
+
+**Components:**
+- `DataTable` - Main table component with selection, bulk actions, and customizable columns
+- `TableToolbar` - Toolbar with search, filters, and custom actions
+- `TablePagination` - Pagination component
+
+**Example:**
+```typescript
+import { DataTable } from "@/components/tables/data-table";
+import type { Column } from "@/components/tables/data-table";
+import { TableToolbar } from "@/components/tables/table-toolbar";
+import { TablePagination } from "@/components/tables/table-pagination";
+
+// Define columns
+const columns: Record<string, Column<Item>> = {
+  name: {
+    key: "name",
+    header: "Name",
+    render: (item) => <div>{item.name}</div>,
+  },
+  status: {
+    key: "status",
+    header: "Status",
+    render: (item) => <Badge>{item.status}</Badge>,
+  },
+  actions: {
+    key: "actions",
+    header: "Actions",
+    className: "text-right",
+    render: (item) => (
+      <IconButton
+        icon={<Edit />}
+        label="Edit"
+        onClick={() => handleEdit(item.id)}
+      />
+    ),
+  },
+};
+
+// Use in page
+<TableToolbar
+  search={{
+    value: search,
+    onChange: setSearch,
+    placeholder: "Search...",
+  }}
+  filters={[
+    {
+      value: filter,
+      onChange: setFilter,
+      options: [
+        { value: "", label: "All" },
+        { value: "active", label: "Active" },
+      ],
+    },
+  ]}
+/>
+
+<DataTable
+  data={items}
+  columns={columns}
+  loading={loading}
+  emptyMessage="No items found"
+  selectedIds={selectedIds}
+  onSelectAll={handleSelectAll}
+  onSelectItem={handleSelectItem}
+  getId={(item) => item.id}
+  bulkActions={[
+    {
+      label: "Delete",
+      onClick: handleBulkDelete,
+      variant: "danger",
+      show: isAdmin,
+    },
+  ]}
+/>
+
+{pagination.totalPages > 1 && (
+  <TablePagination
+    pagination={pagination}
+    onPageChange={(page) => setPagination((p) => ({ ...p, page }))}
+    itemName="items"
+  />
+)}
+```
+
+**Benefits:**
+- Consistent UI/UX across all table pages
+- Reduced code duplication
+- Easy to maintain and update
+- Built-in selection and bulk actions support
+
 ### Database Changes
 
 1. Update Prisma schema: `prisma/schema.prisma`

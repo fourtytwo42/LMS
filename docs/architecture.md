@@ -71,7 +71,11 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 **UI Components:**
 - `Button`, `Input`, `Select`, `Textarea` - Form controls
 - `Card`, `Modal`, `Badge`, `Avatar` - UI elements
-- `Table` - Data tables
+- `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` - Base table components
+- `DataTable` - Reusable data table with selection, bulk actions, and customizable columns
+- `TableToolbar` - Reusable toolbar with search, filters, and custom actions
+- `TablePagination` - Reusable pagination component
+- `IconButton` - Action buttons with icons and tooltips
 
 **Feature Components:**
 - `VideoPlayer` - Video playback with progress tracking, duration detection, stored duration support, and periodic DB updates (every 5 seconds)
@@ -80,6 +84,23 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 - `AnalyticsDashboard` - Analytics visualizations with enrolled users details
 - `NotificationCenter` - Notification management
 - `Avatar` - User avatar display with upload support and auto-save
+
+**Table Components (Reusable):**
+- `DataTable` - Generic data table component with:
+  - Column-based rendering system
+  - Row selection (single/multiple)
+  - Bulk actions toolbar
+  - Loading and empty states
+  - Customizable per page
+- `TableToolbar` - Reusable toolbar with:
+  - Search input
+  - Multiple filter dropdowns
+  - Custom action buttons
+  - Responsive layout
+- `TablePagination` - Pagination component with:
+  - Page navigation controls
+  - Item count display
+  - Auto-hides when not needed
 
 ### Backend Architecture
 

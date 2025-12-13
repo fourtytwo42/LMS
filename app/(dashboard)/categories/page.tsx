@@ -4,9 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit, Trash2, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { useAuthStore } from "@/store/auth-store";
+import { IconButton } from "@/components/ui/icon-button";
+import { DataTable } from "@/components/tables/data-table";
+import type { Column } from "@/components/tables/data-table";
+import { TableToolbar } from "@/components/tables/table-toolbar";
 
 interface Category {
   id: string;
@@ -16,6 +19,10 @@ interface Category {
   order: number;
   courseCount: number;
   learningPlanCount: number;
+  parent?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export default function CategoriesPage() {
@@ -23,6 +30,7 @@ export default function CategoriesPage() {
   const { user } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
@@ -30,15 +38,32 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [search]);
 
   const fetchCategories = async () => {
+    setLoading(true);
     try {
       const response = await fetch("/api/categories");
       if (!response.ok) throw new Error("Failed to fetch categories");
 
       const data = await response.json();
-      setCategories(data.categories);
+      let filteredCategories = data.categories || [];
+      
+      if (search) {
+        filteredCategories = filteredCategories.filter((category: Category) =>
+          category.name.toLowerCase().includes(search.toLowerCase()) ||
+          (category.description && category.description.toLowerCase().includes(search.toLowerCase()))
+        );
+      }
+      
+      // Build parent references
+      const categoryMap = new Map(filteredCategories.map((cat: Category) => [cat.id, cat]));
+      filteredCategories = filteredCategories.map((cat: Category) => ({
+        ...cat,
+        parent: cat.parentId ? categoryMap.get(cat.parentId) : null,
+      }));
+      
+      setCategories(filteredCategories);
     } catch (error) {
       console.error("Error fetching categories:", error);
     } finally {
@@ -68,24 +93,87 @@ export default function CategoriesPage() {
     }
   };
 
-  // Organize categories into tree structure
-  const rootCategories = categories.filter((cat) => !cat.parentId);
-  const childCategories = categories.filter((cat) => cat.parentId);
-
-  const getChildren = (parentId: string) => {
-    return childCategories
-      .filter((cat) => cat.parentId === parentId)
-      .sort((a, b) => a.order - b.order);
+  const columns: Record<string, Column<Category>> = {
+    name: {
+      key: "name",
+      header: "Name",
+      render: (category) => (
+        <div className="flex items-center gap-3">
+          <Folder className="h-5 w-5 text-gray-400" />
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {category.parent ? (
+                <span className="text-gray-400">{category.parent.name} / </span>
+              ) : null}
+              {category.name}
+            </div>
+            {category.description && (
+              <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
+                {category.description}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    courses: {
+      key: "courses",
+      header: "Courses",
+      render: (category) => (
+        <span className="text-gray-700 dark:text-gray-300">{category.courseCount}</span>
+      ),
+    },
+    learningPlans: {
+      key: "learningPlans",
+      header: "Learning Plans",
+      render: (category) => (
+        <span className="text-gray-700 dark:text-gray-300">{category.learningPlanCount}</span>
+      ),
+    },
+    order: {
+      key: "order",
+      header: "Order",
+      render: (category) => (
+        <span className="text-sm text-gray-500 dark:text-gray-400">{category.order}</span>
+      ),
+    },
+    actions: {
+      key: "actions",
+      header: "Actions",
+      className: "text-right",
+      render: (category) => (
+        <div className="flex items-center justify-end gap-1">
+          <IconButton
+            icon={<Edit className="h-4 w-4" />}
+            label="Edit Category"
+            onClick={() => router.push(`/categories/${category.id}/edit`)}
+            variant="ghost"
+            size="sm"
+          />
+          {isAdmin && (
+            <IconButton
+              icon={<Trash2 className="h-4 w-4" />}
+              label="Delete Category"
+              onClick={() => {
+                setCategoryToDelete(category);
+                setDeleteModalOpen(true);
+              }}
+              variant="ghost"
+              size="sm"
+            />
+          )}
+        </div>
+      ),
+    },
   };
-
-  if (loading) {
-    return <div className="py-8 text-center">Loading...</div>;
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Categories</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Categories</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage course and learning plan categories</p>
+        </div>
         {isAdmin && (
           <Button onClick={() => router.push("/categories/new")}>
             <Plus className="mr-2 h-4 w-4" />
@@ -94,115 +182,21 @@ export default function CategoriesPage() {
         )}
       </div>
 
-      <Card>
-        {categories.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
-            No categories found
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rootCategories
-              .sort((a, b) => a.order - b.order)
-              .map((category) => (
-                <div key={category.id}>
-                  <div className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <Folder className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="font-medium">{category.name}</div>
-                        {category.description && (
-                          <div className="text-sm text-gray-500">
-                            {category.description}
-                          </div>
-                        )}
-                        <div className="mt-1 flex gap-4 text-xs text-gray-400">
-                          <span>{category.courseCount} courses</span>
-                          <span>{category.learningPlanCount} learning plans</span>
-                        </div>
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            router.push(`/categories/${category.id}/edit`)
-                          }
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setCategoryToDelete(category);
-                            setDeleteModalOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {getChildren(category.id).length > 0 && (
-                    <div className="ml-8 mt-2 space-y-2 border-l-2 pl-4">
-                      {getChildren(category.id).map((child) => (
-                        <div
-                          key={child.id}
-                          className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Folder className="h-4 w-4 text-gray-400" />
-                            <div>
-                              <div className="text-sm font-medium">
-                                {child.name}
-                              </div>
-                              {child.description && (
-                                <div className="text-xs text-gray-500">
-                                  {child.description}
-                                </div>
-                              )}
-                              <div className="mt-1 flex gap-4 text-xs text-gray-400">
-                                <span>{child.courseCount} courses</span>
-                                <span>
-                                  {child.learningPlanCount} learning plans
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          {isAdmin && (
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  router.push(`/categories/${child.id}/edit`)
-                                }
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setCategoryToDelete(child);
-                                  setDeleteModalOpen(true);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        )}
-      </Card>
+      <TableToolbar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search categories...",
+        }}
+      />
+
+      <DataTable
+        data={categories}
+        columns={columns}
+        loading={loading}
+        emptyMessage="No categories found"
+        getId={(category) => category.id}
+      />
 
       <Modal
         isOpen={deleteModalOpen}
@@ -213,10 +207,8 @@ export default function CategoriesPage() {
         title="Delete Category"
       >
         <div className="space-y-4">
-          <p>
-            Are you sure you want to delete the category{" "}
-            <strong>{categoryToDelete?.name}</strong>? This action cannot be
-            undone.
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Are you sure you want to delete "{categoryToDelete?.name}"? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2">
             <Button
@@ -237,4 +229,3 @@ export default function CategoriesPage() {
     </div>
   );
 }
-

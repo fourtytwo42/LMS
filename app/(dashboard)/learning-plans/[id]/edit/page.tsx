@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, Upload, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -63,8 +63,10 @@ export default function EditLearningPlanPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [planStatus, setPlanStatus] = useState<string>("DRAFT");
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const [, setCategories] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -112,6 +114,9 @@ export default function EditLearningPlanPage() {
           hasBadge: planData.hasBadge,
           coverImage: planData.coverImage || "",
         });
+
+        // Set status
+        setPlanStatus(planData.status || "DRAFT");
 
         // Set preview if image exists
         if (planData.coverImage) {
@@ -216,6 +221,31 @@ export default function EditLearningPlanPage() {
       alert(error.message || "Failed to update learning plan");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (planStatus !== "DRAFT") return;
+    if (!confirm("Are you sure you want to publish this learning plan? Enrolled users will be able to access the content.")) return;
+
+    setPublishing(true);
+    try {
+      const response = await fetch(`/api/learning-plans/${planId}/publish`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to publish learning plan");
+      }
+
+      setPlanStatus("PUBLISHED");
+      alert("Learning plan published successfully!");
+    } catch (error) {
+      console.error("Error publishing learning plan:", error);
+      alert(error instanceof Error ? error.message : "Failed to publish learning plan");
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -441,7 +471,18 @@ export default function EditLearningPlanPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            {planStatus === "DRAFT" && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handlePublish}
+                disabled={publishing || saving}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {publishing ? "Publishing..." : "Publish"}
+              </Button>
+            )}
+            <Button type="submit" disabled={saving || publishing}>
               <Save className="mr-2 h-4 w-4" />
               {saving ? "Saving..." : "Save Changes"}
             </Button>

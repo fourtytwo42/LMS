@@ -48,6 +48,16 @@ export default function UsersPage() {
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [bulkUpdateModalOpen, setBulkUpdateModalOpen] = useState(false);
   const [bulkRole, setBulkRole] = useState<string>("");
+  const [bulkAssignCourseModalOpen, setBulkAssignCourseModalOpen] = useState(false);
+  const [bulkAssignLearningPlanModalOpen, setBulkAssignLearningPlanModalOpen] = useState(false);
+  const [bulkAssignGroupModalOpen, setBulkAssignGroupModalOpen] = useState(false);
+  const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
+  const [availableLearningPlans, setAvailableLearningPlans] = useState<Array<{ id: string; title: string }>>([]);
+  const [availableGroups, setAvailableGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [selectedLearningPlanId, setSelectedLearningPlanId] = useState<string>("");
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [enrollmentRole, setEnrollmentRole] = useState<"LEARNER" | "INSTRUCTOR">("LEARNER");
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -80,6 +90,40 @@ export default function UsersPage() {
   useEffect(() => {
     setSelectedUserIds(new Set());
   }, [pagination.page]);
+
+  // Fetch courses, learning plans, and groups for bulk assignment
+  useEffect(() => {
+    if (bulkAssignCourseModalOpen || bulkAssignLearningPlanModalOpen || bulkAssignGroupModalOpen) {
+      const fetchData = async () => {
+        try {
+          if (bulkAssignCourseModalOpen) {
+            const coursesResponse = await fetch("/api/courses?limit=1000");
+            if (coursesResponse.ok) {
+              const coursesData = await coursesResponse.json();
+              setAvailableCourses(coursesData.courses || []);
+            }
+          }
+          if (bulkAssignLearningPlanModalOpen) {
+            const plansResponse = await fetch("/api/learning-plans?limit=1000");
+            if (plansResponse.ok) {
+              const plansData = await plansResponse.json();
+              setAvailableLearningPlans(plansData.learningPlans || []);
+            }
+          }
+          if (bulkAssignGroupModalOpen) {
+            const groupsResponse = await fetch("/api/groups?limit=1000");
+            if (groupsResponse.ok) {
+              const groupsData = await groupsResponse.json();
+              setAvailableGroups(groupsData.groups || []);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching courses/learning plans/groups:", error);
+        }
+      };
+      fetchData();
+    }
+  }, [bulkAssignCourseModalOpen, bulkAssignLearningPlanModalOpen, bulkAssignGroupModalOpen]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -226,6 +270,96 @@ export default function UsersPage() {
     }
   };
 
+  const handleBulkAssignToCourse = async () => {
+    if (!selectedCourseId || selectedUserIds.size === 0) return;
+
+    try {
+      const response = await fetch(`/api/courses/${selectedCourseId}/enrollments/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          role: enrollmentRole,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to assign users to course");
+      }
+
+      const result = await response.json();
+      setBulkAssignCourseModalOpen(false);
+      setSelectedCourseId("");
+      setSelectedUserIds(new Set());
+      fetchUsers();
+      alert(`Successfully assigned ${result.enrolled || selectedUserIds.size} user(s) to course`);
+    } catch (error) {
+      console.error("Error bulk assigning users to course:", error);
+      alert(error instanceof Error ? error.message : "Failed to assign users to course");
+    }
+  };
+
+  const handleBulkAssignToLearningPlan = async () => {
+    if (!selectedLearningPlanId || selectedUserIds.size === 0) return;
+
+    try {
+      const response = await fetch(`/api/learning-plans/${selectedLearningPlanId}/enrollments/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          role: enrollmentRole,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to assign users to learning plan");
+      }
+
+      const result = await response.json();
+      setBulkAssignLearningPlanModalOpen(false);
+      setSelectedLearningPlanId("");
+      setSelectedUserIds(new Set());
+      fetchUsers();
+      alert(`Successfully assigned ${result.enrolled || selectedUserIds.size} user(s) to learning plan`);
+    } catch (error) {
+      console.error("Error bulk assigning users to learning plan:", error);
+      alert(error instanceof Error ? error.message : "Failed to assign users to learning plan");
+    }
+  };
+
+  const handleBulkAssignToGroups = async () => {
+    if (selectedGroupIds.length === 0 || selectedUserIds.size === 0) return;
+
+    try {
+      const response = await fetch("/api/users/bulk/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          groupIds: selectedGroupIds,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to assign users to groups");
+      }
+
+      const result = await response.json();
+      setBulkAssignGroupModalOpen(false);
+      setSelectedGroupIds([]);
+      setSelectedUserIds(new Set());
+      fetchUsers();
+      alert(`Successfully assigned ${result.assigned || selectedUserIds.size} user(s) to ${selectedGroupIds.length} group(s)`);
+    } catch (error) {
+      console.error("Error bulk assigning users to groups:", error);
+      alert(error instanceof Error ? error.message : "Failed to assign users to groups");
+    }
+  };
+
   return (
     <div className="space-y-8 sm:space-y-10">
       <div className="flex items-center justify-between">
@@ -297,6 +431,27 @@ export default function UsersPage() {
                   {selectedUserIds.size} user(s) selected
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setBulkAssignCourseModalOpen(true)}
+                  >
+                    Assign to Course
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setBulkAssignLearningPlanModalOpen(true)}
+                  >
+                    Assign to Learning Plan
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setBulkAssignGroupModalOpen(true)}
+                  >
+                    Assign to Groups
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -586,6 +741,188 @@ export default function UsersPage() {
             </Button>
             <Button onClick={handleBulkUpdate} disabled={!bulkRole}>
               Update {selectedUserIds.size} User(s)
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={bulkAssignCourseModalOpen}
+        onClose={() => {
+          setBulkAssignCourseModalOpen(false);
+          setSelectedCourseId("");
+          setEnrollmentRole("LEARNER");
+        }}
+        title="Assign Users to Course"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Assign {selectedUserIds.size} selected user(s) to a course:
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Course
+            </label>
+            <Select
+              value={selectedCourseId}
+              onChange={(e) => setSelectedCourseId(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Select a course...</option>
+              {availableCourses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Role
+            </label>
+            <Select
+              value={enrollmentRole}
+              onChange={(e) => setEnrollmentRole(e.target.value as "LEARNER" | "INSTRUCTOR")}
+              className="w-full"
+            >
+              <option value="LEARNER">Learner</option>
+              <option value="INSTRUCTOR">Instructor</option>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkAssignCourseModalOpen(false);
+                setSelectedCourseId("");
+                setEnrollmentRole("LEARNER");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkAssignToCourse} disabled={!selectedCourseId}>
+              Assign {selectedUserIds.size} User(s)
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={bulkAssignLearningPlanModalOpen}
+        onClose={() => {
+          setBulkAssignLearningPlanModalOpen(false);
+          setSelectedLearningPlanId("");
+          setEnrollmentRole("LEARNER");
+        }}
+        title="Assign Users to Learning Plan"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Assign {selectedUserIds.size} selected user(s) to a learning plan:
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Learning Plan
+            </label>
+            <Select
+              value={selectedLearningPlanId}
+              onChange={(e) => setSelectedLearningPlanId(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Select a learning plan...</option>
+              {availableLearningPlans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.title}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Role
+            </label>
+            <Select
+              value={enrollmentRole}
+              onChange={(e) => setEnrollmentRole(e.target.value as "LEARNER" | "INSTRUCTOR")}
+              className="w-full"
+            >
+              <option value="LEARNER">Learner</option>
+              <option value="INSTRUCTOR">Instructor</option>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkAssignLearningPlanModalOpen(false);
+                setSelectedLearningPlanId("");
+                setEnrollmentRole("LEARNER");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkAssignToLearningPlan} disabled={!selectedLearningPlanId}>
+              Assign {selectedUserIds.size} User(s)
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={bulkAssignGroupModalOpen}
+        onClose={() => {
+          setBulkAssignGroupModalOpen(false);
+          setSelectedGroupIds([]);
+        }}
+        title="Assign Users to Groups"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Assign {selectedUserIds.size} selected user(s) to one or more groups:
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Groups
+            </label>
+            <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 space-y-2">
+              {availableGroups.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">No groups available</p>
+              ) : (
+                availableGroups.map((group) => (
+                  <label
+                    key={group.id}
+                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.includes(group.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedGroupIds([...selectedGroupIds, group.id]);
+                        } else {
+                          setSelectedGroupIds(selectedGroupIds.filter((id) => id !== group.id));
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{group.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setBulkAssignGroupModalOpen(false);
+                setSelectedGroupIds([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBulkAssignToGroups} disabled={selectedGroupIds.length === 0}>
+              Assign {selectedUserIds.size} User(s)
             </Button>
           </div>
         </div>

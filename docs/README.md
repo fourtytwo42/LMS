@@ -44,7 +44,7 @@ The LMS is an enterprise-grade learning management system built with:
 
 **Version:** 1.0.0  
 **Status:** Production Ready  
-**Last Updated:** December 13, 2025
+**Last Updated:** December 14, 2025
 
 ### Features
 - ✅ User management with role-based access control
@@ -82,6 +82,9 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ Optional field validation: Estimated time, difficulty level, and max enrollments are truly optional
 - ✅ Fixed header: Sticky header that stays at top while content scrolls
 - ✅ Standardized image format: Wide format (16:9) with full image display (no cropping) for all course/learning plan images
+- ✅ Reusable table components: Unified table UI across all pages (DataTable, TableToolbar, TablePagination)
+- ✅ Table view standardization: All pages (courses, learning plans, users, groups, categories, enrollments) use consistent table template
+- ✅ Card view removal: All pages now use table view only for better consistency and maintainability
 
 ## Quick Links
 
