@@ -230,6 +230,73 @@ Publish a course (Instructor/Admin).
 ### POST /api/courses/:id/archive
 Archive a course (Instructor/Admin).
 
+## Content Item Management
+
+### GET /api/courses/:id/content
+List content items for a course with progress information.
+
+**Response:** `200 OK`
+```json
+{
+  "contentItems": [
+    {
+      "id": "content_id",
+      "title": "Introduction Video",
+      "type": "VIDEO",
+      "order": 1,
+      "required": true,
+      "completed": false,
+      "progress": 0.5,
+      "unlocked": true
+    }
+  ]
+}
+```
+
+### POST /api/courses/:id/content
+Add a content item to a course (Instructor/Admin).
+
+**Request Body:**
+```json
+{
+  "title": "Introduction Video",
+  "description": "Course introduction",
+  "type": "VIDEO",
+  "order": 1,
+  "required": true,
+  "videoUrl": "/api/files/serve?path=/videos/course-123/video.mp4",
+  "videoDuration": 600,
+  "allowSeeking": true
+}
+```
+
+**Supported Types:** `VIDEO`, `YOUTUBE`, `PDF`, `PPT`, `HTML`, `EXTERNAL`, `TEST`
+
+### GET /api/content/:id
+Get content item details (used by course detail page for expandable content).
+
+**Response:** `200 OK`
+```json
+{
+  "id": "content_id",
+  "title": "Introduction Video",
+  "type": "VIDEO",
+  "description": "Course introduction",
+  "videoUrl": "/api/files/serve?path=/videos/course-123/video.mp4",
+  "videoDuration": 600,
+  "completionThreshold": 0.8,
+  "allowSeeking": true,
+  "unlocked": true,
+  "completed": false
+}
+```
+
+### PUT /api/content/:id
+Update content item (Instructor/Admin).
+
+### DELETE /api/content/:id
+Delete content item (Instructor/Admin).
+
 ## Enrollment Management
 
 ### GET /api/enrollments
@@ -347,15 +414,42 @@ Upload a file.
     "fileName": "video.mp4",
     "fileSize": 1048576,
     "mimeType": "video/mp4",
-    "url": "/api/files/file_id/download"
+    "url": "/api/files/serve?path=/videos/course-123/video.mp4"
   }
 }
 ```
 
+**Note:** For content items (VIDEO, PDF, PPT), the URL points to `/api/files/serve?path=...`. For repository files, the URL points to `/api/files/{id}/download`.
+
+### GET /api/files/serve
+Serve content item files (VIDEO, PDF, PPT) with authentication and course access checks.
+
+**Query Parameters:**
+- `path` - Relative file path (e.g., `/videos/{courseId}/{filename}`)
+- `mimeType` - Optional MIME type override
+
+**Response:** File stream with proper MIME type headers
+
+**Features:**
+- Authentication required
+- Course access verification
+- Path validation to prevent directory traversal
+- Range request support for video streaming
+- Sequential content unlocking checks
+
+**Example:**
+```
+GET /api/files/serve?path=/videos/course-123/video.mp4
+```
+
 ### GET /api/files/:id/download
-Download a file.
+Download a repository file with tracking.
 
 **Response:** File stream
+
+**Features:**
+- Download tracking for analytics
+- File metadata from database
 
 ### GET /api/files/:id
 Get file metadata.

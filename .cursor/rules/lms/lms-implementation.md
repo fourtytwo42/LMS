@@ -1331,6 +1331,43 @@ export async function POST(request: NextRequest) {
 
 ### Video Player Component
 
+**Location:** `src/components/video/video-player.tsx`
+
+**Features:**
+- Progress tracking with 5-second interval updates
+- Duration detection from video metadata with fallback to stored duration
+- Completion detection based on configurable threshold (default 80%)
+- Resume from last position
+- Progress display (percentage and time)
+- Fullscreen support via native HTML5 controls
+- Stored duration support from content item `videoDuration` field
+
+**Props:**
+```typescript
+interface VideoPlayerProps {
+  contentItemId: string;
+  videoUrl: string;
+  videoDuration?: number; // Duration in seconds from content item
+  completionThreshold?: number; // Default 0.8 (80%)
+  allowSeeking?: boolean; // Default true
+  onProgressUpdate?: (progress: {
+    watchTime: number;
+    totalDuration: number;
+    lastPosition: number;
+    completed: boolean;
+  }) => void;
+}
+```
+
+**Progress Tracking:**
+- Updates every 5 seconds via `setInterval`
+- UI updates on `timeupdate` event for smooth display
+- Sends progress to `/api/progress/video` endpoint
+- Uses stored `videoDuration` if video metadata not available
+- Calculates completion percentage and unlocks next content
+
+### Video Player Component
+
 ```typescript
 // src/components/video/video-player.tsx
 'use client';

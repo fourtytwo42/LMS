@@ -62,14 +62,15 @@
 **Frontend:**
 - **Framework:** Next.js 16.0.8 (App Router) - Updated from 15.x
 - **UI Library:** React 19.2.1
-- **Styling:** Tailwind CSS 4.1.17 (with `@import "tailwindcss"` syntax)
-- **Icons:** Lucide React 0.556.0 (modern, consistent icon set)
+- **Styling:** Tailwind CSS 4.1.17 (with `@import "tailwindcss"` syntax, dark mode support)
+- **Icons:** Lucide React 0.556.0 (modern, consistent icon set with unique icons per menu item)
 - **Forms:** React Hook Form 7.68.0 + Zod 4.1.13
-- **State Management:** Zustand 5.0.9 (client state), React Server Components (server state)
+- **State Management:** Zustand 5.0.9 (client state), React Server Components (server state), React Context (theme)
 - **Charts:** Recharts 3.5.1 (for analytics dashboards)
-- **Video Player:** Custom HTML5 player with progress tracking
-- **PDF Viewer:** react-pdf 10.2.0
-- **PPT Viewer:** Custom slideshow viewer (convert PPT to images or use office.js)
+- **Video Player:** Custom HTML5 player with progress tracking, duration detection, and stored duration support
+- **PDF Viewer:** react-pdf 10.2.0 (inline viewer with page navigation)
+- **PPT Viewer:** Download/open support (no native viewer, opens in external application)
+- **Theme System:** Dark/light mode toggle with localStorage persistence
 
 **Backend:**
 - **Runtime:** Node.js 20.x LTS
@@ -1213,6 +1214,66 @@ Middleware checks user roles and permissions before allowing actions.
 - Polling: Check for new notifications every 30 seconds
 - WebSocket (Optional): Real-time notification delivery
 - Server-Sent Events (SSE): Alternative to WebSocket for one-way updates
+
+## File Storage Architecture
+
+### File Serving Endpoints
+
+**Content Item Files (VIDEO, PDF, PPT):**
+- **Endpoint:** `GET /api/files/serve?path={relativePath}`
+- **Purpose:** Serve files for content items (videos, PDFs, PPTs) with authentication and course access checks
+- **Authentication:** Required - validates user JWT token
+- **Authorization:** Checks user has access to the course containing the content item
+- **Features:**
+  - Path validation to prevent directory traversal attacks
+  - Course access verification
+  - Proper MIME type headers
+  - Range request support for video streaming
+  - File size limits (1GB max for uploads)
+
+**Repository Files:**
+- **Endpoint:** `GET /api/files/{id}/download`
+- **Purpose:** Download repository files with tracking
+- **Authentication:** Required
+- **Authorization:** Checks user has access to the course
+- **Features:**
+  - Download tracking for analytics
+  - File metadata from database
+
+### File Upload Flow
+
+1. **File Upload:** `POST /api/files/upload`
+   - Accepts `FormData` with file and metadata
+   - Validates file type and size (1GB max)
+   - Saves to organized directory structure: `/storage/{type}/{courseId}/{filename}`
+   - Returns file URL for content items: `/api/files/serve?path={relativePath}`
+   - Returns download URL for repository files: `/api/files/{id}/download`
+
+2. **File Storage Structure:**
+   ```
+   storage/
+   ├── avatars/
+   │   └── {userId}/
+   │       └── {filename}
+   ├── videos/
+   │   └── {courseId}/
+   │       └── {filename}
+   ├── pdfs/
+   │   └── {courseId}/
+   │       └── {filename}
+   ├── ppts/
+   │   └── {courseId}/
+   │       └── {filename}
+   └── repository/
+       └── {courseId}/
+           └── {folderPath}/
+               └── {filename}
+   ```
+
+3. **Content Item File URLs:**
+   - Videos: `/api/files/serve?path=/videos/{courseId}/{filename}`
+   - PDFs: `/api/files/serve?path=/pdfs/{courseId}/{filename}`
+   - PPTs: `/api/files/serve?path=/ppts/{courseId}/{filename}`
 
 ## File Storage Architecture
 

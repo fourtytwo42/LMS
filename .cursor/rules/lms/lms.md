@@ -213,9 +213,9 @@ created: 2025-12-09
 
 ## Status
 
-**Current Phase:** Production Deployment & Testing
+**Current Phase:** Production Deployment & Feature Enhancement
 
-**Last Updated:** December 11, 2025
+**Last Updated:** December 13, 2025
 
 ### Completed ✅
 
@@ -224,7 +224,7 @@ created: 2025-12-09
 - ✅ Project structure created
 - ✅ Authentication system (JWT-based with HTTP-only cookies)
 - ✅ Core course management features
-- ✅ Video player with progress tracking
+- ✅ Video player with progress tracking and duration detection
 - ✅ Assessment engine with auto-grading
 - ✅ Analytics and reporting dashboards
 - ✅ File repository system
@@ -240,6 +240,15 @@ created: 2025-12-09
 - ✅ PM2 production deployment
 - ✅ Navigation menu with role-based access
 - ✅ CSS styling fixes and base styles
+- ✅ Dark/Light mode toggle with localStorage persistence
+- ✅ Collapsible sidebar with unique icons and tooltips
+- ✅ Expandable content items on course detail page
+- ✅ Inline video player, PDF viewer, and PPT support
+- ✅ File serving endpoint for content items (VIDEO, PDF, PPT)
+- ✅ Video progress tracking with stored duration support
+- ✅ Content item API endpoint fixes
+- ✅ Locked content handling with user-friendly messages
+- ✅ E2E testing suite with Playwright (75+ tests)
 
 ### In Progress 🔄
 

@@ -44,17 +44,21 @@ The LMS is an enterprise-grade learning management system built with:
 
 **Version:** 1.0.0  
 **Status:** Production Ready  
-**Last Updated:** December 12, 2025
+**Last Updated:** December 13, 2025
 
 ### Features
 - ✅ User management with role-based access control
 - ✅ Course and learning plan management
-- ✅ Content management (videos, PDFs, PPTs)
+- ✅ Content management (videos, PDFs, PPTs, YouTube, HTML, external links)
+- ✅ Expandable content items with inline players
 - ✅ Assessment engine with auto-grading
+- ✅ Video progress tracking with duration detection
 - ✅ Progress tracking and analytics
 - ✅ Certificate generation
 - ✅ Notifications system
-- ✅ File repository system
+- ✅ File repository system with secure file serving
+- ✅ Dark/light mode toggle with persistent preferences
+- ✅ Collapsible sidebar with unique icons and tooltips
 - ✅ Comprehensive test coverage (80%+)
 - ✅ Demo accounts for quick testing
 - ✅ E2E testing with Playwright (75+ tests passing)
