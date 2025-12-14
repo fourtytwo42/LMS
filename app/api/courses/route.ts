@@ -65,11 +65,9 @@ export async function GET(request: NextRequest) {
       where.categoryId = categoryId;
     }
 
+    // Status filter
     if (status) {
       where.status = status;
-    } else if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
-      // Non-admins and non-instructors only see published courses
-      where.status = "PUBLISHED";
     }
 
     // For non-admin/instructor users, don't set publicAccess directly if we're going to use OR conditions
@@ -137,16 +135,111 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      if (where.OR) {
-        // If search OR exists, combine them with AND logic
-        // This means: (search matches) AND (public OR enrolled OR instructor OR group access)
-        where.AND = [
-          { OR: where.OR },
-          { OR: accessOr },
-        ];
-        delete where.OR;
+      // Add courses accessible through learning plans
+      // Find all learning plans the user has access to
+      const learningPlanAccessOr: any[] = [
+        { publicAccess: true },
+        {
+          enrollments: {
+            some: {
+              userId: user.id,
+            },
+          },
+        },
+        { createdById: user.id },
+      ];
+
+      if (userGroupIds.length > 0) {
+        learningPlanAccessOr.push({
+          groupAccess: {
+            some: {
+              groupId: { in: userGroupIds },
+            },
+          },
+        });
+      }
+
+      // Get learning plan IDs the user has access to
+      const accessibleLearningPlans = await prisma.learningPlan.findMany({
+        where: {
+          OR: learningPlanAccessOr,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const accessibleLearningPlanIds = accessibleLearningPlans.map((lp) => lp.id);
+
+      // If user has access to any learning plans, add courses from those plans
+      if (accessibleLearningPlanIds.length > 0) {
+        // Get course IDs from accessible learning plans
+        const learningPlanCourses = await prisma.learningPlanCourse.findMany({
+          where: {
+            learningPlanId: { in: accessibleLearningPlanIds },
+          },
+          select: {
+            courseId: true,
+          },
+        });
+
+        const accessibleCourseIds = learningPlanCourses.map((lpc) => lpc.courseId);
+
+        if (accessibleCourseIds.length > 0) {
+          // Add courses from learning plans - these should be accessible regardless of status
+          accessOr.push({
+            id: { in: accessibleCourseIds },
+          });
+        }
+      }
+
+      // For learners, require PUBLISHED status for courses NOT in learning plans
+      // But courses in accessible learning plans should be included regardless of status
+      if (!status && !user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
+        // Build access conditions with status filter for non-learning-plan courses
+        const accessOrWithStatus: any[] = [];
+        
+        for (const condition of accessOr) {
+          // If this is a learning plan course (by ID), include it without status filter
+          if (condition.id && condition.id.in) {
+            accessOrWithStatus.push(condition);
+          } else {
+            // For other access methods, require PUBLISHED status
+            accessOrWithStatus.push({
+              AND: [
+                condition,
+                { status: "PUBLISHED" },
+              ],
+            });
+          }
+        }
+
+        if (where.OR) {
+          where.AND = [
+            { OR: where.OR },
+            { OR: accessOrWithStatus },
+          ];
+          delete where.OR;
+        } else {
+          where.OR = accessOrWithStatus;
+        }
       } else {
-        where.OR = accessOr;
+        // If status is explicitly set or user is admin/instructor, use original logic
+        if (!status && !user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
+          where.status = "PUBLISHED";
+        }
+        
+        if (where.OR) {
+          // If search OR exists, combine them with AND logic
+          // This means: (search matches) AND (public OR enrolled OR instructor OR group access OR learning plan access)
+          where.AND = [
+            { OR: where.OR },
+            { OR: accessOr },
+          ];
+          delete where.OR;
+        } else {
+          where.OR = accessOr;
+        }
       }
     }
 

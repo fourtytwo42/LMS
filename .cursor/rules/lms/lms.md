@@ -321,6 +321,10 @@ created: 2025-12-09
 - ✅ Categories removed: Removed categories from sidebar menu and all course/learning plan forms
 - ✅ Learning plans display: Course editor shows all learning plans containing the course with clickable links to learning plan courses tab
 - ✅ Courses table in learning plans: Converted courses tab in learning plan editor to table format with course images, detailed information, selection, and bulk delete actions
+- ✅ Simplified learner dashboard: New learner-focused dashboard with Available, In Progress, and Completed sections, no sidebar, elegant card-based UI
+- ✅ Learner course access: Learners can now access and consume course material directly from course detail pages
+- ✅ Group-based access filtering: API automatically filters learning plans and courses based on learner group membership
+- ✅ Conditional sidebar: Sidebar automatically hidden for learners on learner dashboard page (header and footer remain visible)
 
 ### In Progress 🔄
 

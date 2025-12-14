@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen, Users } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen, Users, Clock, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -219,9 +219,53 @@ export default function LearningPlanEditorPage() {
   const isCreator = plan?.createdBy.id === user?.id || false;
   // For instructor access, we'll rely on API permission checks (403 if no access)
   const canEdit = isAdmin || isCreator;
+  const isLearner = !isAdmin && !isCreator && !user?.roles?.includes("INSTRUCTOR");
 
   // Check if user has view access (not just edit access)
   const [hasViewAccess, setHasViewAccess] = useState(false);
+  
+  // Enrollment status for learners
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
+
+  // Handle self-enrollment
+  const handleSelfEnroll = async () => {
+    if (!user || !planId) return;
+    
+    setEnrolling(true);
+    try {
+      const response = await fetch("/api/enrollments/self", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          learningPlanId: planId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to enroll");
+      }
+
+      const data = await response.json();
+      setIsEnrolled(true);
+      setEnrollmentStatus("ENROLLED");
+      alert(data.enrollment?.message || "Successfully enrolled!");
+      
+      // Refresh plan data to update enrollment count
+      const planResponse = await fetch(`/api/learning-plans/${planId}`);
+      if (planResponse.ok) {
+        const planData = await planResponse.json();
+        setPlan(planData);
+      }
+    } catch (error) {
+      console.error("Error enrolling:", error);
+      alert(`Enrollment failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   // Check access permissions
   useEffect(() => {
@@ -260,6 +304,23 @@ export default function LearningPlanEditorPage() {
 
         const planData = await planResponse.json();
         setPlan(planData);
+
+        // Check enrollment status for learners
+        if (isLearner && user) {
+          try {
+            const enrollmentResponse = await fetch(`/api/enrollments?learningPlanId=${planId}&userId=${user.id}`);
+            if (enrollmentResponse.ok) {
+              const enrollmentData = await enrollmentResponse.json();
+              const userEnrollment = enrollmentData.enrollments?.find((e: any) => e.userId === user.id);
+              if (userEnrollment) {
+                setIsEnrolled(true);
+                setEnrollmentStatus(userEnrollment.status);
+              }
+            }
+          } catch (error) {
+            console.error("Error checking enrollment:", error);
+          }
+        }
 
         // Set form values
         setDetailsValue("title", planData.title);
@@ -944,18 +1005,187 @@ export default function LearningPlanEditorPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{plan.title}</h1>
       </div>
 
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
-          {canEdit && (
-            <>
-              <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
-              <TabsTrigger value="groups">Groups</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </>
-          )}
-        </TabsList>
+      {isLearner ? (
+        // Learner view - single page, no tabs
+        <div className="space-y-6">
+          {/* Hero Section */}
+          <Card className="overflow-hidden">
+            <div className="relative">
+              {plan.coverImage && (
+                <div className="relative h-64 w-full overflow-hidden bg-gray-200 dark:bg-gray-800">
+                  <img
+                    src={plan.coverImage}
+                    alt={plan.title}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                </div>
+              )}
+              <div className={`p-6 ${plan.coverImage ? "relative -mt-16" : ""}`}>
+                <div className={`${plan.coverImage ? "bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6" : ""}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{plan.title}</h1>
+                      {plan.shortDescription && (
+                        <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">{plan.shortDescription}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+                        {plan.estimatedTime && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{Math.floor(plan.estimatedTime / 60)}h {plan.estimatedTime % 60}m</span>
+                          </div>
+                        )}
+                        {plan.difficultyLevel && (
+                          <div className="flex items-center gap-1">
+                            <Award className="h-4 w-4" />
+                            <span>{plan.difficultyLevel}</span>
+                          </div>
+                        )}
+                        {plan.courseCount > 0 && (
+                          <div className="flex items-center gap-1">
+                            <BookOpen className="h-4 w-4" />
+                            <span>{plan.courseCount} {plan.courseCount === 1 ? "Course" : "Courses"}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {plan.selfEnrollment && !isEnrolled && (
+                      <Button
+                        onClick={handleSelfEnroll}
+                        disabled={enrolling}
+                        className="ml-4"
+                      >
+                        {enrolling ? "Enrolling..." : "Enroll Now"}
+                      </Button>
+                    )}
+                    {isEnrolled && (
+                      <Badge variant="success" className="ml-4">
+                        {enrollmentStatus === "COMPLETED" ? "Completed" : "Enrolled"}
+                      </Badge>
+                    )}
+                  </div>
+                  {plan.description && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{plan.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Courses Section */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Courses in this Learning Plan</h2>
+            {plan.courses.length === 0 ? (
+              <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No courses available in this learning plan yet.</p>
+              </div>
+            ) : (
+              <div className="max-w-4xl">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-20">Image</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead className="w-24">Time</TableHead>
+                        <TableHead className="w-32">Difficulty</TableHead>
+                        <TableHead className="w-32 text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {plan.courses.map((lpCourse, index) => (
+                        <TableRow key={lpCourse.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" onClick={() => router.push(`/courses/${lpCourse.id}`)}>
+                          <TableCell>
+                            {lpCourse.coverImage ? (
+                              <div className="w-20 aspect-video rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                                <img
+                                  src={lpCourse.coverImage}
+                                  alt={lpCourse.title}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-20 aspect-video rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                <BookOpen className="h-6 w-6 text-white opacity-50" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                {lpCourse.title}
+                              </div>
+                              {lpCourse.shortDescription && (
+                                <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                                  {lpCourse.shortDescription}
+                                </div>
+                              )}
+                              <div className="mt-1">
+                                <Badge variant="info" className="text-xs">
+                                  Course {index + 1}
+                                </Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {lpCourse.estimatedTime ? (
+                              <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {Math.floor(lpCourse.estimatedTime / 60)}h {lpCourse.estimatedTime % 60}m
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {lpCourse.difficultyLevel ? (
+                              <Badge variant="default" className="text-xs">
+                                {lpCourse.difficultyLevel}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/courses/${lpCourse.id}`);
+                              }}
+                            >
+                              <BookOpen className="mr-2 h-4 w-4" />
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      ) : (
+        // Admin/Instructor/Creator view - with tabs
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="courses">Courses</TabsTrigger>
+            {canEdit && (
+              <>
+                <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+                <TabsTrigger value="groups">Groups</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </>
+            )}
+          </TabsList>
 
         <TabsContent value="details">
           <Card className="p-6">
@@ -1642,7 +1872,8 @@ export default function LearningPlanEditorPage() {
             </form>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      )}
 
       {/* Add Course Modal */}
       <Modal

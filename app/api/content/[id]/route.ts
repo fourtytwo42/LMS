@@ -84,12 +84,73 @@ export async function GET(
       },
     });
 
+    // Check if user has access through a learning plan that contains this course
+    let hasLearningPlanAccess = false;
+    if (!isAdmin && !isAssignedInstructor && !isEnrolled && !contentItem.course.publicAccess && contentItem.course.createdById !== user.id) {
+      // Find all learning plans that contain this course
+      const learningPlanCourses = await prisma.learningPlanCourse.findMany({
+        where: {
+          courseId: contentItem.courseId,
+        },
+        include: {
+          learningPlan: {
+            include: {
+              groupAccess: {
+                select: {
+                  groupId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (learningPlanCourses.length > 0) {
+        // Get user's group IDs
+        const userGroups = await prisma.groupMember.findMany({
+          where: { userId: user.id },
+          select: { groupId: true },
+        });
+        const userGroupIds = userGroups.map((gm) => gm.groupId);
+
+        // Check if user has access to any learning plan containing this course
+        for (const lpCourse of learningPlanCourses) {
+          const learningPlan = lpCourse.learningPlan;
+          
+          // Check if user is enrolled in the learning plan
+          const isEnrolledInPlan = await prisma.enrollment.findFirst({
+            where: {
+              learningPlanId: learningPlan.id,
+              userId: user.id,
+            },
+          });
+
+          // Check if learning plan is public
+          const isPublic = learningPlan.publicAccess;
+
+          // Check if user is in a group that has access
+          const hasGroupAccess = userGroupIds.length > 0 && learningPlan.groupAccess.some(
+            (ga) => userGroupIds.includes(ga.groupId)
+          );
+
+          // Check if user is the creator
+          const isCreator = learningPlan.createdById === user.id;
+
+          if (isEnrolledInPlan || isPublic || hasGroupAccess || isCreator) {
+            hasLearningPlanAccess = true;
+            break;
+          }
+        }
+      }
+    }
+
     const hasAccess =
       isAdmin ||
       isAssignedInstructor ||
       contentItem.course.publicAccess ||
       isEnrolled ||
-      contentItem.course.createdById === user.id;
+      contentItem.course.createdById === user.id ||
+      hasLearningPlanAccess;
 
     if (!hasAccess) {
       return NextResponse.json(

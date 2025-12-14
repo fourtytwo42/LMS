@@ -227,13 +227,27 @@ export default function CourseEditorPage() {
   const isAssignedInstructor = course?.instructors.some((i) => i.id === user?.id) || false;
   const isCreator = course?.createdBy.id === user?.id || false;
   const canEdit = isAdmin || isAssignedInstructor || isCreator;
+  const isLearner = !isAdmin && !isAssignedInstructor && !isCreator && !user?.roles?.includes("INSTRUCTOR");
 
-  // Redirect if no access
+  // Check if user has view access (not just edit access)
+  const [hasViewAccess, setHasViewAccess] = useState(false);
+
+  // Check access permissions
   useEffect(() => {
-    if (!loading && course && !canEdit) {
-      router.push("/courses");
+    if (!loading && courseId) {
+      fetch(`/api/courses/${courseId}`)
+        .then((res) => {
+          if (res.status === 403) {
+            router.push("/courses");
+          } else if (res.ok) {
+            setHasViewAccess(true);
+          }
+        })
+        .catch(() => {
+          router.push("/courses");
+        });
     }
-  }, [loading, course, canEdit, router]);
+  }, [loading, courseId, router]);
 
   // Fetch course data
   useEffect(() => {
@@ -704,6 +718,12 @@ export default function CourseEditorPage() {
   };
 
   const handleContentItemClick = async (item: ContentItem) => {
+    // For learners, check if content is unlocked
+    if (isLearner && item.unlocked === false) {
+      alert("This content is locked. Please complete the required prerequisites first.");
+      return;
+    }
+
     if (expandedItemId === item.id) {
       setExpandedItemId(null);
       setExpandedContent(null);
@@ -721,8 +741,8 @@ export default function CourseEditorPage() {
       setExpandedContent({
         ...contentData,
         videoDuration: contentData.videoDuration || null,
-        unlocked: true,
-        completed: false,
+        unlocked: item.unlocked !== undefined ? item.unlocked : true,
+        completed: item.completed || false,
       });
     } catch (error) {
       console.error("Error fetching content:", error);
@@ -887,16 +907,19 @@ export default function CourseEditorPage() {
     }
   };
 
-  if (loading) {
-    return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Loading...</div>;
+  if (loading || !hasViewAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading course...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!course) {
     return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Course not found</div>;
-  }
-
-  if (!canEdit) {
-    return null; // Will redirect in useEffect
   }
 
   const isAllEnrollmentsSelected = enrollments.length > 0 && enrollments.every((e) => selectedEnrollmentIds.has(e.id));
@@ -915,14 +938,250 @@ export default function CourseEditorPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{course.title}</h1>
       </div>
 
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="training-material">Training Material</TabsTrigger>
-          <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
-          <TabsTrigger value="groups">Groups</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+      {isLearner ? (
+        // Learner view - show training material tab only
+        <Tabs defaultValue="training-material" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="training-material">Training Material</TabsTrigger>
+          </TabsList>
+
+        <TabsContent value="training-material">
+          <Card className="p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Training Material</h2>
+              {canEdit && (
+                <Button onClick={handleAddContent}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Content
+                </Button>
+              )}
+            </div>
+
+            {contentItems.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                No content items yet
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contentItems.map((item) => {
+                  const isExpanded = expandedItemId === item.id;
+                  
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-lg border overflow-hidden"
+                    >
+                      <div
+                        className={cn(
+                          "flex items-center justify-between p-4 transition-colors",
+                          isExpanded 
+                            ? "bg-blue-50 dark:bg-blue-900/20" 
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800",
+                          isLearner && item.unlocked === false
+                            ? "cursor-not-allowed opacity-60"
+                            : "cursor-pointer"
+                        )}
+                        onClick={() => handleContentItemClick(item)}
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div
+                            className={getIconContainerClasses("primary")}
+                            style={getIconContainerStyle("primary")}
+                          >
+                            {getContentIcon(item.type)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                              {item.title}
+                              {isLearner && item.unlocked === false && (
+                                <Lock className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                              <Badge variant="info" className="text-xs">
+                                {item.type}
+                              </Badge>
+                              {item.required && (
+                                <Badge variant="warning" className="text-xs">
+                                  Required
+                                </Badge>
+                              )}
+                              {isLearner && item.unlocked === false && (
+                                <Badge variant="default" className="text-xs">
+                                  Locked
+                                </Badge>
+                              )}
+                              <span>Order: {item.order}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {canEdit && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveContent(item.id, "up");
+                                }}
+                                disabled={contentItems.findIndex((i) => i.id === item.id) === 0}
+                                title="Move up"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveContent(item.id, "down");
+                                }}
+                                disabled={contentItems.findIndex((i) => i.id === item.id) === contentItems.length - 1}
+                                title="Move down"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPrerequisitesContentItemId(item.id);
+                                  setPrerequisitesContentItemTitle(item.title);
+                                  setPrerequisitesModalOpen(true);
+                                }}
+                                title="Set prerequisites"
+                              >
+                                <ListChecks className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {canEdit && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditContent(item);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteContent(item.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </>
+                          )}
+                          <div className="text-gray-400">
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+                          {loadingContent ? (
+                            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                              Loading content...
+                            </div>
+                          ) : expandedContent ? (
+                            <div className="space-y-4">
+                              {expandedContent.description && (
+                                <p className="text-gray-700 dark:text-gray-300">{expandedContent.description}</p>
+                              )}
+                              
+                              {expandedContent.type === "VIDEO" && expandedContent.videoUrl && (
+                                <VideoPlayerLazy
+                                  contentItemId={expandedContent.id}
+                                  videoUrl={expandedContent.videoUrl}
+                                  videoDuration={expandedContent.videoDuration || undefined}
+                                  completionThreshold={expandedContent.completionThreshold || 0.8}
+                                  allowSeeking={expandedContent.allowSeeking}
+                                  onProgressUpdate={handleProgressUpdate}
+                                />
+                              )}
+
+                              {expandedContent.type === "PDF" && expandedContent.pdfUrl && (
+                                <PdfViewerLazy fileUrl={expandedContent.pdfUrl} />
+                              )}
+
+                              {expandedContent.type === "PPT" && expandedContent.pptUrl && (
+                                <PPTViewerLazy fileUrl={expandedContent.pptUrl} />
+                              )}
+
+                              {expandedContent.type === "HTML" && expandedContent.htmlContent && (
+                                <div
+                                  className="prose max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: expandedContent.htmlContent }}
+                                />
+                              )}
+
+                              {expandedContent.type === "EXTERNAL" && expandedContent.externalUrl && (
+                                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                    External content link.
+                                  </p>
+                                  <Button
+                                    onClick={() => window.open(expandedContent.externalUrl!, "_blank")}
+                                  >
+                                    Open External Link
+                                  </Button>
+                                </div>
+                              )}
+
+                              {expandedContent.type === "TEST" && (
+                                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                    Test content. Click to take the test.
+                                  </p>
+                                  <Button
+                                    onClick={() =>
+                                      router.push(`/courses/${courseId}/tests/${expandedContent.id}`)
+                                    }
+                                  >
+                                    Take Test
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                              Failed to load content
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+        </Tabs>
+      ) : (
+        // Admin/Instructor/Creator view - with all tabs
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="training-material">Training Material</TabsTrigger>
+            <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+            <TabsTrigger value="groups">Groups</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="details">
           <Card className="p-6">
@@ -1101,10 +1360,13 @@ export default function CourseEditorPage() {
                     >
                       <div
                         className={cn(
-                          "flex items-center justify-between p-4 cursor-pointer transition-colors",
+                          "flex items-center justify-between p-4 transition-colors",
                           isExpanded 
                             ? "bg-blue-50 dark:bg-blue-900/20" 
-                            : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800",
+                          isLearner && item.unlocked === false
+                            ? "cursor-not-allowed opacity-60"
+                            : "cursor-pointer"
                         )}
                         onClick={() => handleContentItemClick(item)}
                       >
@@ -1116,8 +1378,11 @@ export default function CourseEditorPage() {
                             {getContentIcon(item.type)}
                           </div>
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                            <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
                               {item.title}
+                              {isLearner && item.unlocked === false && (
+                                <Lock className="h-4 w-4 text-gray-400" />
+                              )}
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                               <Badge variant="info" className="text-xs">
@@ -1126,6 +1391,11 @@ export default function CourseEditorPage() {
                               {item.required && (
                                 <Badge variant="warning" className="text-xs">
                                   Required
+                                </Badge>
+                              )}
+                              {isLearner && item.unlocked === false && (
+                                <Badge variant="default" className="text-xs">
+                                  Locked
                                 </Badge>
                               )}
                               <span>Order: {item.order}</span>
@@ -1174,26 +1444,30 @@ export default function CourseEditorPage() {
                               </Button>
                             </>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditContent(item);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteContent(item.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
+                          {canEdit && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditContent(item);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteContent(item.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </>
+                          )}
                           <div className="text-gray-400">
                             {isExpanded ? (
                               <ChevronUp className="h-5 w-5" />

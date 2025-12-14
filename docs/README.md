@@ -90,6 +90,10 @@ The LMS is an enterprise-grade learning management system built with:
 - ✅ Categories removed: Categories feature removed from sidebar menu and all forms
 - ✅ Learning plans display: Course editor shows learning plans containing the course with navigation links
 - ✅ Courses table: Learning plan courses tab converted to table with images, details, selection, and bulk actions
+- ✅ Simplified learner dashboard: New learner-focused dashboard with Available, In Progress, and Completed sections, elegant card-based UI, no sidebar
+- ✅ Learner course access: Learners can access and consume course material directly from course detail pages
+- ✅ Group-based access: Automatic filtering of learning plans and courses based on learner group membership
+- ✅ Conditional sidebar: Sidebar automatically hidden for learners on learner dashboard (header and footer remain visible)
 
 ## Quick Links
 

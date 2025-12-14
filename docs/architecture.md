@@ -61,9 +61,9 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 ### Frontend Components
 
 **Layout Components:**
-- `DashboardLayout` - Main dashboard wrapper with theme provider, full-width content area
+- `DashboardLayout` - Main dashboard wrapper with theme provider, full-width content area. Conditionally hides sidebar for learners on learner dashboard page.
 - `Header` - Top navigation bar with LMS on left, navigation items (theme toggle, notifications, user info, logout) on right. Theme toggle has black moon icon.
-- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed). Fixed positioning, extends to footer. Categories menu item removed.
+- `Sidebar` - Collapsible side navigation menu with unique icons, tooltips, and localStorage persistence (defaults to collapsed). Fixed positioning, extends to footer. Categories menu item removed. Automatically hidden for learners on learner dashboard.
 - `Footer` - Fixed at bottom of viewport, spanning full page width
 - `ThemeProvider` - Dark/light mode theme management with centralized CSS variables
 - `ThemeToggle` - Theme toggle button with persistent localStorage state, black moon icon
@@ -170,9 +170,20 @@ Key models:
 
 **Layout Structure:**
 - **Header:** Fixed at top, full-width. LMS logo on left, navigation items (theme toggle, notifications, user info, logout) on right using `justify-between` flex layout.
-- **Sidebar:** Fixed at left, extends from header to footer. Collapsible with localStorage persistence (defaults to collapsed). Unique icons with hover tooltips when collapsed.
-- **Main Content:** Scrollable area with proper margins for sidebar. Full-width on listing pages, max-width constraints (max-w-7xl) on detail pages for optimal readability.
+- **Sidebar:** Fixed at left, extends from header to footer. Collapsible with localStorage persistence (defaults to collapsed). Unique icons with hover tooltips when collapsed. Automatically hidden for learners on learner dashboard page.
+- **Main Content:** Scrollable area with proper margins for sidebar. Full-width on listing pages, max-width constraints (max-w-7xl) on detail pages for optimal readability. No sidebar margin for learners on learner dashboard.
 - **Footer:** Fixed at bottom of viewport, spanning full page width.
+
+**Learner Dashboard:**
+- **Simplified Interface:** Learners see a streamlined dashboard without sidebar navigation
+- **Three Sections:**
+  - **Available:** Learning plans and courses the learner can enroll in (based on group membership)
+  - **In Progress:** Currently enrolled items with progress tracking
+  - **Completed:** Finished learning plans and courses
+- **Card-Based UI:** Elegant card layout with cover images, progress indicators, difficulty badges, and time estimates
+- **One-Click Enrollment:** Direct enrollment buttons for available content
+- **Group-Based Filtering:** Only shows content the learner has group access to
+- **Course Access:** Learners can access and consume course material directly from course detail pages
 
 **Responsive Grid:**
 - **Courses Listing:** Expandable grid that adapts to screen size:
