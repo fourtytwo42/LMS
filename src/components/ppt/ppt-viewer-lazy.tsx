@@ -20,6 +20,7 @@ interface PPTViewerLazyProps {
   totalPages?: number;
   completionThreshold?: number;
   onProgressUpdate?: (progress: number, completed: boolean) => void;
+  initialPage?: number;
 }
 
 export function PPTViewerLazy({ 
@@ -29,6 +30,7 @@ export function PPTViewerLazy({
   totalPages,
   completionThreshold,
   onProgressUpdate,
+  initialPage,
 }: PPTViewerLazyProps) {
   // Convert PPTX URL to PDF URL for display
   const pdfUrl = fileUrl.replace(/\.pptx?$/i, ".pdf");
@@ -44,6 +46,7 @@ export function PPTViewerLazy({
       totalPages={totalPages}
       completionThreshold={completionThreshold}
       onProgressUpdate={onProgressUpdate}
+      initialPage={initialPage}
     />
   );
 }

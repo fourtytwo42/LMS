@@ -29,9 +29,23 @@ export async function GET(
         course: {
           select: {
             id: true,
+            createdById: true,
+            publicAccess: true,
             enrollments: {
               where: { userId: user.id },
               select: { id: true },
+            },
+            groupAccess: {
+              select: {
+                group: {
+                  select: {
+                    members: {
+                      where: { userId: user.id },
+                      select: { id: true },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -45,10 +59,79 @@ export async function GET(
       );
     }
 
-    // Check enrollment
-    if (contentItem.course.enrollments.length === 0) {
+    // Check access permissions
+    const isAdmin = user.roles.includes("ADMIN");
+    const isInstructor = user.roles.includes("INSTRUCTOR");
+    const isCreator = contentItem.course.createdById === user.id;
+    const isDirectlyEnrolled = contentItem.course.enrollments.length > 0;
+    const hasCourseGroupAccess = contentItem.course.groupAccess.some((ga) => ga.group.members.length > 0);
+    
+    // Check learning plan access
+    let hasLearningPlanAccess = false;
+    if (!isAdmin && !isInstructor && !isCreator && !isDirectlyEnrolled && !hasCourseGroupAccess && !contentItem.course.publicAccess) {
+      // Find all learning plans that contain this course
+      const learningPlanCourses = await prisma.learningPlanCourse.findMany({
+        where: {
+          courseId: contentItem.course.id,
+        },
+        include: {
+          learningPlan: {
+            select: {
+              id: true,
+              createdById: true,
+              publicAccess: true,
+            },
+          },
+        },
+      });
+
+      if (learningPlanCourses.length > 0) {
+        // Get user's group IDs
+        const userGroups = await prisma.groupMember.findMany({
+          where: { userId: user.id },
+          select: { groupId: true },
+        });
+        const userGroupIds = userGroups.map((gm) => gm.groupId);
+
+        // Check if user has access to any learning plan containing this course
+        for (const lpCourse of learningPlanCourses) {
+          const learningPlan = lpCourse.learningPlan;
+          
+          // Check if user is enrolled in the learning plan
+          const isEnrolledInPlan = await prisma.enrollment.findFirst({
+            where: {
+              learningPlanId: learningPlan.id,
+              userId: user.id,
+            },
+          });
+
+          // Check if learning plan is public
+          const isPublic = learningPlan.publicAccess;
+
+          // Check if user is in a group that has access to the learning plan
+          const learningPlanGroupAccess = await prisma.learningPlanGroupAccess.findMany({
+            where: {
+              learningPlanId: learningPlan.id,
+              groupId: { in: userGroupIds },
+            },
+          });
+
+          // Check if user is the creator
+          const isPlanCreator = learningPlan.createdById === user.id;
+
+          if (isEnrolledInPlan || isPublic || learningPlanGroupAccess.length > 0 || isPlanCreator) {
+            hasLearningPlanAccess = true;
+            break;
+          }
+        }
+      }
+    }
+
+    const hasAccess = isAdmin || isInstructor || isCreator || isDirectlyEnrolled || hasLearningPlanAccess || hasCourseGroupAccess || contentItem.course.publicAccess;
+
+    if (!hasAccess) {
       return NextResponse.json(
-        { error: "FORBIDDEN", message: "You are not enrolled in this course" },
+        { error: "FORBIDDEN", message: "You do not have access to this course" },
         { status: 403 }
       );
     }
@@ -64,22 +147,34 @@ export async function GET(
         },
       });
 
+      // Get completion record for videos (completion records take precedence)
+      const completion = await prisma.completion.findFirst({
+        where: {
+          userId: user.id,
+          courseId: contentItem.courseId,
+          contentItemId: contentItemId,
+        },
+      });
+
       if (!videoProgress) {
         return NextResponse.json({
           contentItemId,
           progress: 0,
-          completed: false,
+          completed: !!completion, // Mark completed if completion record exists
           lastPage: null,
           lastPosition: 0,
         });
       }
+
+      // Completion record takes precedence over videoProgress.completed
+      const isCompleted = !!completion || videoProgress.completed;
 
       return NextResponse.json({
         contentItemId,
         progress: videoProgress.totalDuration > 0 
           ? (videoProgress.watchTime / videoProgress.totalDuration) 
           : 0,
-        completed: videoProgress.completed,
+        completed: isCompleted,
         lastPage: null,
         lastPosition: videoProgress.lastPosition,
       });

@@ -141,8 +141,14 @@ export function VideoPlayer({
 
           if (response.ok) {
             const data = await response.json();
-            if (data.unlockedNext && onProgressUpdate) {
-              onProgressUpdate(newProgress);
+            // Always call onProgressUpdate when progress changes, not just when next is unlocked
+            if (onProgressUpdate) {
+              onProgressUpdate({
+                watchTime: newProgress.watchTime,
+                totalDuration: newProgress.totalDuration,
+                lastPosition: newProgress.lastPosition,
+                completed: newProgress.completed,
+              });
             }
           }
         } catch (error) {

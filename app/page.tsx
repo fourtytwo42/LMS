@@ -50,7 +50,7 @@ export default function HomePage() {
                   Log in
                 </Button>
               </Link>
-              <Link href="/register">
+              <Link href="/login">
                 <Button size="sm">Get Started</Button>
               </Link>
             </nav>
@@ -77,8 +77,14 @@ export default function HomePage() {
                 tracks progress in real-time, and provides actionable insights. Whether you're training employees, 
                 educating students, or building skills, our platform scales with your needs.
               </p>
-              <div className="flex justify-center items-center">
-                <Link href="/register">
+              <div className="flex justify-center items-center gap-4">
+                <Link href="/login">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto">
+                    Demo
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="https://studio42.dev/contact?source=lms" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" className="text-lg px-8 py-6 h-auto">
                     Contact Us
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -322,8 +328,14 @@ export default function HomePage() {
                 Join thousands of organizations already using our platform to deliver exceptional learning experiences. 
                 Start your free trial today and see the difference.
               </p>
-              <div className="flex justify-center items-center">
-                <Link href="/register">
+              <div className="flex justify-center items-center gap-4">
+                <Link href="/login">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto bg-white/10 text-white border-white/20 hover:bg-white/20">
+                    Demo
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="https://studio42.dev/contact?source=lms" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="secondary" className="text-lg px-8 py-6 h-auto bg-white text-blue-600 hover:bg-gray-100">
                     Contact Us
                     <ArrowRight className="ml-2 h-5 w-5" />

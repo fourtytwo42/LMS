@@ -241,11 +241,13 @@ export default function LearningPlanEditorPage() {
   const [loadingContent, setLoadingContent] = useState<Record<string, boolean>>({});
   const [selectedContentItem, setSelectedContentItem] = useState<any | null>(null);
   const [expandedContentItem, setExpandedContentItem] = useState<any | null>(null);
+  const progressUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProgressRef = useRef<{ progress?: number; completed?: boolean } | null>(null);
 
   // Fetch course content items
-  const fetchCourseContent = async (courseId: string) => {
-    if (courseContentItems[courseId]) {
-      // Already loaded
+  const fetchCourseContent = async (courseId: string, forceRefresh: boolean = false) => {
+    if (courseContentItems[courseId] && !forceRefresh) {
+      // Already loaded, skip unless forcing refresh
       return;
     }
 
@@ -256,7 +258,13 @@ export default function LearningPlanEditorPage() {
         const data = await response.json();
         setCourseContentItems((prev) => ({
           ...prev,
-          [courseId]: data.contentItems || [],
+          [courseId]: (data.contentItems || []).map((item: any) => ({
+            ...item,
+            progress: item.progress ?? 0,
+            completed: item.completed === true, // Explicit boolean check
+            lastPage: item.lastPage || null,
+            lastPosition: item.lastPosition || null,
+          })),
         }));
       }
     } catch (error) {
@@ -330,12 +338,111 @@ export default function LearningPlanEditorPage() {
     }
   };
 
-  // Handle progress update
-  const handleProgressUpdate = async () => {
-    // Refresh content items for the expanded course to get updated progress
-    if (expandedCourseId) {
-      await fetchCourseContent(expandedCourseId);
+  // Handle progress update - debounced to prevent spam
+  const handleProgressUpdate = async (progressOrNumber?: number | { watchTime?: number; totalDuration?: number; lastPosition?: number; completed?: boolean }, completed?: boolean) => {
+    // Handle both video progress (object) and content progress (number, completed)
+    let newProgress: number | undefined;
+    let isCompleted: boolean | undefined;
+    
+    if (typeof progressOrNumber === 'object' && progressOrNumber !== null) {
+      // Video progress format
+      const videoProgress = progressOrNumber as { watchTime?: number; totalDuration?: number; completed?: boolean };
+      newProgress = videoProgress.totalDuration && videoProgress.totalDuration > 0 && videoProgress.watchTime !== undefined
+        ? (videoProgress.watchTime / videoProgress.totalDuration) * 100
+        : undefined;
+      isCompleted = videoProgress.completed;
+    } else {
+      // Content progress format (PDF/PPT)
+      newProgress = progressOrNumber;
+      isCompleted = completed;
     }
+
+    // Clear any pending update
+    if (progressUpdateTimeoutRef.current) {
+      clearTimeout(progressUpdateTimeoutRef.current);
+    }
+
+    // Check if completion status changed (important update)
+    const completionChanged = lastProgressRef.current?.completed !== isCompleted;
+    const significantProgressChange = 
+      lastProgressRef.current?.progress !== undefined &&
+      newProgress !== undefined &&
+      Math.abs(lastProgressRef.current.progress - newProgress) >= 0.1; // 10% change
+
+    // Update last progress
+    lastProgressRef.current = { progress: newProgress, completed: isCompleted };
+
+    // If completion status changed or content is completed, update immediately
+    if (completionChanged || (isCompleted === true)) {
+      if (expandedCourseId) {
+        // Force refresh to get latest progress including completion records
+        await fetchCourseContent(expandedCourseId, true);
+      }
+      if (expandedContentItem && expandedContentItem.id) {
+        try {
+          // For videos, use video progress endpoint; for others, use content progress endpoint
+          const endpoint = expandedContentItem.type === "VIDEO" 
+            ? `/api/progress/video/${expandedContentItem.id}`
+            : `/api/progress/content/${expandedContentItem.id}`;
+          
+          const progressResponse = await fetch(endpoint);
+          if (progressResponse.ok) {
+            const progressData = await progressResponse.json();
+            if (expandedContentItem.type === "VIDEO") {
+              // Video progress format
+              const progress = progressData.totalDuration > 0 
+                ? (progressData.watchTime / progressData.totalDuration) 
+                : 0;
+              setExpandedContentItem((prev) => prev ? {
+                ...prev,
+                completed: progressData.completed ?? prev.completed,
+                lastPage: null,
+                lastPosition: progressData.lastPosition ?? prev.lastPosition,
+              } : null);
+            } else {
+              // Content progress format
+              setExpandedContentItem((prev) => prev ? {
+                ...prev,
+                completed: progressData.completed ?? prev.completed,
+                lastPage: progressData.lastPage ?? prev.lastPage,
+                lastPosition: progressData.lastPosition ?? prev.lastPosition,
+              } : null);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching updated progress:", error);
+        }
+      }
+      return;
+    }
+
+    // For other updates, debounce to avoid spam
+    progressUpdateTimeoutRef.current = setTimeout(async () => {
+      if (expandedCourseId) {
+        // Only refresh if there was a significant change
+        if (significantProgressChange) {
+          await fetchCourseContent(expandedCourseId, true);
+        }
+      }
+      
+      // Update expanded content item progress (lightweight)
+      if (expandedContentItem && expandedContentItem.id) {
+        try {
+          const progressResponse = await fetch(`/api/progress/content/${expandedContentItem.id}`);
+          if (progressResponse.ok) {
+            const progressData = await progressResponse.json();
+            setExpandedContentItem((prev) => prev ? {
+              ...prev,
+              completed: progressData.completed ?? prev.completed,
+              lastPage: progressData.lastPage ?? prev.lastPage,
+              lastPosition: progressData.lastPosition ?? prev.lastPosition,
+            } : null);
+          }
+        } catch (error) {
+          console.error("Error fetching updated progress:", error);
+        }
+      }
+    }, 2000); // Debounce for 2 seconds
   };
 
   // Handle self-enrollment
@@ -1398,6 +1505,7 @@ export default function LearningPlanEditorPage() {
                       totalPages={expandedContentItem.pptSlides || undefined}
                       completionThreshold={expandedContentItem.completionThreshold || 0.8}
                       onProgressUpdate={handleProgressUpdate}
+                      initialPage={expandedContentItem.lastPage || undefined}
                     />
                   )}
 

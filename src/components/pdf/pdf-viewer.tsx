@@ -21,6 +21,7 @@ interface PDFViewerProps {
   totalPages?: number; // Total pages (if known from content item)
   completionThreshold?: number; // Completion threshold (default 0.8)
   onProgressUpdate?: (progress: number, completed: boolean) => void; // Callback for progress updates
+  initialPage?: number; // Initial page to load (for resuming)
 }
 
 export function PDFViewer({ 
@@ -97,9 +98,17 @@ export function PDFViewer({
       clearTimeout(progressUpdateTimeoutRef.current);
     }
 
-    // Debounce progress updates (every 2 seconds)
-    progressUpdateTimeoutRef.current = setTimeout(async () => {
+    // Send progress update immediately when page changes, then debounce subsequent updates
+    const sendProgressUpdate = async () => {
       try {
+        console.log("Sending progress update:", {
+          contentItemId,
+          progress,
+          pagesViewed: viewedPages.size,
+          totalPages,
+          lastPage: pageNumber,
+        });
+        
         const response = await fetch("/api/progress/content", {
           method: "POST",
           headers: {
@@ -116,27 +125,40 @@ export function PDFViewer({
 
         if (response.ok) {
           const data = await response.json();
+          console.log("Progress update response:", data);
           setCompleted(data.completed);
           if (onProgressUpdate) {
             onProgressUpdate(data.progress, data.completed);
           }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Progress update failed:", response.status, errorData);
         }
       } catch (error) {
         console.error("Error updating progress:", error);
       }
-    }, 2000);
+    };
+
+    // Send immediate update when page changes
+    sendProgressUpdate();
+
+    // Also set up debounced updates for continuous viewing
+    progressUpdateTimeoutRef.current = setTimeout(() => {
+      sendProgressUpdate();
+    }, 5000); // Update every 5 seconds while viewing
 
     return () => {
       if (progressUpdateTimeoutRef.current) {
         clearTimeout(progressUpdateTimeoutRef.current);
       }
     };
-  }, [viewedPages, numPages, contentItemId, propTotalPages, onProgressUpdate]);
+  }, [viewedPages, pageNumber, numPages, contentItemId, propTotalPages, completionThreshold, onProgressUpdate]);
 
   // Track when user navigates to a new page
   const handlePageChange = (newPageNumber: number) => {
     setPageNumber(newPageNumber);
     setViewedPages((prev) => new Set([...prev, newPageNumber]));
+    // The useEffect will handle sending the progress update when viewedPages changes
   };
 
   // Handle fullscreen

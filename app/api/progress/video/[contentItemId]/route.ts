@@ -21,6 +21,12 @@ export async function GET(
       throw error;
     }
 
+    // Get content item to check course ID for completion records
+    const contentItem = await prisma.contentItem.findUnique({
+      where: { id: contentItemId },
+      select: { courseId: true },
+    });
+
     const videoProgress = await prisma.videoProgress.findUnique({
       where: {
         userId_contentItemId: {
@@ -30,6 +36,18 @@ export async function GET(
       },
     });
 
+    // Get completion record (completion records take precedence)
+    let completion = null;
+    if (contentItem) {
+      completion = await prisma.completion.findFirst({
+        where: {
+          userId: user.id,
+          courseId: contentItem.courseId,
+          contentItemId: contentItemId,
+        },
+      });
+    }
+
     if (!videoProgress) {
       return NextResponse.json({
         contentItemId: contentItemId,
@@ -37,10 +55,13 @@ export async function GET(
         totalDuration: 0,
         lastPosition: 0,
         timesWatched: 0,
-        completed: false,
-        completedAt: null,
+        completed: !!completion, // Mark completed if completion record exists
+        completedAt: completion?.completedAt || null,
       });
     }
+
+    // Completion record takes precedence over videoProgress.completed
+    const isCompleted = !!completion || videoProgress.completed;
 
     return NextResponse.json({
       contentItemId: videoProgress.contentItemId,
@@ -48,8 +69,8 @@ export async function GET(
       totalDuration: videoProgress.totalDuration,
       lastPosition: videoProgress.lastPosition,
       timesWatched: videoProgress.timesWatched,
-      completed: videoProgress.completed,
-      completedAt: videoProgress.completedAt,
+      completed: isCompleted,
+      completedAt: completion?.completedAt || videoProgress.completedAt,
     });
   } catch (error) {
     console.error("Error fetching video progress:", error);

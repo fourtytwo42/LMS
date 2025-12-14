@@ -229,9 +229,9 @@ export async function GET(
       }
     }
 
-    // Get user's progress if enrolled
+    // Get user's progress if enrolled (directly or via learning plan)
     let progressMap: Record<string, any> = {};
-    if (isEnrolled) {
+    if (isEnrolled || hasLearningPlanAccess || isAdmin || isAssignedInstructor || course.createdById === user.id) {
       // Get video progress
       const videoProgress = await prisma.videoProgress.findMany({
         where: {
