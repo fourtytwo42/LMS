@@ -72,7 +72,12 @@ export async function GET(request: NextRequest) {
       where.status = "PUBLISHED";
     }
 
-    if (publicAccess === "true") {
+    // For non-admin/instructor users, don't set publicAccess directly if we're going to use OR conditions
+    // Instead, include it in the OR condition so group access also works
+    const isLearner = !user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR");
+    
+    if (publicAccess === "true" && !isLearner) {
+      // Only set directly for admins/instructors
       where.publicAccess = true;
     } else if (publicAccess === "false") {
       where.publicAccess = false;
@@ -93,10 +98,17 @@ export async function GET(request: NextRequest) {
     }
 
     // If user is not admin/instructor, filter by access
-    // But if publicAccess=true is explicitly requested, don't add OR condition (it's already filtered)
-    if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR") && publicAccess !== "true") {
+    // Always include all access methods (public, enrolled, instructor, group) even if publicAccess=true is requested
+    if (isLearner) {
+      // Get user's group IDs
+      const userGroups = await prisma.groupMember.findMany({
+        where: { userId: user.id },
+        select: { groupId: true },
+      });
+      const userGroupIds = userGroups.map((gm) => gm.groupId);
+
       // Merge with existing OR from search if it exists
-      const accessOr = [
+      const accessOr: any[] = [
         { publicAccess: true },
         {
           enrollments: {
@@ -114,9 +126,20 @@ export async function GET(request: NextRequest) {
         },
       ];
 
+      // Add group-based access if user is in any groups
+      if (userGroupIds.length > 0) {
+        accessOr.push({
+          groupAccess: {
+            some: {
+              groupId: { in: userGroupIds },
+            },
+          },
+        });
+      }
+
       if (where.OR) {
         // If search OR exists, combine them with AND logic
-        // This means: (search matches) AND (public OR enrolled OR instructor)
+        // This means: (search matches) AND (public OR enrolled OR instructor OR group access)
         where.AND = [
           { OR: where.OR },
           { OR: accessOr },

@@ -5,14 +5,19 @@ import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save, UserPlus, X } from "lucide-react";
+import { ArrowLeft, Save, UserPlus, X, BookOpen, GraduationCap, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
-import { Modal } from "@/components/ui/modal";
+import { UserSelectionModal } from "@/components/users/user-selection-modal";
+import { CourseSelectionModal } from "@/components/courses/course-selection-modal";
+import { LearningPlanSelectionModal } from "@/components/learning-plans/learning-plan-selection-modal";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { TableToolbar } from "@/components/tables/table-toolbar";
+import { IconButton } from "@/components/ui/icon-button";
 
 const updateGroupSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -30,6 +35,24 @@ interface Member {
   lastName: string;
   avatar: string | null;
   joinedAt: string;
+}
+
+interface Course {
+  id: string;
+  title: string;
+  shortDescription: string | null;
+  coverImage: string | null;
+  status: string;
+  addedAt: string;
+}
+
+interface LearningPlan {
+  id: string;
+  title: string;
+  shortDescription: string | null;
+  coverImage: string | null;
+  status: string;
+  addedAt: string;
 }
 
 interface Group {
@@ -51,8 +74,14 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
-  const [users, setUsers] = useState<Array<{ id: string; email: string; firstName: string; lastName: string }>>([]);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [learningPlans, setLearningPlans] = useState<LearningPlan[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [learningPlansLoading, setLearningPlansLoading] = useState(false);
+  const [addCourseModalOpen, setAddCourseModalOpen] = useState(false);
+  const [addLearningPlanModalOpen, setAddLearningPlanModalOpen] = useState(false);
+  const [courseSearch, setCourseSearch] = useState("");
+  const [learningPlanSearch, setLearningPlanSearch] = useState("");
 
   const {
     register,
@@ -75,13 +104,6 @@ export default function GroupDetailPage() {
         setValue("name", groupData.name);
         setValue("type", groupData.type);
         setValue("description", groupData.description || "");
-
-        // Fetch all users for member selection
-        const usersResponse = await fetch("/api/users?limit=1000");
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          setUsers(usersData.users);
-        }
       } catch (error) {
         console.error("Error fetching group:", error);
       } finally {
@@ -90,7 +112,69 @@ export default function GroupDetailPage() {
     };
 
     fetchGroup();
+    fetchCourses();
+    fetchLearningPlans();
   }, [groupId, setValue]);
+
+  const fetchCourses = async () => {
+    setCoursesLoading(true);
+    try {
+      const response = await fetch(`/api/groups/${groupId}/courses`);
+      if (!response.ok) throw new Error("Failed to fetch courses");
+
+      const data = await response.json();
+      let filteredCourses = data.courses || [];
+
+      if (courseSearch) {
+        filteredCourses = filteredCourses.filter((course: Course) =>
+          course.title.toLowerCase().includes(courseSearch.toLowerCase()) ||
+          (course.shortDescription && course.shortDescription.toLowerCase().includes(courseSearch.toLowerCase()))
+        );
+      }
+
+      setCourses(filteredCourses);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  const fetchLearningPlans = async () => {
+    setLearningPlansLoading(true);
+    try {
+      const response = await fetch(`/api/groups/${groupId}/learning-plans`);
+      if (!response.ok) throw new Error("Failed to fetch learning plans");
+
+      const data = await response.json();
+      let filteredLearningPlans = data.learningPlans || [];
+
+      if (learningPlanSearch) {
+        filteredLearningPlans = filteredLearningPlans.filter((plan: LearningPlan) =>
+          plan.title.toLowerCase().includes(learningPlanSearch.toLowerCase()) ||
+          (plan.shortDescription && plan.shortDescription.toLowerCase().includes(learningPlanSearch.toLowerCase()))
+        );
+      }
+
+      setLearningPlans(filteredLearningPlans);
+    } catch (error) {
+      console.error("Error fetching learning plans:", error);
+    } finally {
+      setLearningPlansLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (groupId) {
+      fetchCourses();
+    }
+  }, [courseSearch, groupId]);
+
+  useEffect(() => {
+    if (groupId) {
+      fetchLearningPlans();
+    }
+  }, [learningPlanSearch, groupId]);
 
   const onSubmit = async (data: UpdateGroupForm) => {
     setSaving(true);
@@ -114,30 +198,33 @@ export default function GroupDetailPage() {
     }
   };
 
-  const handleAddMember = async () => {
-    if (!selectedUserId) return;
-
+  const handleAddMembers = async (userIds: string[]) => {
     try {
-      const response = await fetch(`/api/groups/${groupId}/members`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedUserId }),
-      });
+      // Add members one by one (API might support bulk in the future)
+      for (const userId of userIds) {
+        const response = await fetch(`/api/groups/${groupId}/members`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
 
-      if (!response.ok) throw new Error("Failed to add member");
+        if (!response.ok) {
+          throw new Error(`Failed to add member: ${userId}`);
+        }
+      }
 
-      setAddMemberModalOpen(false);
-      setSelectedUserId("");
-      
       // Refresh group data
       const groupResponse = await fetch(`/api/groups/${groupId}`);
       if (groupResponse.ok) {
         const groupData = await groupResponse.json();
         setGroup(groupData);
       }
+
+      alert(`Successfully added ${userIds.length} member(s) to group`);
     } catch (error) {
-      console.error("Error adding member:", error);
-      alert("Failed to add member");
+      console.error("Error adding members:", error);
+      alert(error instanceof Error ? error.message : "Failed to add members");
+      throw error;
     }
   };
 
@@ -163,6 +250,78 @@ export default function GroupDetailPage() {
     }
   };
 
+  const handleAddCourses = async (courseIds: string[]) => {
+    try {
+      const response = await fetch(`/api/groups/${groupId}/courses`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseIds }),
+      });
+
+      if (!response.ok) throw new Error("Failed to add courses");
+
+      alert(`Successfully added ${courseIds.length} course(s) to group`);
+      fetchCourses();
+    } catch (error) {
+      console.error("Error adding courses:", error);
+      alert(error instanceof Error ? error.message : "Failed to add courses");
+      throw error;
+    }
+  };
+
+  const handleAddLearningPlans = async (learningPlanIds: string[]) => {
+    try {
+      const response = await fetch(`/api/groups/${groupId}/learning-plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ learningPlanIds }),
+      });
+
+      if (!response.ok) throw new Error("Failed to add learning plans");
+
+      alert(`Successfully added ${learningPlanIds.length} learning plan(s) to group`);
+      fetchLearningPlans();
+    } catch (error) {
+      console.error("Error adding learning plans:", error);
+      alert(error instanceof Error ? error.message : "Failed to add learning plans");
+      throw error;
+    }
+  };
+
+  const handleRemoveCourse = async (courseId: string) => {
+    if (!confirm("Are you sure you want to remove this course from the group?")) return;
+
+    try {
+      const response = await fetch(`/api/groups/${groupId}/courses?courseId=${courseId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to remove course");
+
+      fetchCourses();
+    } catch (error) {
+      console.error("Error removing course:", error);
+      alert("Failed to remove course");
+    }
+  };
+
+  const handleRemoveLearningPlan = async (learningPlanId: string) => {
+    if (!confirm("Are you sure you want to remove this learning plan from the group?")) return;
+
+    try {
+      const response = await fetch(`/api/groups/${groupId}/learning-plans?learningPlanId=${learningPlanId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to remove learning plan");
+
+      fetchLearningPlans();
+    } catch (error) {
+      console.error("Error removing learning plan:", error);
+      alert("Failed to remove learning plan");
+    }
+  };
+
   if (loading) {
     return <div className="py-8 text-center">Loading...</div>;
   }
@@ -171,10 +330,8 @@ export default function GroupDetailPage() {
     return <div className="py-8 text-center">Group not found</div>;
   }
 
-  // Filter out users who are already members
-  const availableUsers = users.filter(
-    (user) => !group.members.some((member) => member.userId === user.id)
-  );
+  // Get set of user IDs who are already members
+  const memberUserIds = new Set(group.members.map((member) => member.userId));
 
   return (
     <div className="space-y-6">
@@ -263,6 +420,144 @@ export default function GroupDetailPage() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Courses</h2>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setAddCourseModalOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Course
+            </Button>
+          </div>
+
+          <TableToolbar
+            search={{
+              value: courseSearch,
+              onChange: setCourseSearch,
+              placeholder: "Search courses...",
+            }}
+          />
+
+          {coursesLoading ? (
+            <div className="py-8 text-center text-gray-500">Loading...</div>
+          ) : courses.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">No courses in this group</div>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {courses.map((course) => (
+                    <TableRow key={course.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{course.title}</div>
+                          {course.shortDescription && (
+                            <div className="text-sm text-gray-500">{course.shortDescription}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={course.status === "PUBLISHED" ? "success" : "default"}>
+                          {course.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <IconButton
+                          icon={<Trash2 className="h-4 w-4" />}
+                          label="Remove Course"
+                          onClick={() => handleRemoveCourse(course.id)}
+                          variant="ghost"
+                          size="sm"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Learning Plans</h2>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setAddLearningPlanModalOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Learning Plan
+            </Button>
+          </div>
+
+          <TableToolbar
+            search={{
+              value: learningPlanSearch,
+              onChange: setLearningPlanSearch,
+              placeholder: "Search learning plans...",
+            }}
+          />
+
+          {learningPlansLoading ? (
+            <div className="py-8 text-center text-gray-500">Loading...</div>
+          ) : learningPlans.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">No learning plans in this group</div>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {learningPlans.map((plan) => (
+                    <TableRow key={plan.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{plan.title}</div>
+                          {plan.shortDescription && (
+                            <div className="text-sm text-gray-500">{plan.shortDescription}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={plan.status === "PUBLISHED" ? "success" : "default"}>
+                          {plan.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <IconButton
+                          icon={<Trash2 className="h-4 w-4" />}
+                          label="Remove Learning Plan"
+                          onClick={() => handleRemoveLearningPlan(plan.id)}
+                          variant="ghost"
+                          size="sm"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Card>
+      </div>
+
       <Card className="p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Members</h2>
@@ -312,45 +607,35 @@ export default function GroupDetailPage() {
         )}
       </Card>
 
-      <Modal
+      <UserSelectionModal
         isOpen={addMemberModalOpen}
-        onClose={() => {
-          setAddMemberModalOpen(false);
-          setSelectedUserId("");
-        }}
-        title="Add Member"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Select User</label>
-            <Select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-            >
-              <option value="">Select a user...</option>
-              {availableUsers.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.firstName} {user.lastName} ({user.email})
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setAddMemberModalOpen(false);
-                setSelectedUserId("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddMember} disabled={!selectedUserId}>
-              Add Member
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onClose={() => setAddMemberModalOpen(false)}
+        onSelect={handleAddMembers}
+        title="Add Members to Group"
+        actionLabel="Add"
+        excludeUserIds={memberUserIds}
+        singleSelect={false}
+      />
+
+      <CourseSelectionModal
+        isOpen={addCourseModalOpen}
+        onClose={() => setAddCourseModalOpen(false)}
+        onSelect={handleAddCourses}
+        title="Add Courses to Group"
+        actionLabel="Add"
+        excludeCourseIds={new Set(courses.map((c) => c.id))}
+        singleSelect={false}
+      />
+
+      <LearningPlanSelectionModal
+        isOpen={addLearningPlanModalOpen}
+        onClose={() => setAddLearningPlanModalOpen(false)}
+        onSelect={handleAddLearningPlans}
+        title="Add Learning Plans to Group"
+        actionLabel="Add"
+        excludeLearningPlanIds={new Set(learningPlans.map((p) => p.id))}
+        singleSelect={false}
+      />
     </div>
   );
 }

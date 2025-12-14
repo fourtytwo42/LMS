@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
+import { PPTViewerLazy } from "@/components/ppt/ppt-viewer-lazy";
 
 interface ContentItem {
   id: string;
@@ -184,7 +185,7 @@ export default function ContentItemPage() {
           )}
 
           {contentItem.type === "PPT" && contentItem.pptUrl && (
-            <PdfViewerLazy fileUrl={contentItem.pptUrl.replace(/\.pptx?$/i, ".pdf")} />
+            <PPTViewerLazy fileUrl={contentItem.pptUrl} />
           )}
 
           {contentItem.type === "TEST" && (

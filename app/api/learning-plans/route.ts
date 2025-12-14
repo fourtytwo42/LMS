@@ -67,7 +67,12 @@ export async function GET(request: NextRequest) {
       where.status = "PUBLISHED";
     }
 
-    if (publicAccess === "true") {
+    // For non-admin/instructor users, don't set publicAccess directly if we're going to use OR conditions
+    // Instead, include it in the OR condition so group access also works
+    const isLearner = !user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR");
+    
+    if (publicAccess === "true" && !isLearner) {
+      // Only set directly for admins/instructors
       where.publicAccess = true;
     } else if (publicAccess === "false") {
       where.publicAccess = false;
@@ -88,8 +93,15 @@ export async function GET(request: NextRequest) {
     }
 
     // If user is not admin/instructor, filter by access
-    if (!user.roles.includes("ADMIN") && !user.roles.includes("INSTRUCTOR")) {
-      where.OR = [
+    if (isLearner) {
+      // Get user's group IDs
+      const userGroups = await prisma.groupMember.findMany({
+        where: { userId: user.id },
+        select: { groupId: true },
+      });
+      const userGroupIds = userGroups.map((gm) => gm.groupId);
+
+      const accessOr: any[] = [
         { publicAccess: true },
         {
           enrollments: {
@@ -99,6 +111,28 @@ export async function GET(request: NextRequest) {
           },
         },
       ];
+
+      // Add group-based access if user is in any groups
+      if (userGroupIds.length > 0) {
+        accessOr.push({
+          groupAccess: {
+            some: {
+              groupId: { in: userGroupIds },
+            },
+          },
+        });
+      }
+
+      // Merge with existing OR from search if it exists
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: accessOr },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = accessOr;
+      }
     }
 
     // Build orderBy

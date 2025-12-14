@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -24,6 +24,9 @@ import { ContentItemModal } from "@/components/content/content-item-modal";
 import { PrerequisitesModal } from "@/components/content/prerequisites-modal";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
+import { PPTViewerLazy } from "@/components/ppt/ppt-viewer-lazy";
+import { UserSelectionModal } from "@/components/users/user-selection-modal";
+import { GroupSelectionModal } from "@/components/groups/group-selection-modal";
 import { cn } from "@/lib/utils/cn";
 import { getIconContainerClasses, getIconContainerStyle } from "@/lib/utils/icon-container";
 
@@ -151,6 +154,10 @@ export default function CourseEditorPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [learningPlans, setLearningPlans] = useState<Array<{ id: string; title: string; status: string; coverImage: string | null; order: number }>>([]);
+  const [groups, setGroups] = useState<Array<{ id: string; name: string; type: string; description: string | null; addedAt: string }>>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
+  const [addGroupModalOpen, setAddGroupModalOpen] = useState(false);
   
   // Tabs
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -199,17 +206,7 @@ export default function CourseEditorPage() {
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [deleteEnrollmentModalOpen, setDeleteEnrollmentModalOpen] = useState(false);
   const [enrollmentToDelete, setEnrollmentToDelete] = useState<Enrollment | null>(null);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [selectedRole, setSelectedRole] = useState<"LEARNER" | "INSTRUCTOR">("LEARNER");
-  const [usersPagination, setUsersPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
-  const [usersSearch, setUsersSearch] = useState("");
-  const [usersLoading, setUsersLoading] = useState(false);
   const [selectedEnrollmentIds, setSelectedEnrollmentIds] = useState<Set<string>>(new Set());
   const [bulkDeleteEnrollmentModalOpen, setBulkDeleteEnrollmentModalOpen] = useState(false);
   const [bulkUpdateEnrollmentModalOpen, setBulkUpdateEnrollmentModalOpen] = useState(false);
@@ -337,52 +334,13 @@ export default function CourseEditorPage() {
     }
   }, [activeTab, enrollmentsPagination.page, enrollmentsSearch, enrollmentsStatusFilter]);
 
-  // Fetch available users for enrollment
-  const fetchUsers = async () => {
-    setUsersLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: usersPagination.page.toString(),
-        limit: usersPagination.limit.toString(),
-      });
-      if (usersSearch) params.append("search", usersSearch);
-
-      const response = await fetch(`/api/users?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Filter out users already enrolled
-        const enrolledUserIds = new Set(enrollments.map((e) => e.userId));
-        setAvailableUsers((data.users || []).filter((u: User) => !enrolledUserIds.has(u.id)));
-        setUsersPagination({
-          page: data.pagination?.page || usersPagination.page,
-          limit: data.pagination?.limit || usersPagination.limit,
-          total: data.pagination?.total || 0,
-          totalPages: data.pagination?.totalPages || 0,
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-
+  // Fetch groups when Groups tab is active
   useEffect(() => {
-    if (enrollModalOpen) {
-      fetchUsers();
-    } else {
-      setUsersSearch("");
-      setUsersPagination({ page: 1, limit: 20, total: 0, totalPages: 0 });
-      setSelectedUserIds(new Set());
+    if (activeTab === "groups") {
+      fetchGroups();
     }
-  }, [enrollModalOpen]);
+  }, [activeTab, groupSearch]);
 
-  useEffect(() => {
-    if (enrollModalOpen) {
-      const enrolledUserIds = new Set(enrollments.map((e) => e.userId));
-      fetchUsers();
-    }
-  }, [usersPagination.page, usersSearch, enrollModalOpen]);
 
   const fetchEnrollments = async () => {
     setEnrollmentsLoading(true);
@@ -409,6 +367,66 @@ export default function CourseEditorPage() {
       console.error("Error fetching enrollments:", error);
     } finally {
       setEnrollmentsLoading(false);
+    }
+  };
+
+  const fetchGroups = async () => {
+    setGroupsLoading(true);
+    try {
+      const response = await fetch(`/api/courses/${courseId}/groups`);
+      if (!response.ok) throw new Error("Failed to fetch groups");
+
+      const data = await response.json();
+      let filteredGroups = data.groups || [];
+
+      if (groupSearch) {
+        filteredGroups = filteredGroups.filter((group: { name: string; description: string | null }) =>
+          group.name.toLowerCase().includes(groupSearch.toLowerCase()) ||
+          (group.description && group.description.toLowerCase().includes(groupSearch.toLowerCase()))
+        );
+      }
+
+      setGroups(filteredGroups);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
+
+  const handleAddGroups = async (groupIds: string[]) => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupIds }),
+      });
+
+      if (!response.ok) throw new Error("Failed to add groups");
+
+      alert(`Successfully added ${groupIds.length} group(s) to course`);
+      fetchGroups();
+    } catch (error) {
+      console.error("Error adding groups:", error);
+      alert(error instanceof Error ? error.message : "Failed to add groups");
+      throw error;
+    }
+  };
+
+  const handleRemoveGroup = async (groupId: string) => {
+    if (!confirm("Are you sure you want to remove this group from the course?")) return;
+
+    try {
+      const response = await fetch(`/api/courses/${courseId}/groups?groupId=${groupId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to remove group");
+
+      fetchGroups();
+    } catch (error) {
+      console.error("Error removing group:", error);
+      alert("Failed to remove group");
     }
   };
 
@@ -753,55 +771,31 @@ export default function CourseEditorPage() {
     setSelectedEnrollmentIds(newSelected);
   };
 
-  const handleSelectAllUsers = (checked: boolean) => {
-    if (checked) {
-      setSelectedUserIds(new Set(availableUsers.map((u) => u.id)));
-    } else {
-      setSelectedUserIds(new Set());
-    }
-  };
-
-  const handleSelectUser = (userId: string, checked: boolean) => {
-    const newSelected = new Set(selectedUserIds);
-    if (checked) {
-      newSelected.add(userId);
-    } else {
-      newSelected.delete(userId);
-    }
-    setSelectedUserIds(newSelected);
-  };
-
-  const handleBulkEnroll = async () => {
-    if (selectedUserIds.size === 0) {
-      alert("Please select at least one user");
-      return;
-    }
-
+  const handleEnrollUsers = async (userIds: string[], role?: "LEARNER" | "INSTRUCTOR") => {
     try {
       const response = await fetch(`/api/courses/${courseId}/enrollments/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userIds: Array.from(selectedUserIds),
-          role: selectedRole,
+          userIds,
+          role: role || "LEARNER",
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
         alert(error.message || "Failed to enroll users");
-        return;
+        throw new Error(error.message || "Failed to enroll users");
       }
 
       const result = await response.json();
-      setEnrollModalOpen(false);
-      setSelectedUserIds(new Set());
       setSelectedRole("LEARNER");
       fetchEnrollments();
-      alert(`Successfully enrolled ${result.enrolled || selectedUserIds.size} user(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
+      alert(`Successfully enrolled ${result.enrolled || userIds.length} user(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
     } catch (error) {
       console.error("Error enrolling users:", error);
       alert("Failed to enroll users");
+      throw error;
     }
   };
 
@@ -926,6 +920,7 @@ export default function CourseEditorPage() {
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="training-material">Training Material</TabsTrigger>
           <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+          <TabsTrigger value="groups">Groups</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -1237,7 +1232,7 @@ export default function CourseEditorPage() {
                               )}
 
                               {expandedContent.type === "PPT" && expandedContent.pptUrl && (
-                                <PdfViewerLazy fileUrl={expandedContent.pptUrl.replace(/\.pptx?$/i, ".pdf")} />
+                                <PPTViewerLazy fileUrl={expandedContent.pptUrl} />
                               )}
 
                               {expandedContent.type === "HTML" && expandedContent.htmlContent && (
@@ -1518,6 +1513,78 @@ export default function CourseEditorPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="groups">
+          <Card className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Groups</h2>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setAddGroupModalOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Group
+              </Button>
+            </div>
+
+            <TableToolbar
+              search={{
+                value: groupSearch,
+                onChange: setGroupSearch,
+                placeholder: "Search groups...",
+              }}
+            />
+
+            {groupsLoading ? (
+              <div className="py-8 text-center text-gray-500">Loading...</div>
+            ) : groups.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">No groups assigned to this course</div>
+            ) : (
+              <div className="mt-4 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Added</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groups.map((group) => (
+                      <TableRow key={group.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{group.name}</div>
+                            {group.description && (
+                              <div className="text-sm text-gray-500">{group.description}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="info">{group.type}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(group.addedAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <IconButton
+                            icon={<Trash2 className="h-4 w-4" />}
+                            label="Remove Group"
+                            onClick={() => handleRemoveGroup(group.id)}
+                            variant="ghost"
+                            size="sm"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
         <TabsContent value="settings">
           <Card className="p-6">
             <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Course Settings</h2>
@@ -1596,122 +1663,30 @@ export default function CourseEditorPage() {
       )}
 
       {/* Enroll User Modal */}
-      <Modal
+      <GroupSelectionModal
+        isOpen={addGroupModalOpen}
+        onClose={() => setAddGroupModalOpen(false)}
+        onSelect={handleAddGroups}
+        title="Add Groups to Course"
+        actionLabel="Add"
+        excludeGroupIds={new Set(groups.map((g) => g.id))}
+        singleSelect={false}
+      />
+
+      <UserSelectionModal
         isOpen={enrollModalOpen}
         onClose={() => {
           setEnrollModalOpen(false);
-          setSelectedUserIds(new Set());
           setSelectedRole("LEARNER");
         }}
+        onSelect={handleEnrollUsers}
         title="Enroll Users"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Enrollment Role
-            </label>
-            <Select
-              value={selectedRole}
-              onChange={(e) =>
-                setSelectedRole(e.target.value as "LEARNER" | "INSTRUCTOR")
-              }
-              className="w-full"
-            >
-              <option value="LEARNER">Learner</option>
-              <option value="INSTRUCTOR">Instructor</option>
-            </Select>
-          </div>
-
-          <TableToolbar
-            search={{
-              value: usersSearch,
-              onChange: (value) => {
-                setUsersSearch(value);
-                setUsersPagination((p) => ({ ...p, page: 1 }));
-              },
-              placeholder: "Search users...",
-            }}
-          />
-
-          {selectedUserIds.size > 0 && (
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {selectedUserIds.size} user(s) selected
-              </div>
-              <Button onClick={handleBulkEnroll} variant="primary">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Enroll Selected
-              </Button>
-            </div>
-          )}
-
-          <div className="max-h-96 overflow-auto">
-            <DataTable
-              data={availableUsers}
-              columns={{
-                name: {
-                  key: "name",
-                  header: "Name",
-                  render: (user) => (
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {user.firstName} {user.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {user.email}
-                      </div>
-                    </div>
-                  ),
-                },
-                roles: {
-                  key: "roles",
-                  header: "Roles",
-                  render: (user) => (
-                    <div className="flex gap-1 flex-wrap">
-                      {user.roles.map((role) => (
-                        <Badge key={role} variant="default" className="text-xs">
-                          {role}
-                        </Badge>
-                      ))}
-                    </div>
-                  ),
-                },
-              }}
-              loading={usersLoading}
-              emptyMessage="No users available"
-              selectedIds={selectedUserIds}
-              onSelectAll={handleSelectAllUsers}
-              onSelectItem={handleSelectUser}
-              getId={(user) => user.id}
-            />
-          </div>
-
-          {usersPagination.totalPages > 1 && (
-            <TablePagination
-              pagination={usersPagination}
-              onPageChange={(page) => setUsersPagination((p) => ({ ...p, page }))}
-              itemName="users"
-            />
-          )}
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setEnrollModalOpen(false);
-                setSelectedUserIds(new Set());
-                setSelectedRole("LEARNER");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleBulkEnroll} disabled={selectedUserIds.size === 0}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Enroll {selectedUserIds.size > 0 ? `${selectedUserIds.size} ` : ""}User{selectedUserIds.size !== 1 ? "s" : ""}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        actionLabel="Enroll"
+        excludeUserIds={new Set(enrollments.map((e) => e.userId))}
+        showRoleSelection={true}
+        defaultRole={selectedRole}
+        singleSelect={false}
+      />
 
       {/* Delete Enrollment Modal */}
       <Modal

@@ -13,9 +13,11 @@ if (typeof window !== "undefined") {
 interface PDFViewerProps {
   pdfUrl: string;
   title?: string;
+  downloadUrl?: string; // Optional separate URL for downloads (e.g., original PPTX file)
+  downloadLabel?: string; // Optional label for download button
 }
 
-export function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
+export function PDFViewer({ pdfUrl, title, downloadUrl, downloadLabel = "Download PDF" }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -62,11 +64,11 @@ export function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
           </button>
         </div>
         <a
-          href={pdfUrl}
+          href={downloadUrl || pdfUrl}
           download
           className="rounded-lg bg-gray-200 px-4 py-2 text-sm hover:bg-gray-300"
         >
-          Download PDF
+          {downloadLabel}
         </a>
       </div>
 

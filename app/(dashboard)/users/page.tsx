@@ -285,7 +285,7 @@ export default function UsersPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to assign users to course");
+        throw new Error(error.message || "Failed to enroll users in course");
       }
 
       const result = await response.json();
@@ -293,10 +293,10 @@ export default function UsersPage() {
       setSelectedCourseId("");
       setSelectedUserIds(new Set());
       fetchUsers();
-      alert(`Successfully assigned ${result.enrolled || selectedUserIds.size} user(s) to course`);
+      alert(`Successfully enrolled ${result.enrolled || selectedUserIds.size} user(s) in course`);
     } catch (error) {
-      console.error("Error bulk assigning users to course:", error);
-      alert(error instanceof Error ? error.message : "Failed to assign users to course");
+      console.error("Error bulk enrolling users in course:", error);
+      alert(error instanceof Error ? error.message : "Failed to enroll users in course");
     }
   };
 
@@ -315,7 +315,7 @@ export default function UsersPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to assign users to learning plan");
+        throw new Error(error.message || "Failed to enroll users in learning plan");
       }
 
       const result = await response.json();
@@ -323,10 +323,10 @@ export default function UsersPage() {
       setSelectedLearningPlanId("");
       setSelectedUserIds(new Set());
       fetchUsers();
-      alert(`Successfully assigned ${result.enrolled || selectedUserIds.size} user(s) to learning plan`);
+      alert(`Successfully enrolled ${result.enrolled || selectedUserIds.size} user(s) in learning plan`);
     } catch (error) {
-      console.error("Error bulk assigning users to learning plan:", error);
-      alert(error instanceof Error ? error.message : "Failed to assign users to learning plan");
+      console.error("Error bulk enrolling users in learning plan:", error);
+      alert(error instanceof Error ? error.message : "Failed to enroll users in learning plan");
     }
   };
 
@@ -436,14 +436,14 @@ export default function UsersPage() {
                     size="sm"
                     onClick={() => setBulkAssignCourseModalOpen(true)}
                   >
-                    Assign to Course
+                    Enroll in Course
                   </Button>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setBulkAssignLearningPlanModalOpen(true)}
                   >
-                    Assign to Learning Plan
+                    Enroll in Learning Plan
                   </Button>
                   <Button
                     variant="secondary"
@@ -753,11 +753,11 @@ export default function UsersPage() {
           setSelectedCourseId("");
           setEnrollmentRole("LEARNER");
         }}
-        title="Assign Users to Course"
+        title="Enroll Users in Course"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Assign {selectedUserIds.size} selected user(s) to a course:
+            Enroll {selectedUserIds.size} selected user(s) in a course:
           </p>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -801,7 +801,7 @@ export default function UsersPage() {
               Cancel
             </Button>
             <Button onClick={handleBulkAssignToCourse} disabled={!selectedCourseId}>
-              Assign {selectedUserIds.size} User(s)
+              Enroll {selectedUserIds.size} User(s)
             </Button>
           </div>
         </div>
@@ -814,11 +814,11 @@ export default function UsersPage() {
           setSelectedLearningPlanId("");
           setEnrollmentRole("LEARNER");
         }}
-        title="Assign Users to Learning Plan"
+        title="Enroll Users in Learning Plan"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Assign {selectedUserIds.size} selected user(s) to a learning plan:
+            Enroll {selectedUserIds.size} selected user(s) in a learning plan:
           </p>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -862,7 +862,7 @@ export default function UsersPage() {
               Cancel
             </Button>
             <Button onClick={handleBulkAssignToLearningPlan} disabled={!selectedLearningPlanId}>
-              Assign {selectedUserIds.size} User(s)
+              Enroll {selectedUserIds.size} User(s)
             </Button>
           </div>
         </div>

@@ -136,7 +136,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // For PPT files, convert to PDF asynchronously (don't wait for completion)
+    // For PPT files, convert to PDF asynchronously for display (don't wait for completion)
+    // The original PPTX file is kept for downloads
     if (validated.type === "PPT" && validated.courseId) {
       // Convert PPT to PDF in the background - don't block the response
       convertPptToPdfAsync(uploadedFile.filePath).catch((error) => {

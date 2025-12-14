@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit, Trash2, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Users, BookOpen, GraduationCap, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
@@ -11,6 +11,9 @@ import { IconButton } from "@/components/ui/icon-button";
 import { DataTable } from "@/components/tables/data-table";
 import type { Column } from "@/components/tables/data-table";
 import { TableToolbar } from "@/components/tables/table-toolbar";
+import { CourseSelectionModal } from "@/components/courses/course-selection-modal";
+import { LearningPlanSelectionModal } from "@/components/learning-plans/learning-plan-selection-modal";
+import { UserSelectionModal } from "@/components/users/user-selection-modal";
 
 interface Group {
   id: string;
@@ -29,6 +32,10 @@ export default function GroupsPage() {
   const [search, setSearch] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
+  const [addCoursesModalOpen, setAddCoursesModalOpen] = useState(false);
+  const [addLearningPlansModalOpen, setAddLearningPlansModalOpen] = useState(false);
+  const [addUsersModalOpen, setAddUsersModalOpen] = useState(false);
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
 
@@ -60,6 +67,11 @@ export default function GroupsPage() {
     fetchGroups();
   }, [search]);
 
+  // Clear selections when page changes
+  useEffect(() => {
+    setSelectedGroupIds(new Set());
+  }, [search]);
+
   const handleDelete = async () => {
     if (!groupToDelete) return;
 
@@ -76,6 +88,101 @@ export default function GroupsPage() {
     } catch (error) {
       console.error("Error deleting group:", error);
       alert("Failed to delete group");
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedGroupIds(new Set(groups.map((g) => g.id)));
+    } else {
+      setSelectedGroupIds(new Set());
+    }
+  };
+
+  const handleSelectGroup = (groupId: string, checked: boolean) => {
+    const newSelected = new Set(selectedGroupIds);
+    if (checked) {
+      newSelected.add(groupId);
+    } else {
+      newSelected.delete(groupId);
+    }
+    setSelectedGroupIds(newSelected);
+  };
+
+  const handleAddCourses = async (courseIds: string[]) => {
+    try {
+      // Add courses to all selected groups
+      for (const groupId of Array.from(selectedGroupIds)) {
+        const response = await fetch(`/api/groups/${groupId}/courses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseIds }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to add courses to group ${groupId}`);
+        }
+      }
+
+      alert(`Successfully added ${courseIds.length} course(s) to ${selectedGroupIds.size} group(s)`);
+      setSelectedGroupIds(new Set());
+      setAddCoursesModalOpen(false);
+    } catch (error) {
+      console.error("Error adding courses to groups:", error);
+      alert(error instanceof Error ? error.message : "Failed to add courses to groups");
+      throw error;
+    }
+  };
+
+  const handleAddLearningPlans = async (learningPlanIds: string[]) => {
+    try {
+      // Add learning plans to all selected groups
+      for (const groupId of Array.from(selectedGroupIds)) {
+        const response = await fetch(`/api/groups/${groupId}/learning-plans`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ learningPlanIds }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to add learning plans to group ${groupId}`);
+        }
+      }
+
+      alert(`Successfully added ${learningPlanIds.length} learning plan(s) to ${selectedGroupIds.size} group(s)`);
+      setSelectedGroupIds(new Set());
+      setAddLearningPlansModalOpen(false);
+    } catch (error) {
+      console.error("Error adding learning plans to groups:", error);
+      alert(error instanceof Error ? error.message : "Failed to add learning plans to groups");
+      throw error;
+    }
+  };
+
+  const handleAddUsers = async (userIds: string[]) => {
+    try {
+      // Add users to all selected groups
+      for (const groupId of Array.from(selectedGroupIds)) {
+        for (const userId of userIds) {
+          const response = await fetch(`/api/groups/${groupId}/members`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to add user ${userId} to group ${groupId}`);
+          }
+        }
+      }
+
+      alert(`Successfully added ${userIds.length} user(s) to ${selectedGroupIds.size} group(s)`);
+      setSelectedGroupIds(new Set());
+      setAddUsersModalOpen(false);
+    } catch (error) {
+      console.error("Error adding users to groups:", error);
+      alert(error instanceof Error ? error.message : "Failed to add users to groups");
+      throw error;
     }
   };
 
@@ -127,7 +234,7 @@ export default function GroupsPage() {
           <IconButton
             icon={<Edit className="h-4 w-4" />}
             label="Edit Group"
-            onClick={() => router.push(`/groups/${group.id}/edit`)}
+            onClick={() => router.push(`/groups/${group.id}`)}
             variant="ghost"
             size="sm"
           />
@@ -177,6 +284,33 @@ export default function GroupsPage() {
         loading={loading}
         emptyMessage="No groups found"
         getId={(group) => group.id}
+        selectedIds={selectedGroupIds}
+        onSelectAll={handleSelectAll}
+        onSelectItem={handleSelectGroup}
+        bulkActions={[
+          {
+            label: "Add Courses",
+            onClick: () => setAddCoursesModalOpen(true),
+            variant: "primary",
+            icon: <BookOpen className="h-4 w-4" />,
+            show: isAdmin && selectedGroupIds.size > 0,
+          },
+          {
+            label: "Add Learning Plans",
+            onClick: () => setAddLearningPlansModalOpen(true),
+            variant: "primary",
+            icon: <GraduationCap className="h-4 w-4" />,
+            show: isAdmin && selectedGroupIds.size > 0,
+          },
+          {
+            label: "Add Users",
+            onClick: () => setAddUsersModalOpen(true),
+            variant: "primary",
+            icon: <UserPlus className="h-4 w-4" />,
+            show: isAdmin && selectedGroupIds.size > 0,
+          },
+        ]}
+        bulkActionsLabel={`${selectedGroupIds.size} group(s) selected`}
       />
 
       <Modal
@@ -207,6 +341,33 @@ export default function GroupsPage() {
           </div>
         </div>
       </Modal>
+
+      <CourseSelectionModal
+        isOpen={addCoursesModalOpen}
+        onClose={() => setAddCoursesModalOpen(false)}
+        onSelect={handleAddCourses}
+        title="Add Courses to Groups"
+        actionLabel="Add"
+        singleSelect={false}
+      />
+
+      <LearningPlanSelectionModal
+        isOpen={addLearningPlansModalOpen}
+        onClose={() => setAddLearningPlansModalOpen(false)}
+        onSelect={handleAddLearningPlans}
+        title="Add Learning Plans to Groups"
+        actionLabel="Add"
+        singleSelect={false}
+      />
+
+      <UserSelectionModal
+        isOpen={addUsersModalOpen}
+        onClose={() => setAddUsersModalOpen(false)}
+        onSelect={handleAddUsers}
+        title="Add Users to Groups"
+        actionLabel="Add"
+        singleSelect={false}
+      />
     </div>
   );
 }
