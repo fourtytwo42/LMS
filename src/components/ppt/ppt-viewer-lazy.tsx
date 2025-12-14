@@ -16,9 +16,20 @@ const PdfViewerLazy = dynamic(() => import("../pdf/pdf-viewer-lazy").then((mod) 
 interface PPTViewerLazyProps {
   fileUrl: string;
   title?: string;
+  contentItemId?: string;
+  totalPages?: number;
+  completionThreshold?: number;
+  onProgressUpdate?: (progress: number, completed: boolean) => void;
 }
 
-export function PPTViewerLazy({ fileUrl, title }: PPTViewerLazyProps) {
+export function PPTViewerLazy({ 
+  fileUrl, 
+  title,
+  contentItemId,
+  totalPages,
+  completionThreshold,
+  onProgressUpdate,
+}: PPTViewerLazyProps) {
   // Convert PPTX URL to PDF URL for display
   const pdfUrl = fileUrl.replace(/\.pptx?$/i, ".pdf");
   // Keep original PPTX URL for downloads
@@ -29,6 +40,10 @@ export function PPTViewerLazy({ fileUrl, title }: PPTViewerLazyProps) {
       title={title}
       downloadUrl={originalPptUrl}
       downloadLabel="Download PPT"
+      contentItemId={contentItemId}
+      totalPages={totalPages}
+      completionThreshold={completionThreshold}
+      onProgressUpdate={onProgressUpdate}
     />
   );
 }

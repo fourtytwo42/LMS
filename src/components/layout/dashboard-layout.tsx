@@ -20,8 +20,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Check if user is a learner (not admin or instructor)
   const isLearner = user && !user.roles?.includes("ADMIN") && !user.roles?.includes("INSTRUCTOR");
   
-  // Hide sidebar for learners on the learner dashboard
-  const hideSidebar = isLearner && pathname?.startsWith("/dashboard/learner");
+  // Hide sidebar for learners on all pages
+  const hideSidebar = isLearner;
 
   return (
     <ThemeProvider>

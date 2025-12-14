@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks, Users } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks, Users, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -148,6 +148,8 @@ export default function CourseEditorPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const courseId = params.id as string;
+  const from = searchParams.get("from"); // "learning-plan" or "dashboard" or null
+  const learningPlanId = searchParams.get("learningPlanId");
   const { user } = useAuthStore();
   
   // Course data
@@ -325,6 +327,9 @@ export default function CourseEditorPage() {
           const itemsWithProgress = (data.contentItems || []).map((item: any) => ({
             ...item,
             unlocked: item.unlocked !== undefined ? item.unlocked : true,
+            // Ensure progress and completed are properly set from API
+            progress: item.progress ?? 0,
+            completed: item.completed === true, // Explicit boolean check
           }));
           // Sort by order
           itemsWithProgress.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
@@ -762,7 +767,12 @@ export default function CourseEditorPage() {
           const itemsWithProgress = contentData.contentItems.map((item: any) => ({
             ...item,
             unlocked: item.unlocked !== undefined ? item.unlocked : true,
+            // Ensure progress and completed are properly set from API
+            progress: item.progress ?? 0,
+            completed: item.completed === true, // Explicit boolean check
           }));
+          // Sort by order
+          itemsWithProgress.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
           setContentItems(itemsWithProgress);
         }
       } catch (error) {
@@ -930,7 +940,15 @@ export default function CourseEditorPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/courses")}
+          onClick={() => {
+            if (from === "learning-plan" && learningPlanId) {
+              router.push(`/learning-plans/${learningPlanId}`);
+            } else if (from === "dashboard") {
+              router.push("/dashboard/learner");
+            } else {
+              router.push("/courses");
+            }
+          }}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
@@ -996,6 +1014,9 @@ export default function CourseEditorPage() {
                               {isLearner && item.unlocked === false && (
                                 <Lock className="h-4 w-4 text-gray-400" />
                               )}
+                              {item.completed && (
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              )}
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                               <Badge variant="info" className="text-xs">
@@ -1010,6 +1031,24 @@ export default function CourseEditorPage() {
                                 <Badge variant="default" className="text-xs">
                                   Locked
                                 </Badge>
+                              )}
+                              {(() => {
+                                // Check completion first (most reliable)
+                                if (item.completed === true) {
+                                  return <Badge variant="success" className="text-xs flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Complete
+                                  </Badge>;
+                                } else if (item.progress !== undefined && item.progress > 0) {
+                                  return <Badge variant="primary" className="text-xs">In Progress</Badge>;
+                                } else {
+                                  return <Badge variant="secondary" className="text-xs">Not Started</Badge>;
+                                }
+                              })()}
+                              {item.progress !== undefined && item.progress > 0 && !item.completed && (
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  {Math.round(item.progress)}% complete
+                                </span>
                               )}
                               <span>Order: {item.order}</span>
                             </div>
@@ -1115,11 +1154,24 @@ export default function CourseEditorPage() {
                               )}
 
                               {expandedContent.type === "PDF" && expandedContent.pdfUrl && (
-                                <PdfViewerLazy fileUrl={expandedContent.pdfUrl} />
+                                <PdfViewerLazy 
+                                  fileUrl={expandedContent.pdfUrl}
+                                  contentItemId={expandedContent.id}
+                                  totalPages={expandedContent.pdfPages || undefined}
+                                  completionThreshold={expandedContent.completionThreshold || 0.8}
+                                  onProgressUpdate={handleProgressUpdate}
+                                  initialPage={expandedContent.lastPage || undefined}
+                                />
                               )}
 
                               {expandedContent.type === "PPT" && expandedContent.pptUrl && (
-                                <PPTViewerLazy fileUrl={expandedContent.pptUrl} />
+                                <PPTViewerLazy 
+                                  fileUrl={expandedContent.pptUrl}
+                                  contentItemId={expandedContent.id}
+                                  totalPages={expandedContent.pptSlides || undefined}
+                                  completionThreshold={expandedContent.completionThreshold || 0.8}
+                                  onProgressUpdate={handleProgressUpdate}
+                                />
                               )}
 
                               {expandedContent.type === "HTML" && expandedContent.htmlContent && (
@@ -1383,6 +1435,9 @@ export default function CourseEditorPage() {
                               {isLearner && item.unlocked === false && (
                                 <Lock className="h-4 w-4 text-gray-400" />
                               )}
+                              {item.completed && (
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              )}
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                               <Badge variant="info" className="text-xs">
@@ -1397,6 +1452,24 @@ export default function CourseEditorPage() {
                                 <Badge variant="default" className="text-xs">
                                   Locked
                                 </Badge>
+                              )}
+                              {(() => {
+                                // Check completion first (most reliable)
+                                if (item.completed === true) {
+                                  return <Badge variant="success" className="text-xs flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Complete
+                                  </Badge>;
+                                } else if (item.progress !== undefined && item.progress > 0) {
+                                  return <Badge variant="primary" className="text-xs">In Progress</Badge>;
+                                } else {
+                                  return <Badge variant="secondary" className="text-xs">Not Started</Badge>;
+                                }
+                              })()}
+                              {item.progress !== undefined && item.progress > 0 && !item.completed && (
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  {Math.round(item.progress)}% complete
+                                </span>
                               )}
                               <span>Order: {item.order}</span>
                             </div>
@@ -1502,11 +1575,24 @@ export default function CourseEditorPage() {
                               )}
 
                               {expandedContent.type === "PDF" && expandedContent.pdfUrl && (
-                                <PdfViewerLazy fileUrl={expandedContent.pdfUrl} />
+                                <PdfViewerLazy 
+                                  fileUrl={expandedContent.pdfUrl}
+                                  contentItemId={expandedContent.id}
+                                  totalPages={expandedContent.pdfPages || undefined}
+                                  completionThreshold={expandedContent.completionThreshold || 0.8}
+                                  onProgressUpdate={handleProgressUpdate}
+                                  initialPage={expandedContent.lastPage || undefined}
+                                />
                               )}
 
                               {expandedContent.type === "PPT" && expandedContent.pptUrl && (
-                                <PPTViewerLazy fileUrl={expandedContent.pptUrl} />
+                                <PPTViewerLazy 
+                                  fileUrl={expandedContent.pptUrl}
+                                  contentItemId={expandedContent.id}
+                                  totalPages={expandedContent.pptSlides || undefined}
+                                  completionThreshold={expandedContent.completionThreshold || 0.8}
+                                  onProgressUpdate={handleProgressUpdate}
+                                />
                               )}
 
                               {expandedContent.type === "HTML" && expandedContent.htmlContent && (
@@ -1908,6 +1994,7 @@ export default function CourseEditorPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      )}
 
       {/* Content Item Modal */}
       <ContentItemModal

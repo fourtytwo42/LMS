@@ -232,19 +232,90 @@ export async function GET(
     // Get user's progress if enrolled
     let progressMap: Record<string, any> = {};
     if (isEnrolled) {
-      const progress = await prisma.videoProgress.findMany({
+      // Get video progress
+      const videoProgress = await prisma.videoProgress.findMany({
         where: {
           contentItemId: { in: contentItems.map((ci) => ci.id) },
           userId: user.id,
         },
       });
-      progressMap = progress.reduce((acc, p) => {
-        acc[p.contentItemId] = {
+      
+      // Get content progress for PDF/PPT/HTML/EXTERNAL
+      let contentProgress: any[] = [];
+      try {
+        contentProgress = await prisma.contentProgress.findMany({
+          where: {
+            contentItemId: { in: contentItems.map((ci) => ci.id) },
+            userId: user.id,
+          },
+        });
+      } catch (error: any) {
+        // If ContentProgress table doesn't exist, use empty array
+        const errorMessage = error?.message || '';
+        const errorCode = error?.code || '';
+        if (
+          errorCode === 'P2021' || 
+          errorCode === 'P2001' ||
+          errorMessage.includes('does not exist') || 
+          errorMessage.includes('ContentProgress') ||
+          errorMessage.includes('relation') ||
+          errorMessage.includes('table')
+        ) {
+          console.warn("ContentProgress table not found, skipping content progress. Run migration to enable progress tracking.");
+        } else {
+          console.error("Error fetching content progress:", error);
+          // Continue without progress data rather than failing
+        }
+      }
+      
+      // Get completion records for all content types
+      const completions = await prisma.completion.findMany({
+        where: {
+          contentItemId: { in: contentItems.map((ci) => ci.id) },
+          userId: user.id,
+          courseId: courseId,
+        },
+      });
+      
+      // Build progress map from video progress
+      videoProgress.forEach((p) => {
+        progressMap[p.contentItemId] = {
           progress: p.totalDuration > 0 ? (p.watchTime / p.totalDuration) * 100 : 0,
           completed: p.completed,
+          lastPosition: p.lastPosition,
         };
-        return acc;
-      }, {} as Record<string, any>);
+      });
+      
+      // Add content progress for PDF/PPT/HTML/EXTERNAL
+      contentProgress.forEach((cp) => {
+        const contentItem = contentItems.find((ci) => ci.id === cp.contentItemId);
+        if (contentItem && contentItem.type !== "VIDEO") {
+          progressMap[cp.contentItemId] = {
+            progress: cp.progress * 100, // Convert to percentage
+            completed: cp.completed,
+            lastPage: cp.lastPage,
+            pagesViewed: cp.pagesViewed,
+          };
+        }
+      });
+      
+      // Update completion status from completion records
+      // Completion records take precedence - if a completion exists, mark as completed
+      completions.forEach((c) => {
+        if (c.contentItemId) {
+          if (!progressMap[c.contentItemId]) {
+            progressMap[c.contentItemId] = {
+              progress: 100,
+              completed: true,
+            };
+          } else {
+            // Always mark as completed if a completion record exists
+            progressMap[c.contentItemId].completed = true;
+            // Set progress to 100 if completion exists
+            progressMap[c.contentItemId].progress = 100;
+          }
+        }
+      });
     }
 
     return NextResponse.json({
@@ -277,8 +348,11 @@ export async function GET(
               questionCount: item.test._count.questions,
             }
           : null,
-        progress: progressMap[item.id]?.progress || 0,
-        completed: progressMap[item.id]?.completed || false,
+        progress: progressMap[item.id]?.progress ?? 0,
+        completed: progressMap[item.id]?.completed === true, // Explicit boolean
+        lastPage: progressMap[item.id]?.lastPage || null,
+        lastPosition: progressMap[item.id]?.lastPosition || null,
+        unlocked: item.unlocked !== false, // Default to true if not explicitly false
         createdAt: item.createdAt,
       })),
     });

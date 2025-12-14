@@ -53,9 +53,10 @@ export default function LearnerDashboardPage() {
       setLoading(true);
       
       // Fetch learning plans and courses with group access (API handles filtering automatically for learners)
+      // Exclude courses that are only in learning plans from the dashboard
       const [learningPlansResponse, coursesResponse, enrollmentsResponse] = await Promise.all([
         fetch("/api/learning-plans"),
-        fetch("/api/courses"),
+        fetch("/api/courses?excludeLearningPlanCourses=true"),
         fetch("/api/enrollments?limit=1000"),
       ]);
 
@@ -78,7 +79,7 @@ export default function LearnerDashboardPage() {
         }
       });
 
-      // Process learning plans
+      // Process learning plans - use enrollment progress (already calculated by API)
       const processedLearningPlans = (learningPlansData.learningPlans || []).map((lp: any) => {
         const enrollment = learningPlanEnrollments.get(lp.id);
         return {
@@ -87,23 +88,47 @@ export default function LearnerDashboardPage() {
             ? (enrollment.status === "COMPLETED" ? "COMPLETED" : "ENROLLED")
             : "AVAILABLE",
           enrollmentId: enrollment?.id,
-          progress: enrollment?.progress || 0,
+          progress: enrollment?.status === "COMPLETED" ? 100 : (enrollment?.progress || 0),
         };
       });
 
-      // Process courses - only show courses that are directly in the learner's groups
-      // (not courses from learning plans unless enrolled in the learning plan)
-      const processedCourses = (coursesData.courses || []).map((course: any) => {
-        const enrollment = courseEnrollments.get(course.id);
-        return {
-          ...course,
-          enrollmentStatus: enrollment 
-            ? (enrollment.status === "COMPLETED" ? "COMPLETED" : "ENROLLED")
-            : "AVAILABLE",
-          enrollmentId: enrollment?.id,
-          progress: enrollment?.progress || 0,
-        };
-      });
+      // Process courses - fetch progress for enrolled courses
+      const processedCourses = await Promise.all(
+        (coursesData.courses || []).map(async (course: any) => {
+          const enrollment = courseEnrollments.get(course.id);
+          let progress = 0;
+          
+          if (enrollment) {
+            if (enrollment.status === "COMPLETED") {
+              progress = 100;
+            } else {
+              // Fetch real-time progress from API
+              try {
+                const progressResponse = await fetch(`/api/progress/course/${course.id}`);
+                if (progressResponse.ok) {
+                  const progressData = await progressResponse.json();
+                  progress = progressData.progress || 0;
+                } else {
+                  // Fallback to enrollment progress
+                  progress = enrollment.progress || 0;
+                }
+              } catch (error) {
+                console.error(`Error fetching progress for course ${course.id}:`, error);
+                progress = enrollment.progress || 0;
+              }
+            }
+          }
+          
+          return {
+            ...course,
+            enrollmentStatus: enrollment 
+              ? (enrollment.status === "COMPLETED" ? "COMPLETED" : "ENROLLED")
+              : "AVAILABLE",
+            enrollmentId: enrollment?.id,
+            progress,
+          };
+        })
+      );
 
       setLearningPlans(processedLearningPlans);
       setCourses(processedCourses);
@@ -213,8 +238,8 @@ export default function LearnerDashboardPage() {
   ) => {
     const isEnrolling = enrolling === item.id;
     const href = type === "learningPlan" 
-      ? `/learning-plans/${item.id}` 
-      : `/courses/${item.id}`;
+      ? `/learning-plans/${item.id}?from=dashboard` 
+      : `/courses/${item.id}?from=dashboard`;
 
     return (
       <Card
@@ -279,6 +304,26 @@ export default function LearnerDashboardPage() {
             )}
           </div>
 
+          {/* Progress Bar for Enrolled Items */}
+          {status === "ENROLLED" && item.progress !== undefined && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Progress
+                </span>
+                <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                  {Math.round(item.progress)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${item.progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex items-center gap-2">
             {status === "AVAILABLE" && (
@@ -292,23 +337,14 @@ export default function LearnerDashboardPage() {
               </Button>
             )}
             {status === "ENROLLED" && (
-              <>
-                <Button
-                  onClick={() => router.push(href)}
-                  className="flex-1"
-                  variant="primary"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Continue
-                </Button>
-                <Button
-                  onClick={() => router.push(href)}
-                  variant="ghost"
-                  size="sm"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </>
+              <Button
+                onClick={() => router.push(href)}
+                className="flex-1"
+                variant="primary"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Continue
+              </Button>
             )}
             {status === "COMPLETED" && (
               <Button

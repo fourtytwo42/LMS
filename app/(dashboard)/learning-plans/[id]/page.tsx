@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen, Users, Clock, Award } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen, Users, Clock, Award, Lock, CheckCircle, FileText, Presentation, Play, Code, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -23,6 +23,11 @@ import { TablePagination } from "@/components/tables/table-pagination";
 import { UserSelectionModal } from "@/components/users/user-selection-modal";
 import { GroupSelectionModal } from "@/components/groups/group-selection-modal";
 import { IconButton } from "@/components/ui/icon-button";
+import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
+import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
+import { PPTViewerLazy } from "@/components/ppt/ppt-viewer-lazy";
+import { cn } from "@/lib/utils/cn";
+import { getContentIcon, getIconContainerClasses, getIconContainerStyle } from "@/lib/utils/icon-container";
 
 const updateLearningPlanSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -138,6 +143,7 @@ export default function LearningPlanEditorPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const planId = params.id as string;
+  const from = searchParams.get("from"); // "dashboard" or null
   const { user } = useAuthStore();
   
   // Learning plan data
@@ -228,6 +234,109 @@ export default function LearningPlanEditorPage() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
+
+  // Learner view - expanded courses and content
+  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
+  const [courseContentItems, setCourseContentItems] = useState<Record<string, any[]>>({});
+  const [loadingContent, setLoadingContent] = useState<Record<string, boolean>>({});
+  const [selectedContentItem, setSelectedContentItem] = useState<any | null>(null);
+  const [expandedContentItem, setExpandedContentItem] = useState<any | null>(null);
+
+  // Fetch course content items
+  const fetchCourseContent = async (courseId: string) => {
+    if (courseContentItems[courseId]) {
+      // Already loaded
+      return;
+    }
+
+    setLoadingContent((prev) => ({ ...prev, [courseId]: true }));
+    try {
+      const response = await fetch(`/api/courses/${courseId}/content`);
+      if (response.ok) {
+        const data = await response.json();
+        setCourseContentItems((prev) => ({
+          ...prev,
+          [courseId]: data.contentItems || [],
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching content for course ${courseId}:`, error);
+    } finally {
+      setLoadingContent((prev) => ({ ...prev, [courseId]: false }));
+    }
+  };
+
+  // Toggle course expansion
+  const handleCourseToggle = (courseId: string) => {
+    if (expandedCourseId === courseId) {
+      setExpandedCourseId(null);
+      setSelectedContentItem(null);
+      setExpandedContentItem(null);
+    } else {
+      setExpandedCourseId(courseId);
+      fetchCourseContent(courseId);
+      setSelectedContentItem(null);
+      setExpandedContentItem(null);
+    }
+  };
+
+  // Handle content item click
+  const handleContentItemClick = async (contentItem: any, courseId: string) => {
+    setSelectedContentItem(contentItem);
+    setExpandedContentItem(null);
+    
+    // Fetch full content item details and progress
+    try {
+      const [contentResponse, progressResponse] = await Promise.all([
+        fetch(`/api/content/${contentItem.id}`),
+        contentItem.id ? fetch(`/api/progress/content/${contentItem.id}`) : Promise.resolve(null),
+      ]);
+      
+      if (contentResponse.ok) {
+        const data = await contentResponse.json();
+        
+        // Merge progress data if available
+        if (progressResponse && progressResponse.ok) {
+          const progressData = await progressResponse.json();
+          data.lastPage = progressData.lastPage;
+          data.lastPosition = progressData.lastPosition;
+        }
+        
+        setExpandedContentItem(data);
+      }
+    } catch (error) {
+      console.error("Error fetching content item:", error);
+    }
+  };
+
+  // Get content icon
+  const getContentIcon = (type: string) => {
+    switch (type) {
+      case "VIDEO":
+      case "YOUTUBE":
+        return <Play className="h-5 w-5" />;
+      case "PDF":
+        return <FileText className="h-5 w-5" />;
+      case "PPT":
+        return <Presentation className="h-5 w-5" />;
+      case "HTML":
+        return <Code className="h-5 w-5" />;
+      case "EXTERNAL":
+        return <Globe className="h-5 w-5" />;
+      case "TEST":
+        return <Award className="h-5 w-5" />;
+      default:
+        return <FileText className="h-5 w-5" />;
+    }
+  };
+
+  // Handle progress update
+  const handleProgressUpdate = async () => {
+    // Refresh content items for the expanded course to get updated progress
+    if (expandedCourseId) {
+      await fetchCourseContent(expandedCourseId);
+    }
+  };
 
   // Handle self-enrollment
   const handleSelfEnroll = async () => {
@@ -997,7 +1106,13 @@ export default function LearningPlanEditorPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/learning-plans")}
+          onClick={() => {
+            if (from === "dashboard") {
+              router.push("/dashboard/learner");
+            } else {
+              router.push("/learning-plans");
+            }
+          }}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
@@ -1012,7 +1127,7 @@ export default function LearningPlanEditorPage() {
           <Card className="overflow-hidden">
             <div className="relative">
               {plan.coverImage && (
-                <div className="relative h-64 w-full overflow-hidden bg-gray-200 dark:bg-gray-800">
+                <div className="relative h-32 w-full overflow-hidden bg-gray-200 dark:bg-gray-800">
                   <img
                     src={plan.coverImage}
                     alt={plan.title}
@@ -1021,36 +1136,41 @@ export default function LearningPlanEditorPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 </div>
               )}
-              <div className={`p-6 ${plan.coverImage ? "relative -mt-16" : ""}`}>
-                <div className={`${plan.coverImage ? "bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6" : ""}`}>
-                  <div className="flex items-start justify-between mb-4">
+              <div className={`p-4 ${plan.coverImage ? "relative -mt-8" : ""}`}>
+                <div className={`${plan.coverImage ? "bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4" : ""}`}>
+                  <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{plan.title}</h1>
+                      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{plan.title}</h1>
                       {plan.shortDescription && (
-                        <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">{plan.shortDescription}</p>
+                        <p className="text-base text-gray-600 dark:text-gray-400 mb-2">{plan.shortDescription}</p>
                       )}
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400">
                         {plan.estimatedTime && (
                           <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
+                            <Clock className="h-3 w-3" />
                             <span>{Math.floor(plan.estimatedTime / 60)}h {plan.estimatedTime % 60}m</span>
                           </div>
                         )}
                         {plan.difficultyLevel && (
                           <div className="flex items-center gap-1">
-                            <Award className="h-4 w-4" />
+                            <Award className="h-3 w-3" />
                             <span>{plan.difficultyLevel}</span>
                           </div>
                         )}
                         {plan.courseCount > 0 && (
                           <div className="flex items-center gap-1">
-                            <BookOpen className="h-4 w-4" />
+                            <BookOpen className="h-3 w-3" />
                             <span>{plan.courseCount} {plan.courseCount === 1 ? "Course" : "Courses"}</span>
                           </div>
                         )}
                       </div>
                     </div>
-                    {plan.selfEnrollment && !isEnrolled && (
+                    {isEnrolled ? (
+                      <Badge variant="success" className="ml-4 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        {enrollmentStatus === "COMPLETED" ? "Completed" : "Enrolled"}
+                      </Badge>
+                    ) : plan.selfEnrollment ? (
                       <Button
                         onClick={handleSelfEnroll}
                         disabled={enrolling}
@@ -1058,16 +1178,11 @@ export default function LearningPlanEditorPage() {
                       >
                         {enrolling ? "Enrolling..." : "Enroll Now"}
                       </Button>
-                    )}
-                    {isEnrolled && (
-                      <Badge variant="success" className="ml-4">
-                        {enrollmentStatus === "COMPLETED" ? "Completed" : "Enrolled"}
-                      </Badge>
-                    )}
+                    ) : null}
                   </div>
                   {plan.description && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{plan.description}</p>
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3">{plan.description}</p>
                     </div>
                   )}
                 </div>
@@ -1075,102 +1190,240 @@ export default function LearningPlanEditorPage() {
             </div>
           </Card>
 
-          {/* Courses Section */}
-          <Card className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Courses in this Learning Plan</h2>
-            {plan.courses.length === 0 ? (
-              <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p>No courses available in this learning plan yet.</p>
-              </div>
-            ) : (
-              <div className="max-w-4xl">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-20">Image</TableHead>
-                        <TableHead>Course</TableHead>
-                        <TableHead className="w-24">Time</TableHead>
-                        <TableHead className="w-32">Difficulty</TableHead>
-                        <TableHead className="w-32 text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {plan.courses.map((lpCourse, index) => (
-                        <TableRow key={lpCourse.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" onClick={() => router.push(`/courses/${lpCourse.id}`)}>
-                          <TableCell>
-                            {lpCourse.coverImage ? (
-                              <div className="w-20 aspect-video rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-                                <img
-                                  src={lpCourse.coverImage}
-                                  alt={lpCourse.title}
-                                  className="w-full h-full object-contain"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-20 aspect-video rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                                <BookOpen className="h-6 w-6 text-white opacity-50" />
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                {lpCourse.title}
-                              </div>
-                              {lpCourse.shortDescription && (
-                                <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                                  {lpCourse.shortDescription}
+          {/* Courses Section - Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Courses List */}
+            <Card className="p-6 lg:col-span-1">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Courses</h2>
+              {plan.courses.length === 0 ? (
+                <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>No courses available in this learning plan yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {plan.courses.map((lpCourse, index) => {
+                    const isExpanded = expandedCourseId === lpCourse.id;
+                    const contentItems = courseContentItems[lpCourse.id] || [];
+                    const isLoading = loadingContent[lpCourse.id] || false;
+
+                    return (
+                      <div
+                        key={lpCourse.id}
+                        className="border rounded-lg overflow-hidden bg-white dark:bg-gray-800"
+                      >
+                        {/* Course Header */}
+                        <div
+                          className={cn(
+                            "p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors",
+                            isExpanded && "bg-blue-50 dark:bg-blue-900/20"
+                          )}
+                          onClick={() => handleCourseToggle(lpCourse.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              {lpCourse.coverImage ? (
+                                <div className="w-16 aspect-video rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                                  <img
+                                    src={lpCourse.coverImage}
+                                    alt={lpCourse.title}
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-16 aspect-video rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                  <BookOpen className="h-5 w-5 text-white opacity-50" />
                                 </div>
                               )}
-                              <div className="mt-1">
-                                <Badge variant="info" className="text-xs">
-                                  Course {index + 1}
-                                </Badge>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                  {lpCourse.title}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                  {lpCourse.estimatedTime && (
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {Math.floor(lpCourse.estimatedTime / 60)}h {lpCourse.estimatedTime % 60}m
+                                    </span>
+                                  )}
+                                  {lpCourse.difficultyLevel && (
+                                    <Badge variant="default" className="text-xs">
+                                      {lpCourse.difficultyLevel}
+                                    </Badge>
+                                  )}
+                                  <Badge variant="info" className="text-xs">
+                                    Course {index + 1}
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            {lpCourse.estimatedTime ? (
-                              <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {Math.floor(lpCourse.estimatedTime / 60)}h {lpCourse.estimatedTime % 60}m
-                              </span>
+                            <div className="ml-2">
+                              {isExpanded ? (
+                                <ChevronUp className="h-5 w-5 text-gray-400" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Expanded Content Items */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                            {isLoading ? (
+                              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                Loading content...
+                              </div>
+                            ) : contentItems.length === 0 ? (
+                              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                No content items available
+                              </div>
                             ) : (
-                              <span className="text-sm text-gray-400">-</span>
+                              <div className="p-2 space-y-1">
+                                {contentItems.map((item: any) => (
+                                  <div
+                                    key={item.id}
+                                    onClick={() => handleContentItemClick(item, lpCourse.id)}
+                                    className={cn(
+                                      "p-3 rounded cursor-pointer transition-colors",
+                                      selectedContentItem?.id === item.id
+                                        ? "bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700"
+                                        : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={getIconContainerClasses("primary")}
+                                        style={getIconContainerStyle("primary")}
+                                      >
+                                        {getContentIcon(item.type)}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                          {item.title}
+                                          {item.unlocked === false && (
+                                            <Lock className="h-3 w-3 text-gray-400" />
+                                          )}
+                                          {item.completed && (
+                                            <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <Badge variant="info" className="text-xs">
+                                            {item.type}
+                                          </Badge>
+                                          {(() => {
+                                            if (item.completed) {
+                                              return <Badge variant="success" className="text-xs">Complete</Badge>;
+                                            } else if (item.progress !== undefined && item.progress > 0) {
+                                              return <Badge variant="primary" className="text-xs">In Progress</Badge>;
+                                            } else {
+                                              return <Badge variant="secondary" className="text-xs">Not Started</Badge>;
+                                            }
+                                          })()}
+                                          {item.progress !== undefined && item.progress > 0 && !item.completed && (
+                                            <span className="text-xs text-blue-600 dark:text-blue-400">
+                                              {Math.round(item.progress)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            {lpCourse.difficultyLevel ? (
-                              <Badge variant="default" className="text-xs">
-                                {lpCourse.difficultyLevel}
-                              </Badge>
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/courses/${lpCourse.id}`);
-                              }}
-                            >
-                              <BookOpen className="mr-2 h-4 w-4" />
-                              View
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            )}
-          </Card>
+              )}
+            </Card>
+
+            {/* Right Column - Content Viewer */}
+            <Card className="p-6 lg:col-span-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Content</h2>
+              {!selectedContentItem ? (
+                <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>Select a content item to view</p>
+                </div>
+              ) : !expandedContentItem ? (
+                <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+                  <p>Loading content...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      {expandedContentItem.title}
+                    </h3>
+                    {expandedContentItem.description && (
+                      <p className="text-gray-700 dark:text-gray-300 mb-4">
+                        {expandedContentItem.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Content Viewer */}
+                  {expandedContentItem.type === "VIDEO" && expandedContentItem.videoUrl && (
+                    <VideoPlayerLazy
+                      contentItemId={expandedContentItem.id}
+                      videoUrl={expandedContentItem.videoUrl}
+                      videoDuration={expandedContentItem.videoDuration || undefined}
+                      completionThreshold={expandedContentItem.completionThreshold || 0.8}
+                      allowSeeking={expandedContentItem.allowSeeking}
+                      onProgressUpdate={handleProgressUpdate}
+                    />
+                  )}
+
+                  {expandedContentItem.type === "PDF" && expandedContentItem.pdfUrl && (
+                    <PdfViewerLazy
+                      fileUrl={expandedContentItem.pdfUrl}
+                      contentItemId={expandedContentItem.id}
+                      totalPages={expandedContentItem.pdfPages || undefined}
+                      completionThreshold={expandedContentItem.completionThreshold || 0.8}
+                      onProgressUpdate={handleProgressUpdate}
+                      initialPage={expandedContentItem.lastPage || undefined}
+                    />
+                  )}
+
+                  {expandedContentItem.type === "PPT" && expandedContentItem.pptUrl && (
+                    <PPTViewerLazy
+                      fileUrl={expandedContentItem.pptUrl}
+                      contentItemId={expandedContentItem.id}
+                      totalPages={expandedContentItem.pptSlides || undefined}
+                      completionThreshold={expandedContentItem.completionThreshold || 0.8}
+                      onProgressUpdate={handleProgressUpdate}
+                    />
+                  )}
+
+                  {expandedContentItem.type === "HTML" && expandedContentItem.htmlContent && (
+                    <div
+                      className="prose max-w-none"
+                      dangerouslySetInnerHTML={{ __html: expandedContentItem.htmlContent }}
+                    />
+                  )}
+
+                  {expandedContentItem.type === "EXTERNAL" && expandedContentItem.externalUrl && (
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                        External content link.
+                      </p>
+                      <Button
+                        onClick={() => window.open(expandedContentItem.externalUrl!, "_blank")}
+                      >
+                        Open External Link
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       ) : (
         // Admin/Instructor/Creator view - with tabs
@@ -1518,7 +1771,7 @@ export default function LearningPlanEditorPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => router.push(`/courses/${course.id}`)}
+                                onClick={() => router.push(`/courses/${course.id}?from=learning-plan&learningPlanId=${planId}`)}
                                 title="View course"
                               >
                                 <Edit className="h-4 w-4" />

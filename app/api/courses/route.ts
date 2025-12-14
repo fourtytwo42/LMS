@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     const featured = searchParams.get("featured");
     const difficultyLevel = searchParams.get("difficultyLevel");
     const sort = searchParams.get("sort") || "newest";
+    const excludeLearningPlanCourses = searchParams.get("excludeLearningPlanCourses") === "true";
 
     const skip = (page - 1) * limit;
 
@@ -135,61 +136,63 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Add courses accessible through learning plans
-      // Find all learning plans the user has access to
-      const learningPlanAccessOr: any[] = [
-        { publicAccess: true },
-        {
-          enrollments: {
-            some: {
-              userId: user.id,
+      // Add courses accessible through learning plans (unless excluded)
+      if (!excludeLearningPlanCourses) {
+        // Find all learning plans the user has access to
+        const learningPlanAccessOr: any[] = [
+          { publicAccess: true },
+          {
+            enrollments: {
+              some: {
+                userId: user.id,
+              },
             },
           },
-        },
-        { createdById: user.id },
-      ];
+          { createdById: user.id },
+        ];
 
-      if (userGroupIds.length > 0) {
-        learningPlanAccessOr.push({
-          groupAccess: {
-            some: {
-              groupId: { in: userGroupIds },
+        if (userGroupIds.length > 0) {
+          learningPlanAccessOr.push({
+            groupAccess: {
+              some: {
+                groupId: { in: userGroupIds },
+              },
             },
-          },
-        });
-      }
+          });
+        }
 
-      // Get learning plan IDs the user has access to
-      const accessibleLearningPlans = await prisma.learningPlan.findMany({
-        where: {
-          OR: learningPlanAccessOr,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      const accessibleLearningPlanIds = accessibleLearningPlans.map((lp) => lp.id);
-
-      // If user has access to any learning plans, add courses from those plans
-      if (accessibleLearningPlanIds.length > 0) {
-        // Get course IDs from accessible learning plans
-        const learningPlanCourses = await prisma.learningPlanCourse.findMany({
+        // Get learning plan IDs the user has access to
+        const accessibleLearningPlans = await prisma.learningPlan.findMany({
           where: {
-            learningPlanId: { in: accessibleLearningPlanIds },
+            OR: learningPlanAccessOr,
           },
           select: {
-            courseId: true,
+            id: true,
           },
         });
 
-        const accessibleCourseIds = learningPlanCourses.map((lpc) => lpc.courseId);
+        const accessibleLearningPlanIds = accessibleLearningPlans.map((lp) => lp.id);
 
-        if (accessibleCourseIds.length > 0) {
-          // Add courses from learning plans - these should be accessible regardless of status
-          accessOr.push({
-            id: { in: accessibleCourseIds },
+        // If user has access to any learning plans, add courses from those plans
+        if (accessibleLearningPlanIds.length > 0) {
+          // Get course IDs from accessible learning plans
+          const learningPlanCourses = await prisma.learningPlanCourse.findMany({
+            where: {
+              learningPlanId: { in: accessibleLearningPlanIds },
+            },
+            select: {
+              courseId: true,
+            },
           });
+
+          const accessibleCourseIds = learningPlanCourses.map((lpc) => lpc.courseId);
+
+          if (accessibleCourseIds.length > 0) {
+            // Add courses from learning plans - these should be accessible regardless of status
+            accessOr.push({
+              id: { in: accessibleCourseIds },
+            });
+          }
         }
       }
 
