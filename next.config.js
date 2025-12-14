@@ -7,7 +7,25 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'recharts'],
   },
   images: {
-    domains: [],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: '192.168.50.243',
+        port: '3000',
+        pathname: '/api/files/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/api/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+        pathname: '/api/files/**',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
   typescript: {

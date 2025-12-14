@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, BookOpen, Award, CheckCircle, Lock, Play, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import Image from "next/image";
 
 interface LearningPlan {
   id: string;
@@ -163,6 +162,27 @@ export default function LearnerDashboardPage() {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  const normalizeImageUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    
+    // If it's already a full URL (starts with http), return as is
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    
+    // If it's a relative path, convert it to use the file serving API
+    // Remove leading slash if present
+    let path = url.startsWith("/") ? url.slice(1) : url;
+    
+    // Remove /storage prefix if present (for backwards compatibility)
+    if (path.startsWith("storage/")) {
+      path = path.replace(/^storage\//, "");
+    }
+    
+    // Construct the file serving URL
+    return `/api/files/serve?path=${encodeURIComponent(path)}`;
+  };
+
   const availableLearningPlans = learningPlans.filter(lp => lp.enrollmentStatus === "AVAILABLE");
   const enrolledLearningPlans = learningPlans.filter(lp => lp.enrollmentStatus === "ENROLLED");
   const completedLearningPlans = learningPlans.filter(lp => lp.enrollmentStatus === "COMPLETED");
@@ -205,14 +225,17 @@ export default function LearnerDashboardPage() {
         )}
       >
         {/* Cover Image */}
-        {item.coverImage && (
-          <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800">
-            <Image
-              src={item.coverImage}
+        {normalizeImageUrl(item.coverImage) && (
+          <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden">
+            <img
+              src={normalizeImageUrl(item.coverImage)!}
               alt={item.title}
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                console.error("Image failed to load:", normalizeImageUrl(item.coverImage));
+                // Hide the image container on error
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
         )}
