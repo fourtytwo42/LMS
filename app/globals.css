@@ -2,8 +2,14 @@
 
 * {
   box-sizing: border-box;
-  margin: 0;
+  /* Don't reset margin - let Tailwind classes handle it, margin: 0 was interfering with mx-auto centering */
   /* Don't reset padding - let Tailwind classes handle it */
+}
+
+/* Reset margin only on specific elements that need it */
+html, body {
+  margin: 0;
+  padding: 0;
 }
 
 :root {
@@ -369,6 +375,37 @@ html.dark .ps-sidebar-root.collapsed .ps-menu-button:hover::before {
 /* Using zoom which works in Chrome/Edge/Safari and doesn't break layout */
 html {
   zoom: 0.875; /* 87.5% scale - makes everything 12.5% smaller */
+}
+
+/* PPT Viewer thumbnail scrollbar */
+.ppt-viewer .overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ppt-viewer .overflow-x-auto::-webkit-scrollbar-track {
+  background: rgb(229 231 235);
+  border-radius: 4px;
+}
+
+.ppt-viewer .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgb(156 163 175);
+  border-radius: 4px;
+}
+
+.ppt-viewer .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+}
+
+.dark .ppt-viewer .overflow-x-auto::-webkit-scrollbar-track {
+  background: rgb(31 41 55);
+}
+
+.dark .ppt-viewer .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgb(75 85 99);
+}
+
+.dark .ppt-viewer .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
 }
 
 /* Ensure root page (/) sections and text are centered */

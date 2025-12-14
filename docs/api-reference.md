@@ -601,6 +601,14 @@ Upload a file.
 - Content items (VIDEO, PDF, PPT) and user files (AVATAR, THUMBNAIL, COVER) use `/api/files/serve?path=...`
 - Repository files use `/api/files/{id}/download`
 
+**PowerPoint (PPT) Files:**
+- When a PPTX file is uploaded (`type: "PPT"`), the upload completes immediately
+- An asynchronous background process converts the PPTX to PDF using LibreOffice UNO API
+- The PDF is saved in the same directory as the original PPTX file (`.pptx` → `.pdf`)
+- The PDF is then served to users via the existing PDF viewer component
+- **Requirements:** LibreOffice and Microsoft Core Fonts must be installed for proper conversion
+- Conversion errors are logged but don't block the upload process
+
 **Avatar Upload:**
 When uploading an avatar (`type: "AVATAR"`), the response includes a full URL that can be directly saved to the user's profile. The avatar is automatically saved when uploaded via the profile page.
 
@@ -628,6 +636,8 @@ Serve files (content items and user files) with authentication and access checks
 
 **File Types Supported:**
 - Content items: `VIDEO`, `PDF`, `PPT` - Requires course access verification
+  - **PPT files:** Served as converted PDFs (`.pptx` files are automatically converted to `.pdf` on upload)
+  - PPT files are accessed via the PDF viewer component
 - User files: `AVATAR`, `THUMBNAIL`, `COVER` - Requires authentication only
 - Course images: `THUMBNAIL`, `COVER` - Stored in thumbnails directory, served via `/api/files/serve?path=/thumbnails/...`
 - Learning Plan images: `COVER` - Single coverImage field used for both thumbnail and cover display, stored in thumbnails directory
@@ -645,6 +655,7 @@ Serve files (content items and user files) with authentication and access checks
 GET /api/files/serve?path=/videos/course-123/video.mp4
 GET /api/files/serve?path=/avatars/avatar.jpg
 GET /api/files/serve?path=/pdfs/course-123/document.pdf
+GET /api/files/serve?path=/ppts/course-123/presentation.pdf  # PPT files are served as PDFs
 ```
 
 ### GET /api/files/:id/download

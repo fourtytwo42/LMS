@@ -32,7 +32,7 @@ export default function HomePage() {
 
   return (
     <ThemeProvider>
-      <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 root-page">
+      <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 root-page" style={{ backgroundColor: 'white' }}>
         <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm" role="banner">
           <div className="w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-4">
@@ -59,7 +59,7 @@ export default function HomePage() {
 
         <main className="flex-1 pt-16 pb-20" style={{ textAlign: 'center' }}>
           {/* Hero Section */}
-          <section className="w-full px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32 bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800" style={{ textAlign: 'center' }}>
+          <section className="w-full px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32 bg-white dark:bg-gray-900" style={{ textAlign: 'center' }}>
             <div className="text-center max-w-5xl w-full mx-auto" style={{ textAlign: 'center' }}>
               <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
                 <Star className="h-4 w-4 fill-blue-600 dark:fill-blue-400" />
@@ -77,40 +77,13 @@ export default function HomePage() {
                 tracks progress in real-time, and provides actionable insights. Whether you're training employees, 
                 educating students, or building skills, our platform scales with your needs.
               </p>
-              <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+              <div className="flex justify-center items-center">
                 <Link href="/register">
-                  <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6 h-auto">
+                  <Button size="lg" className="text-lg px-8 py-6 h-auto">
                     Contact Us
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/login">
-                  <Button variant="secondary" size="lg" className="w-full sm:w-auto text-lg px-8 py-6 h-auto">
-                    Contact Us
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* Stats Section */}
-          <section className="w-full flex justify-center px-4 sm:px-6 lg:px-8 py-12 bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-700">
-            <div className="max-w-6xl w-full grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">10K+</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Active Learners</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">500+</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Courses Available</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">98%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-orange-600 dark:text-orange-400 mb-2">24/7</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Support Available</div>
               </div>
             </div>
           </section>
@@ -127,9 +100,9 @@ export default function HomePage() {
                   deliver, and track exceptional learning experiences.
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-3">
-                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-xl transition-all duration-300">
-                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+              <div className="grid grid-cols-1 gap-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-3 justify-items-center">
+                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-xl transition-all duration-300 text-center">
+                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform mx-auto block">
                     <BookOpen className="h-8 w-8" />
                   </div>
                   <h3 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Comprehensive Course Library</h3>
@@ -154,8 +127,8 @@ export default function HomePage() {
                   </ul>
                 </div>
                 
-                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-green-500 dark:hover:border-green-400 hover:shadow-xl transition-all duration-300">
-                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
+                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-green-500 dark:hover:border-green-400 hover:shadow-xl transition-all duration-300 text-center w-full">
+                  <div className="mb-6 w-16 h-16 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform mx-auto flex items-center justify-center">
                     <TrendingUp className="h-8 w-8" />
                   </div>
                   <h3 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Real-Time Progress Tracking</h3>
@@ -180,8 +153,8 @@ export default function HomePage() {
                   </ul>
                 </div>
                 
-                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-xl transition-all duration-300">
-                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
+                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-xl transition-all duration-300 text-center w-full">
+                  <div className="mb-6 w-16 h-16 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform mx-auto flex items-center justify-center">
                     <Users className="h-8 w-8" />
                   </div>
                   <h3 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Expert-Led Instruction</h3>
@@ -206,8 +179,8 @@ export default function HomePage() {
                   </ul>
                 </div>
                 
-                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-yellow-500 dark:hover:border-yellow-400 hover:shadow-xl transition-all duration-300">
-                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform">
+                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-yellow-500 dark:hover:border-yellow-400 hover:shadow-xl transition-all duration-300 text-center w-full">
+                  <div className="mb-6 w-16 h-16 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform mx-auto flex items-center justify-center">
                     <Award className="h-8 w-8" />
                   </div>
                   <h3 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Verified Certificates</h3>
@@ -232,8 +205,8 @@ export default function HomePage() {
                   </ul>
                 </div>
                 
-                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-indigo-500 dark:hover:border-indigo-400 hover:shadow-xl transition-all duration-300">
-                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-indigo-500 dark:hover:border-indigo-400 hover:shadow-xl transition-all duration-300 text-center w-full">
+                  <div className="mb-6 w-16 h-16 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform mx-auto flex items-center justify-center">
                     <CheckCircle2 className="h-8 w-8" />
                   </div>
                   <h3 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Advanced Assessments</h3>
@@ -258,8 +231,8 @@ export default function HomePage() {
                   </ul>
                 </div>
                 
-                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-red-500 dark:hover:border-red-400 hover:shadow-xl transition-all duration-300">
-                  <div className="mb-6 flex items-center justify-center w-16 h-16 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
+                <div className="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 hover:border-red-500 dark:hover:border-red-400 hover:shadow-xl transition-all duration-300 text-center w-full">
+                  <div className="mb-6 w-16 h-16 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform mx-auto flex items-center justify-center">
                     <BarChart3 className="h-8 w-8" />
                   </div>
                   <h3 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Powerful Analytics</h3>
@@ -349,16 +322,11 @@ export default function HomePage() {
                 Join thousands of organizations already using our platform to deliver exceptional learning experiences. 
                 Start your free trial today and see the difference.
               </p>
-              <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+              <div className="flex justify-center items-center">
                 <Link href="/register">
-                  <Button size="lg" variant="secondary" className="w-full sm:w-auto text-lg px-8 py-6 h-auto bg-white text-blue-600 hover:bg-gray-100">
+                  <Button size="lg" variant="secondary" className="text-lg px-8 py-6 h-auto bg-white text-blue-600 hover:bg-gray-100">
                     Contact Us
                     <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button size="lg" variant="ghost" className="w-full sm:w-auto text-lg px-8 py-6 h-auto text-white border-white hover:bg-white/10">
-                    Contact Us
                   </Button>
                 </Link>
               </div>

@@ -82,21 +82,91 @@ export async function GET(
       );
     }
 
-    const contentItems = await prisma.contentItem.findMany({
-      where: { courseId: courseId },
-      include: {
-        test: {
-          include: {
-            _count: {
-              select: {
-                questions: true,
+    // Try to fetch content items with prerequisites
+    // If the table doesn't exist yet (migration not run), fetch without prerequisites
+    let contentItems;
+    try {
+      contentItems = await prisma.contentItem.findMany({
+        where: { courseId: courseId },
+        include: {
+          test: {
+            include: {
+              _count: {
+                select: {
+                  questions: true,
+                },
+              },
+            },
+          },
+          prerequisites: {
+            include: {
+              prerequisite: {
+                select: {
+                  id: true,
+                  title: true,
+                  type: true,
+                  order: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: [{ order: "asc" }, { priority: "desc" }],
-    });
+        orderBy: [{ order: "asc" }, { priority: "desc" }],
+      });
+    } catch (error: any) {
+      // If prerequisites table doesn't exist, fetch without it
+      const errorMessage = String(error?.message || '');
+      const errorCode = String(error?.code || '');
+      const errorString = JSON.stringify(error);
+      
+      console.error("Error fetching content items with prerequisites:", {
+        code: errorCode,
+        message: errorMessage,
+        error: errorString,
+      });
+      
+      // Check if it's a table/relation missing error
+      if (
+        errorCode === 'P2021' || 
+        errorCode === 'P2001' ||
+        errorCode === '42P01' || // PostgreSQL: relation does not exist
+        errorMessage.toLowerCase().includes('does not exist') || 
+        errorMessage.toLowerCase().includes('contentitemprerequisite') ||
+        errorMessage.toLowerCase().includes('relation') ||
+        errorMessage.toLowerCase().includes('table') ||
+        errorMessage.toLowerCase().includes('unknown') ||
+        errorString.toLowerCase().includes('contentitemprerequisite')
+      ) {
+        console.warn("ContentItemPrerequisite table not found, fetching without prerequisites. Run migration to enable prerequisites feature.");
+        try {
+          contentItems = await prisma.contentItem.findMany({
+            where: { courseId: courseId },
+            include: {
+              test: {
+                include: {
+                  _count: {
+                    select: {
+                      questions: true,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: [{ order: "asc" }, { priority: "desc" }],
+          });
+          // Add empty prerequisites array to each item
+          contentItems = contentItems.map((item: any) => ({
+            ...item,
+            prerequisites: [],
+          }));
+        } catch (fallbackError: any) {
+          console.error("Error in fallback query:", fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
 
     // Get user's progress if enrolled
     let progressMap: Record<string, any> = {};

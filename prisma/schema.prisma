@@ -245,9 +245,25 @@ model ContentItem {
   course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   videoProgress   VideoProgress[]
   test            Test?
+  prerequisites   ContentItemPrerequisite[] @relation("Prerequisite")
+  dependentItems  ContentItemPrerequisite[] @relation("DependentItem")
   
   @@index([courseId, order])
   @@index([courseId, priority])
+}
+
+model ContentItemPrerequisite {
+  id              String   @id @default(cuid())
+  contentItemId   String
+  prerequisiteId  String
+  createdAt       DateTime @default(now())
+  
+  contentItem     ContentItem @relation("DependentItem", fields: [contentItemId], references: [id], onDelete: Cascade)
+  prerequisite    ContentItem @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  
+  @@unique([contentItemId, prerequisiteId])
+  @@index([contentItemId])
+  @@index([prerequisiteId])
 }
 
 model Test {

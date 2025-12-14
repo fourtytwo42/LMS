@@ -81,7 +81,7 @@ The LMS follows a modern full-stack architecture using Next.js 16 with the App R
 
 **Feature Components:**
 - `VideoPlayer` - Video playback with progress tracking, duration detection, stored duration support, and periodic DB updates (every 5 seconds)
-- `PDFViewer` - PDF document viewer with inline page navigation
+- `PDFViewer` - PDF document viewer with inline page navigation (used for both PDFs and converted PPTs)
 - `TestViewer` - Assessment interface
 - `AnalyticsDashboard` - Analytics visualizations with enrolled users details
 - `NotificationCenter` - Notification management
@@ -116,6 +116,8 @@ app/api/
 ├── enrollments/   # Enrollment management (includes /self, /bulk-delete, /bulk-update)
 ├── progress/      # Progress tracking
 ├── files/         # File management
+│   ├── upload/    # File upload endpoint (triggers PPT to PDF conversion for PPTX files)
+│   └── serve/     # File serving with authentication (serves PDFs, videos, images, and converted PPT PDFs)
 ├── analytics/     # Analytics endpoints
 ├── notifications/ # Notifications
 └── certificates/  # Certificate generation
@@ -193,13 +195,44 @@ Files are stored in a local filesystem with organized directory structure:
 storage/
 ├── videos/        # Video content
 ├── pdfs/          # PDF documents
-├── ppts/          # PowerPoint files
+├── ppts/          # PowerPoint files (original PPTX files)
+│   └── *.pdf      # Converted PDF files (created automatically on upload)
 ├── repository/    # Repository files
 ├── avatars/       # User avatars
 ├── certificates/  # Generated certificates
 ├── thumbnails/    # Course thumbnails
 └── badges/        # Badge images
 ```
+
+### PowerPoint to PDF Conversion
+
+**Process:**
+1. When a PPTX file is uploaded via `/api/files/upload`, the system detects it's a PowerPoint file
+2. The upload completes immediately (non-blocking)
+3. An asynchronous background process converts the PPTX to PDF using LibreOffice UNO API
+4. The PDF is saved in the same directory as the original PPTX file with the same name (`.pptx` → `.pdf`)
+5. The PDF is then served to users via the existing PDF viewer component
+
+**Conversion Script:**
+- Location: `scripts/convert-pptx-to-pdf.py`
+- Uses LibreOffice UNO API for precise control over PDF export
+- Runs asynchronously to avoid blocking file uploads
+- Handles font rendering issues by requiring Microsoft Core Fonts
+
+**Font Requirements:**
+- **Microsoft Core Fonts** must be installed for proper font rendering
+- Without these fonts, LibreOffice will substitute fonts, causing:
+  - Weird character rendering (e.g., "s" appearing as special symbols)
+  - Text appearing too thin or distorted
+  - Layout and spacing issues
+- **Carlito** font (free Calibri substitute) is also installed for better compatibility with modern PowerPoint files
+
+**Technical Details:**
+- Conversion uses `impress_pdf_Export` filter with layout preservation options
+- No autofit is applied to prevent text from becoming too thin
+- PDF version 1.4 is used for compatibility
+- Conversion timeout: 2 minutes per file
+- Errors are logged but don't block the upload process
 
 ## Security Architecture
 

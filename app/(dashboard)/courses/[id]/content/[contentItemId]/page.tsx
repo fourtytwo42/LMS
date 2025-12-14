@@ -17,6 +17,7 @@ interface ContentItem {
   videoUrl: string | null;
   videoDuration: number | null;
   pdfUrl: string | null;
+  pptUrl: string | null;
   externalUrl: string | null;
   htmlContent: string | null;
   completionThreshold: number | null;
@@ -182,15 +183,8 @@ export default function ContentItemPage() {
             </div>
           )}
 
-          {contentItem.type === "PPT" && (
-            <div className="rounded-lg border p-6 text-center">
-              <p className="mb-4 text-gray-600">
-                PowerPoint presentations are not yet supported in the viewer.
-              </p>
-              <p className="text-sm text-gray-500">
-                Please download the file to view it.
-              </p>
-            </div>
+          {contentItem.type === "PPT" && contentItem.pptUrl && (
+            <PdfViewerLazy fileUrl={contentItem.pptUrl.replace(/\.pptx?$/i, ".pdf")} />
           )}
 
           {contentItem.type === "TEST" && (

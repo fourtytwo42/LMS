@@ -5,8 +5,10 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Set up PDF.js worker - use local worker file matching react-pdf's pdfjs-dist version (5.4.296)
+if (typeof window !== "undefined") {
+  pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.5.4.296.min.mjs";
+}
 
 interface PDFViewerProps {
   pdfUrl: string;
@@ -83,6 +85,8 @@ export function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
             renderAnnotationLayer={true}
             className="shadow-lg"
             width={Math.min(800, typeof window !== "undefined" ? window.innerWidth - 100 : 800)}
+            scale={1.0}
+            renderMode="canvas"
           />
         </Document>
       </div>

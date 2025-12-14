@@ -264,7 +264,8 @@ export default function NewContentItemPage() {
   const getPdfPageCount = async (file: File): Promise<number> => {
     try {
       const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      // Use local worker file matching pdfjs-dist version 5.4.449
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.5.4.449.min.mjs";
       
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;

@@ -96,6 +96,29 @@ created: 2025-12-09
 **Component 3: Database Layer (PostgreSQL + Prisma)**
 - **Responsibility:** Data persistence for users, courses, enrollments, progress, analytics
 - **Technology:** PostgreSQL 15+, Prisma ORM 5.x
+
+**Component 4: File Processing & Content Viewing**
+- **Responsibility:** Process and serve various content types (videos, PDFs, PowerPoint presentations)
+- **Technology:** 
+  - Local filesystem for storage
+  - LibreOffice for PPTX to PDF conversion (via Python UNO API)
+  - react-pdf for PDF viewing (used for both PDFs and converted PPTs)
+  - HTML5 video player for video playback
+- **Interactions:**
+  - File upload API endpoints
+  - File serving with authentication
+  - PPT to PDF conversion API (converts PPTX to PDF asynchronously on upload)
+  - PDF viewer component (displays both PDFs and converted PPTs)
+- **Dependencies:**
+  - LibreOffice (system dependency for PPT conversion)
+  - Python 3 with python3-uno package (for LibreOffice UNO API)
+  - Microsoft Core Fonts (ttf-mscorefonts-installer) - Required for proper font rendering in PPT conversions
+  - cabextract and unzip (for font installation)
+  - react-pdf for PDF rendering
+  - File system operations (fs/promises)
+- **State Management:** File metadata in database, actual files on filesystem
+- **Error Handling:** File not found errors, conversion failures, permission errors
+- **Font Requirements:** Microsoft Core Fonts must be installed to prevent font substitution issues (weird characters, thin text) when converting PowerPoint presentations. Without these fonts, LibreOffice will substitute fonts which can cause rendering problems.
 - **Interactions:**
   - Prisma Client for type-safe database queries
   - Migrations for schema management
@@ -255,8 +278,9 @@ created: 2025-12-09
 - ✅ Dark/Light mode toggle with localStorage persistence and centralized theme management
 - ✅ Collapsible sidebar with unique icons, tooltips, and localStorage persistence (defaults to collapsed)
 - ✅ Expandable content items on course detail page with inline players
-- ✅ Inline video player, PDF viewer, and PPT support
+- ✅ Inline video player, PDF viewer, and PPT viewer with slide extraction
 - ✅ File serving endpoint for content items (VIDEO, PDF, PPT) and user files (AVATAR, THUMBNAIL, COVER)
+- ✅ PPT to PDF conversion: PowerPoint presentations are automatically converted to PDF using LibreOffice UNO API for reliable viewing. Conversion happens asynchronously on upload to avoid blocking. Microsoft Core Fonts are required for proper font rendering.
 - ✅ Video progress tracking with stored duration support and periodic DB updates (every 5 seconds)
 - ✅ Content item API endpoint fixes
 - ✅ Locked content handling with user-friendly messages

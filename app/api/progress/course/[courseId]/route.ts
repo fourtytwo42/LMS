@@ -101,6 +101,42 @@ export async function GET(
       videoProgresses.map((vp) => [vp.contentItemId, vp])
     );
 
+    // Get all prerequisites for content items (if table exists)
+    let prerequisitesMap = new Map<string, string[]>();
+    try {
+      const prerequisites = await prisma.contentItemPrerequisite.findMany({
+        where: {
+          contentItemId: {
+            in: course.contentItems.map((item) => item.id),
+          },
+        },
+      });
+
+      prerequisites.forEach((p) => {
+        if (!prerequisitesMap.has(p.contentItemId)) {
+          prerequisitesMap.set(p.contentItemId, []);
+        }
+        prerequisitesMap.get(p.contentItemId)!.push(p.prerequisiteId);
+      });
+    } catch (error: any) {
+      // If prerequisites table doesn't exist, use empty map
+      const errorMessage = error?.message || '';
+      const errorCode = error?.code || '';
+      if (
+        errorCode === 'P2021' || 
+        errorCode === 'P2001' ||
+        errorMessage.includes('does not exist') || 
+        errorMessage.includes('ContentItemPrerequisite') ||
+        errorMessage.includes('relation') ||
+        errorMessage.includes('table')
+      ) {
+        console.warn("ContentItemPrerequisite table not found, skipping prerequisites check. Run migration to enable prerequisites feature.");
+      } else {
+        console.error("Error fetching prerequisites:", error);
+        throw error;
+      }
+    }
+
     // Build content items with progress
     const contentItemsWithProgress = course.contentItems.map((item) => {
       const completion = completionMap.get(item.id);
@@ -109,8 +145,16 @@ export async function GET(
       let progress = 0;
       let unlocked = true;
 
-      if (item.order > 0) {
-        // Check if previous item is completed
+      // Check prerequisites
+      const requiredPrerequisites = prerequisitesMap.get(item.id) || [];
+      if (requiredPrerequisites.length > 0) {
+        // All prerequisites must be completed
+        unlocked = requiredPrerequisites.every((prereqId) => {
+          const prereqCompletion = completionMap.get(prereqId);
+          return !!prereqCompletion;
+        });
+      } else if (course.sequentialRequired && item.order > 0) {
+        // Fallback to sequential check if no prerequisites and sequential is required
         const previousItem = course.contentItems.find(
           (ci) => ci.order === item.order - 1
         );

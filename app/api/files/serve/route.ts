@@ -50,6 +50,74 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Handle ppt-slides (extracted PowerPoint slide images)
+    // Path format: ppt-slides/ppts/{courseId}/{presentation-name}/slide-{n}.png
+    if (pathParts[0] === "ppt-slides") {
+      if (pathParts.length < 4 || pathParts[1] !== "ppts") {
+        return NextResponse.json(
+          { error: "BAD_REQUEST", message: "Invalid ppt-slides path format" },
+          { status: 400 }
+        );
+      }
+
+      // Extract course ID from path: ppt-slides/ppts/{courseId}/...
+      const courseId = pathParts[2];
+
+      // Verify course exists and user has access
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        include: {
+          instructorAssignments: {
+            where: { userId: user.id },
+          },
+        },
+      });
+
+      if (!course) {
+        return NextResponse.json(
+          { error: "NOT_FOUND", message: "Course not found" },
+          { status: 404 }
+        );
+      }
+
+      // Check access permissions
+      const isAdmin = user.roles.includes("ADMIN");
+      const isAssignedInstructor = course.instructorAssignments.length > 0;
+      const isCreator = course.createdById === user.id;
+      const isEnrolled = await prisma.enrollment.findFirst({
+        where: {
+          courseId: courseId,
+          userId: user.id,
+          status: { in: ["ENROLLED", "IN_PROGRESS", "COMPLETED"] },
+        },
+      });
+
+      const hasAccess =
+        isAdmin ||
+        isAssignedInstructor ||
+        isCreator ||
+        course.publicAccess ||
+        !!isEnrolled;
+
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: "FORBIDDEN", message: "Insufficient permissions to access this file" },
+          { status: 403 }
+        );
+      }
+
+      // Serve the slide image
+      const fileExtension = normalizedPath.split(".").pop()?.toLowerCase() || "";
+      const contentType = fileExtension === "png" ? "image/png" : "image/jpeg";
+
+      return serveFile(normalizedPath, {
+        filename: pathParts[pathParts.length - 1],
+        contentType,
+        range: null,
+        download: false,
+      });
+    }
+
     // Handle avatar, thumbnail, and cover files (user files - no course association)
     // Note: Cover images are stored in the thumbnails directory
     if (pathParts[0] === "avatars" || pathParts[0] === "thumbnails" || pathParts[0] === "covers") {

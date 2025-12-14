@@ -24,9 +24,13 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('lms-theme');
-                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  const isDark = theme === 'dark' || (!theme && prefersDark);
+                  let theme = localStorage.getItem('lms-theme');
+                  // Default to dark mode if no theme is stored
+                  if (!theme) {
+                    theme = 'dark';
+                    localStorage.setItem('lms-theme', 'dark');
+                  }
+                  const isDark = theme === 'dark';
                   const root = document.documentElement;
                   const body = document.body;
                   

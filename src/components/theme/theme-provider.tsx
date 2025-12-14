@@ -12,15 +12,20 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Get theme from localStorage or default to light
-    const storedTheme = localStorage.getItem("lms-theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Get theme from localStorage or default to dark
+    let storedTheme = localStorage.getItem("lms-theme") as Theme | null;
     
-    const initialTheme = storedTheme || (prefersDark ? "dark" : "light");
+    // Default to dark mode if no theme is stored, and save it
+    if (!storedTheme) {
+      storedTheme = "dark";
+      localStorage.setItem("lms-theme", "dark");
+    }
+    
+    const initialTheme = storedTheme;
     setTheme(initialTheme);
     applyTheme(initialTheme);
     setMounted(true);

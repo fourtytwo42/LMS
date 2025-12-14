@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -21,6 +21,7 @@ import type { Column } from "@/components/tables/data-table";
 import { TableToolbar } from "@/components/tables/table-toolbar";
 import { TablePagination } from "@/components/tables/table-pagination";
 import { ContentItemModal } from "@/components/content/content-item-modal";
+import { PrerequisitesModal } from "@/components/content/prerequisites-modal";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
 import { cn } from "@/lib/utils/cn";
@@ -180,6 +181,9 @@ export default function CourseEditorPage() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentModalOpen, setContentModalOpen] = useState(false);
   const [editingContentItem, setEditingContentItem] = useState<any | null>(null);
+  const [prerequisitesModalOpen, setPrerequisitesModalOpen] = useState(false);
+  const [prerequisitesContentItemId, setPrerequisitesContentItemId] = useState<string | null>(null);
+  const [prerequisitesContentItemTitle, setPrerequisitesContentItemTitle] = useState<string>("");
 
   // Enrollments tab
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -296,27 +300,35 @@ export default function CourseEditorPage() {
     fetchCourse();
   }, [courseId, setDetailsValue, setSettingsValue, router]);
 
-  // Fetch content items when Training Material tab is active
+  // Fetch content items - always fetch when page loads
   useEffect(() => {
-    if (activeTab === "training-material") {
-      const fetchContent = async () => {
-        try {
-          const response = await fetch(`/api/courses/${courseId}/content`);
-          if (response.ok) {
-            const data = await response.json();
-            const itemsWithProgress = data.contentItems.map((item: any) => ({
-              ...item,
-              unlocked: item.unlocked !== undefined ? item.unlocked : true,
-            }));
-            setContentItems(itemsWithProgress);
-          }
-        } catch (error) {
-          console.error("Error fetching content:", error);
+    if (!courseId) return;
+    
+    const fetchContent = async () => {
+      try {
+        console.log("Fetching content items for course:", courseId);
+        const response = await fetch(`/api/courses/${courseId}/content`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Content items fetched:", data.contentItems?.length || 0, "items");
+          const itemsWithProgress = (data.contentItems || []).map((item: any) => ({
+            ...item,
+            unlocked: item.unlocked !== undefined ? item.unlocked : true,
+          }));
+          // Sort by order
+          itemsWithProgress.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+          setContentItems(itemsWithProgress);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Failed to fetch content items:", response.status, response.statusText, errorData);
         }
-      };
-      fetchContent();
-    }
-  }, [activeTab, courseId]);
+      } catch (error) {
+        console.error("Error fetching content:", error);
+      }
+    };
+    
+    fetchContent();
+  }, [courseId]);
 
   // Fetch enrollments when Enrollments tab is active
   useEffect(() => {
@@ -559,6 +571,52 @@ export default function CourseEditorPage() {
     fetchItem();
   };
 
+  const handleMoveContent = async (itemId: string, direction: "up" | "down") => {
+    const currentIndex = contentItems.findIndex((item) => item.id === itemId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= contentItems.length) return;
+
+    const currentItem = contentItems[currentIndex];
+    const targetItem = contentItems[newIndex];
+
+    // Swap orders
+    const tempOrder = currentItem.order;
+    const newOrder = targetItem.order;
+
+    try {
+      // Update both items' orders
+      const [currentResponse, targetResponse] = await Promise.all([
+        fetch(`/api/content/${itemId}/order`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: newOrder }),
+        }),
+        fetch(`/api/content/${targetItem.id}/order`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: tempOrder }),
+        }),
+      ]);
+
+      if (currentResponse.ok && targetResponse.ok) {
+        // Update local state
+        const updatedItems = [...contentItems];
+        updatedItems[currentIndex] = { ...currentItem, order: newOrder };
+        updatedItems[newIndex] = { ...targetItem, order: tempOrder };
+        // Re-sort by order
+        updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+        setContentItems(updatedItems);
+      } else {
+        throw new Error("Failed to update order");
+      }
+    } catch (error) {
+      console.error("Error moving content item:", error);
+      alert("Failed to reorder content item");
+    }
+  };
+
   const handleDeleteContent = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this content item?")) return;
 
@@ -610,6 +668,8 @@ export default function CourseEditorPage() {
           ...item,
           unlocked: item.unlocked !== undefined ? item.unlocked : true,
         }));
+        // Sort by order
+        itemsWithProgress.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
         setContentItems(itemsWithProgress);
       }
       
@@ -1078,6 +1138,47 @@ export default function CourseEditorPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {canEdit && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveContent(item.id, "up");
+                                }}
+                                disabled={contentItems.findIndex((i) => i.id === item.id) === 0}
+                                title="Move up"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveContent(item.id, "down");
+                                }}
+                                disabled={contentItems.findIndex((i) => i.id === item.id) === contentItems.length - 1}
+                                title="Move down"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPrerequisitesContentItemId(item.id);
+                                  setPrerequisitesContentItemTitle(item.title);
+                                  setPrerequisitesModalOpen(true);
+                                }}
+                                title="Set prerequisites"
+                              >
+                                <ListChecks className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1136,16 +1237,7 @@ export default function CourseEditorPage() {
                               )}
 
                               {expandedContent.type === "PPT" && expandedContent.pptUrl && (
-                                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
-                                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                                    PowerPoint presentation. Click to download or view.
-                                  </p>
-                                  <Button
-                                    onClick={() => window.open(expandedContent.pptUrl!, "_blank")}
-                                  >
-                                    Open Presentation
-                                  </Button>
-                                </div>
+                                <PdfViewerLazy fileUrl={expandedContent.pptUrl.replace(/\.pptx?$/i, ".pdf")} />
                               )}
 
                               {expandedContent.type === "HTML" && expandedContent.htmlContent && (
@@ -1488,6 +1580,20 @@ export default function CourseEditorPage() {
         existingItem={editingContentItem}
         nextOrder={contentItems.length}
       />
+
+      {prerequisitesContentItemId && (
+        <PrerequisitesModal
+          isOpen={prerequisitesModalOpen}
+          onClose={() => {
+            setPrerequisitesModalOpen(false);
+            setPrerequisitesContentItemId(null);
+            setPrerequisitesContentItemTitle("");
+          }}
+          contentItemId={prerequisitesContentItemId}
+          courseId={courseId}
+          currentTitle={prerequisitesContentItemTitle}
+        />
+      )}
 
       {/* Enroll User Modal */}
       <Modal

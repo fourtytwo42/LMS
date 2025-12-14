@@ -17,17 +17,17 @@ const contentItemSchema = z.object({
   order: z.number().int().min(0),
   priority: z.number().int().default(0),
   required: z.boolean().default(true),
-  videoUrl: z.string().url().optional(),
+  videoUrl: z.string().optional(),
   videoDuration: z.number().optional(),
   completionThreshold: z.number().min(0).max(1).default(0.8),
   allowSeeking: z.boolean().default(true),
-  youtubeUrl: z.string().url().optional(),
-  pdfUrl: z.string().url().optional(),
+  youtubeUrl: z.string().optional(),
+  pdfUrl: z.string().optional(),
   pdfPages: z.number().optional(),
-  pptUrl: z.string().url().optional(),
+  pptUrl: z.string().optional(),
   pptSlides: z.number().optional(),
   htmlContent: z.string().optional(),
-  externalUrl: z.string().url().optional(),
+  externalUrl: z.string().optional(),
   externalType: z.string().optional(),
 });
 
@@ -161,7 +161,8 @@ export function ContentItemModal({
   const getPdfPageCount = async (file: File): Promise<number> => {
     try {
       const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      // Use local worker file matching pdfjs-dist version 5.4.449
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.5.4.449.min.mjs";
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       return pdf.numPages;
@@ -318,6 +319,11 @@ export function ContentItemModal({
   };
 
   const onSubmitForm = async (data: ContentItemForm) => {
+    console.log("Form submission data:", data);
+    console.log("Content type:", data.type);
+    console.log("PDF URL:", data.pdfUrl);
+    console.log("Uploaded file URL:", uploadedFileUrl);
+    
     if (data.type === "VIDEO" && !data.videoUrl) {
       alert("Video file upload is required for VIDEO type");
       return;
@@ -327,7 +333,7 @@ export function ContentItemModal({
       return;
     }
     if (data.type === "PDF" && !data.pdfUrl) {
-      alert("PDF file upload is required for PDF type");
+      alert("PDF file upload is required for PDF type. Please upload a PDF file first.");
       return;
     }
     if (data.type === "PPT" && !data.pptUrl) {
@@ -345,6 +351,7 @@ export function ContentItemModal({
 
     setSaving(true);
     try {
+      console.log("Submitting data:", data);
       await onSubmit(data);
       reset();
       setUploadedFileUrl(null);
@@ -352,6 +359,7 @@ export function ContentItemModal({
       onClose();
     } catch (error) {
       console.error("Error saving content item:", error);
+      alert(error instanceof Error ? error.message : "Failed to save content item. Please check the console for details.");
     } finally {
       setSaving(false);
     }
@@ -617,6 +625,21 @@ export function ContentItemModal({
               className="rounded border-gray-300"
             />
             <label className="text-sm">Allow Seeking</label>
+          </div>
+        )}
+
+        {Object.keys(errors).length > 0 && (
+          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+            <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+              Please fix the following errors:
+            </p>
+            <ul className="list-disc list-inside text-sm text-red-700 dark:text-red-300 space-y-1">
+              {Object.entries(errors).map(([key, error]) => (
+                <li key={key}>
+                  {key}: {error?.message || "Invalid value"}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

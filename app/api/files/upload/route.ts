@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/prisma";
-import { saveFile, validateFile, FileType } from "@/lib/storage/file-upload";
+import { saveFile, validateFile, FileType, getFullFilePath } from "@/lib/storage/file-upload";
 import { z } from "zod";
+import { join } from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 const uploadSchema = z.object({
   type: z.enum(["VIDEO", "PDF", "PPT", "REPOSITORY", "AVATAR", "THUMBNAIL", "COVER"]),
@@ -131,9 +136,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Save to content repository if type is for content repository
-    // This would be triggered by a separate endpoint or flag
-    // For now, we'll handle it here if needed
+    // For PPT files, convert to PDF asynchronously (don't wait for completion)
+    if (validated.type === "PPT" && validated.courseId) {
+      // Convert PPT to PDF in the background - don't block the response
+      convertPptToPdfAsync(uploadedFile.filePath).catch((error) => {
+        console.error("Error converting PPT to PDF in background:", error);
+        // Don't throw - conversion failure shouldn't break the upload
+      });
+    }
 
     // For other file types, return uploaded file info
     return NextResponse.json({
@@ -159,6 +169,59 @@ export async function POST(request: NextRequest) {
       { error: "INTERNAL_ERROR", message: "An unexpected error occurred" },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Convert PPTX file to PDF asynchronously (non-blocking)
+ * This runs in the background after file upload completes
+ */
+async function convertPptToPdfAsync(pptFilePath: string): Promise<void> {
+  try {
+    console.log(`PPT to PDF: Starting conversion for ${pptFilePath}`);
+    
+    // Get full path to the PPTX file
+    const storagePath = process.env.STORAGE_PATH || "./storage";
+    const fullPptPath = getFullFilePath(pptFilePath);
+    
+    // Get the directory where the PPT file is located
+    const pptDir = join(fullPptPath, "..");
+    const pptFileName = require("path").basename(fullPptPath, require("path").extname(fullPptPath));
+    const pdfFileName = `${pptFileName}.pdf`;
+    const fullPdfPath = join(pptDir, pdfFileName);
+    
+    // Use Python script with LibreOffice UNO API for better PDF conversion
+    // This gives us more control over PDF export options to preserve layout
+    const scriptPath = join(process.cwd(), "scripts", "convert-pptx-to-pdf.py");
+    const command = `python3 "${scriptPath}" "${fullPptPath}" "${fullPdfPath}"`;
+    
+    const { stdout, stderr } = await execAsync(command, { timeout: 120000 }); // 2 minute timeout
+    
+    if (stdout) {
+      console.log(`PPT to PDF: ${stdout}`);
+    }
+    if (stderr) {
+      console.log(`PPT to PDF: ${stderr}`);
+    }
+    
+    // Verify PDF was created
+    const fs = require("fs");
+    if (fs.existsSync(fullPdfPath)) {
+      console.log(`PPT to PDF: Successfully converted ${pptFilePath} to ${pdfFileName}`);
+    } else {
+      // Sometimes LibreOffice creates the PDF with a slightly different name
+      // Check for any PDF file in the directory
+      const files = fs.readdirSync(pptDir);
+      const pdfFile = files.find((f: string) => f.endsWith(".pdf") && f.startsWith(pptFileName));
+      if (pdfFile) {
+        console.log(`PPT to PDF: PDF created as ${pdfFile} (name variation)`);
+      } else {
+        throw new Error(`PDF file was not created. Expected: ${fullPdfPath}`);
+      }
+    }
+  } catch (error) {
+    console.error(`PPT to PDF: Failed to convert ${pptFilePath}:`, error);
+    // Don't throw - this is a background process, failures shouldn't break anything
   }
 }
 
