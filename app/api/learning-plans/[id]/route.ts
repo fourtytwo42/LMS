@@ -89,11 +89,30 @@ export async function GET(
       },
     });
 
+    // Check if user is in a group that has access to this learning plan
+    const userGroups = await prisma.groupMember.findMany({
+      where: { userId: user.id },
+      select: { groupId: true },
+    });
+    const userGroupIds = userGroups.map((gm) => gm.groupId);
+    
+    let hasGroupAccess = false;
+    if (userGroupIds.length > 0) {
+      const groupAccess = await prisma.learningPlanGroupAccess.findFirst({
+        where: {
+          learningPlanId: learningPlan.id,
+          groupId: { in: userGroupIds },
+        },
+      });
+      hasGroupAccess = groupAccess !== null;
+    }
+
     const hasAccess =
       isAdmin ||
       learningPlan.publicAccess ||
       isEnrolled ||
-      learningPlan.createdById === user.id;
+      learningPlan.createdById === user.id ||
+      hasGroupAccess;
 
     if (!hasAccess) {
       return NextResponse.json(

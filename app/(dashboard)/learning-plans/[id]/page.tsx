@@ -220,21 +220,25 @@ export default function LearningPlanEditorPage() {
   // For instructor access, we'll rely on API permission checks (403 if no access)
   const canEdit = isAdmin || isCreator;
 
-  // Redirect if no access
+  // Check if user has view access (not just edit access)
+  const [hasViewAccess, setHasViewAccess] = useState(false);
+
+  // Check access permissions
   useEffect(() => {
-    if (!loading && plan && !canEdit) {
-      // Try to fetch to check if user has instructor access
+    if (!loading && planId) {
       fetch(`/api/learning-plans/${planId}`)
         .then((res) => {
           if (res.status === 403) {
             router.push("/learning-plans");
+          } else if (res.ok) {
+            setHasViewAccess(true);
           }
         })
         .catch(() => {
           router.push("/learning-plans");
         });
     }
-  }, [loading, plan, canEdit, router, planId]);
+  }, [loading, planId, router]);
 
   // Fetch learning plan data
   useEffect(() => {
@@ -250,6 +254,9 @@ export default function LearningPlanEditorPage() {
           }
           throw new Error("Failed to fetch learning plan");
         }
+        
+        // User has access, set view access
+        setHasViewAccess(true);
 
         const planData = await planResponse.json();
         setPlan(planData);
@@ -907,16 +914,20 @@ export default function LearningPlanEditorPage() {
     }
   };
 
-  if (loading) {
-    return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Loading...</div>;
+  // Show loading or redirect if no access
+  if (loading || !hasViewAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading learning plan...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!plan) {
     return <div className="py-8 text-center text-gray-900 dark:text-gray-100">Learning plan not found</div>;
-  }
-
-  if (!canEdit) {
-    return null; // Will redirect in useEffect
   }
 
   return (
@@ -937,39 +948,44 @@ export default function LearningPlanEditorPage() {
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
-          <TabsTrigger value="groups">Groups</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          {canEdit && (
+            <>
+              <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+              <TabsTrigger value="groups">Groups</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="details">
           <Card className="p-6">
             <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Learning Plan Details</h2>
-            <form onSubmit={handleSubmitDetails(onDetailsSubmit)} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Title *</label>
-                <Input
-                  {...registerDetails("title")}
-                  error={detailsErrors.title?.message}
-                />
-              </div>
+            {canEdit ? (
+              <form onSubmit={handleSubmitDetails(onDetailsSubmit)} className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Title *</label>
+                  <Input
+                    {...registerDetails("title")}
+                    error={detailsErrors.title?.message}
+                  />
+                </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium">Short Description</label>
-                <Input
-                  {...registerDetails("shortDescription")}
-                  error={detailsErrors.shortDescription?.message}
-                  maxLength={130}
-                />
-              </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Short Description</label>
+                  <Input
+                    {...registerDetails("shortDescription")}
+                    error={detailsErrors.shortDescription?.message}
+                    maxLength={130}
+                  />
+                </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium">Description</label>
-                <Textarea
-                  {...registerDetails("description")}
-                  rows={6}
-                />
-              </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Description</label>
+                  <Textarea
+                    {...registerDetails("description")}
+                    rows={6}
+                  />
+                </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1055,6 +1071,54 @@ export default function LearningPlanEditorPage() {
                 </Button>
               </div>
             </form>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-500 dark:text-gray-400">Title</label>
+                  <p className="text-gray-900 dark:text-gray-100">{plan.title}</p>
+                </div>
+
+                {plan.shortDescription && (
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-500 dark:text-gray-400">Short Description</label>
+                    <p className="text-gray-900 dark:text-gray-100">{plan.shortDescription}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-500 dark:text-gray-400">Description</label>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{plan.description}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {plan.estimatedTime && (
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-500 dark:text-gray-400">Estimated Time</label>
+                      <p className="text-gray-900 dark:text-gray-100">{plan.estimatedTime} minutes</p>
+                    </div>
+                  )}
+                  {plan.difficultyLevel && (
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-500 dark:text-gray-400">Difficulty Level</label>
+                      <p className="text-gray-900 dark:text-gray-100">{plan.difficultyLevel}</p>
+                    </div>
+                  )}
+                </div>
+
+                {plan.coverImage && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-500 dark:text-gray-400">Cover Image</label>
+                    <div className="relative w-full max-w-2xl aspect-video rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <img
+                        src={plan.coverImage}
+                        alt="Cover"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -1062,10 +1126,12 @@ export default function LearningPlanEditorPage() {
           <Card className="p-6">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Courses</h2>
-              <Button onClick={() => setAddCourseModalOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Course
-              </Button>
+              {canEdit && (
+                <Button onClick={() => setAddCourseModalOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Course
+                </Button>
+              )}
             </div>
 
             {plan.courses.length === 0 ? (
