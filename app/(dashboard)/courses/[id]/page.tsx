@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks, Users, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, Play, FileText, Presentation, Globe, Code, ChevronDown, ChevronUp, Lock, UserPlus, CheckSquare, Square, Search, ArrowUp, ArrowDown, ListChecks, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -14,12 +14,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { IconButton } from "@/components/ui/icon-button";
 import { useAuthStore } from "@/store/auth-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { DataTable } from "@/components/tables/data-table";
-import type { Column } from "@/components/tables/data-table";
 import { TableToolbar } from "@/components/tables/table-toolbar";
-import { TablePagination } from "@/components/tables/table-pagination";
 import { ContentItemModal } from "@/components/content/content-item-modal";
 import { PrerequisitesModal } from "@/components/content/prerequisites-modal";
 import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
@@ -92,6 +90,8 @@ interface ContentItem {
   completed?: boolean;
   progress?: number;
   unlocked?: boolean;
+  lastPage?: number | null;
+  lastPosition?: number | null;
 }
 
 interface ExpandedContentItem {
@@ -131,13 +131,6 @@ interface Enrollment {
     avatar: string | null;
     isInstructor: boolean;
   };
-}
-
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
 }
 
 interface Pagination {
@@ -184,7 +177,7 @@ export default function CourseEditorPage() {
     setValue: setDetailsValue,
     watch: watchDetails,
   } = useForm<UpdateCourseForm>({
-    resolver: zodResolver(updateCourseSchema),
+    resolver: zodResolver(updateCourseSchema) as any,
   });
 
   // Training Material tab
@@ -222,11 +215,10 @@ export default function CourseEditorPage() {
   const {
     register: registerSettings,
     handleSubmit: handleSubmitSettings,
-    formState: { errors: settingsErrors },
+    formState: { errors: _settingsErrors },
     setValue: setSettingsValue,
-    watch: watchSettings,
   } = useForm<UpdateCourseForm>({
-    resolver: zodResolver(updateCourseSchema),
+    resolver: zodResolver(updateCourseSchema) as any,
   });
 
   const isAdmin = user?.roles?.includes("ADMIN") || false;
@@ -1021,7 +1013,7 @@ export default function CourseEditorPage() {
       case "ENROLLED":
         return <Badge variant="default">Enrolled</Badge>;
       case "IN_PROGRESS":
-        return <Badge variant="primary">In Progress</Badge>;
+        return <Badge variant="info">In Progress</Badge>;
       case "COMPLETED":
         return <Badge variant="success">Completed</Badge>;
       case "PENDING_APPROVAL":
@@ -1156,9 +1148,9 @@ export default function CourseEditorPage() {
                                     Complete
                                   </Badge>;
                                 } else if (item.progress !== undefined && item.progress > 0) {
-                                  return <Badge variant="primary" className="text-xs">In Progress</Badge>;
+                                  return <Badge variant="info" className="text-xs">In Progress</Badge>;
                                 } else {
-                                  return <Badge variant="secondary" className="text-xs">Not Started</Badge>;
+                                  return <Badge variant="default" className="text-xs">Not Started</Badge>;
                                 }
                               })()}
                               {item.progress !== undefined && item.progress > 0 && !item.completed && (
@@ -1435,10 +1427,10 @@ export default function CourseEditorPage() {
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleCoverImageUploadClick}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleCoverImageUploadClick}
                     disabled={uploadingCover}
                   >
                     <Upload className="mr-2 h-4 w-4" />
@@ -1578,9 +1570,9 @@ export default function CourseEditorPage() {
                                     Complete
                                   </Badge>;
                                 } else if (item.progress !== undefined && item.progress > 0) {
-                                  return <Badge variant="primary" className="text-xs">In Progress</Badge>;
+                                  return <Badge variant="info" className="text-xs">In Progress</Badge>;
                                 } else {
-                                  return <Badge variant="secondary" className="text-xs">Not Started</Badge>;
+                                  return <Badge variant="default" className="text-xs">Not Started</Badge>;
                                 }
                               })()}
                               {item.progress !== undefined && item.progress > 0 && !item.completed && (
@@ -1908,7 +1900,7 @@ export default function CourseEditorPage() {
                           </TableCell>
                           <TableCell>
                             {enrollment.user.isInstructor ? (
-                              <Badge variant="primary">Instructor</Badge>
+                              <Badge variant="info">Instructor</Badge>
                             ) : (
                               <Badge variant="default">Learner</Badge>
                             )}

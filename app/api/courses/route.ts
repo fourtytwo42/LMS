@@ -377,8 +377,6 @@ export async function POST(request: NextRequest) {
         selfEnrollment: validated.selfEnrollment,
         sequentialRequired: validated.sequentialRequired,
         allowSkipping: validated.allowSkipping,
-        coverImage: validated.coverImage,
-        thumbnail: validated.thumbnail,
         status: "DRAFT",
         createdById: user.id,
         instructorAssignments: {

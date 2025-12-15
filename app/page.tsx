@@ -17,10 +17,8 @@ import {
   Zap, 
   Globe, 
   Clock, 
-  Target,
   ArrowRight,
-  Star,
-  PlayCircle
+  Star
 } from "lucide-react";
 
 export default function HomePage() {
@@ -79,7 +77,7 @@ export default function HomePage() {
               </p>
               <div className="flex justify-center items-center gap-4">
                 <Link href="/login">
-                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto">
+                  <Button size="lg" variant="secondary" className="text-lg px-8 py-6 h-auto">
                     Demo
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -330,7 +328,7 @@ export default function HomePage() {
               </p>
               <div className="flex justify-center items-center gap-4">
                 <Link href="/login">
-                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto bg-white/10 text-white border-white/20 hover:bg-white/20">
+                  <Button size="lg" variant="secondary" className="text-lg px-8 py-6 h-auto bg-white/10 text-white border-white/20 hover:bg-white/20">
                     Demo
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>

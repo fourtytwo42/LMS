@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import { Header } from "./header";
 import { SidebarComponent } from "./sidebar";
 import { Footer } from "./footer";
@@ -14,7 +13,6 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const pathname = usePathname();
   const { user } = useAuthStore();
   
   // Check if user is a learner (not admin or instructor)

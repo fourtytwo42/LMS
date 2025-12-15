@@ -15,12 +15,12 @@ const contentItemSchema = z.object({
   description: z.string().optional(),
   type: z.enum(["VIDEO", "YOUTUBE", "PDF", "PPT", "HTML", "EXTERNAL", "TEST"]),
   order: z.number().int().min(0),
-  priority: z.number().int().default(0),
-  required: z.boolean().default(true),
+  priority: z.number().int().optional().default(0),
+  required: z.boolean().optional().default(true),
   videoUrl: z.string().optional(),
   videoDuration: z.number().optional(),
-  completionThreshold: z.number().min(0).max(1).default(0.8),
-  allowSeeking: z.boolean().default(true),
+  completionThreshold: z.number().min(0).max(1).optional().default(0.8),
+  allowSeeking: z.boolean().optional().default(true),
   youtubeUrl: z.string().optional(),
   pdfUrl: z.string().optional(),
   pdfPages: z.number().optional(),
@@ -83,7 +83,7 @@ export function ContentItemModal({
     watch,
     setValue,
     reset,
-  } = useForm<ContentItemForm>({
+  } = useForm({
     resolver: zodResolver(contentItemSchema),
     defaultValues: {
       type: "VIDEO",

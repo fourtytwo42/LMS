@@ -16,7 +16,6 @@ import {
   Users,
   BarChart3,
   Bell,
-  User,
   BookMarked,
   UserCog,
   UsersRound,

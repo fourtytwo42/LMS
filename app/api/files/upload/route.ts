@@ -182,7 +182,6 @@ async function convertPptToPdfAsync(pptFilePath: string): Promise<void> {
     console.log(`PPT to PDF: Starting conversion for ${pptFilePath}`);
     
     // Get full path to the PPTX file
-    const storagePath = process.env.STORAGE_PATH || "./storage";
     const fullPptPath = getFullFilePath(pptFilePath);
     
     // Get the directory where the PPT file is located

@@ -165,7 +165,7 @@ export async function GET(
                 include: {
                   attempts: {
                     where: { userId: user.id },
-                    orderBy: { createdAt: "desc" },
+                    orderBy: { startedAt: "desc" },
                     take: 1,
                   },
                 },

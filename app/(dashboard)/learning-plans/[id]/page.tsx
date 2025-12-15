@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen, Users, Clock, Award, Lock, CheckCircle, FileText, Presentation, Play, Code, Globe } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, Upload, X, UserPlus, Search, Send, ChevronUp, ChevronDown, CheckSquare, Square, BookOpen, Clock, Award, Lock, CheckCircle, FileText, Presentation, Play, Code, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -17,7 +17,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { useAuthStore } from "@/store/auth-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DataTable } from "@/components/tables/data-table";
-import type { Column } from "@/components/tables/data-table";
 import { TableToolbar } from "@/components/tables/table-toolbar";
 import { TablePagination } from "@/components/tables/table-pagination";
 import { UserSelectionModal } from "@/components/users/user-selection-modal";
@@ -27,7 +26,7 @@ import { VideoPlayerLazy } from "@/components/video/video-player-lazy";
 import { PdfViewerLazy } from "@/components/pdf/pdf-viewer-lazy";
 import { PPTViewerLazy } from "@/components/ppt/ppt-viewer-lazy";
 import { cn } from "@/lib/utils/cn";
-import { getContentIcon, getIconContainerClasses, getIconContainerStyle } from "@/lib/utils/icon-container";
+import { getIconContainerClasses, getIconContainerStyle } from "@/lib/utils/icon-container";
 
 const updateLearningPlanSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -124,13 +123,6 @@ interface Enrollment {
   };
 }
 
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
-
 interface Pagination {
   page: number;
   limit: number;
@@ -173,14 +165,13 @@ export default function LearningPlanEditorPage() {
     setValue: setDetailsValue,
     watch: watchDetails,
   } = useForm<UpdateLearningPlanForm>({
-    resolver: zodResolver(updateLearningPlanSchema),
+    resolver: zodResolver(updateLearningPlanSchema) as any,
   });
 
   // Courses tab
   const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string; coverImage: string | null; shortDescription: string | null; status: string; estimatedTime: number | null; difficultyLevel: string | null }>>([]);
   const [addCourseModalOpen, setAddCourseModalOpen] = useState(false);
   const [selectedCourseIdsForAdd, setSelectedCourseIdsForAdd] = useState<Set<string>>(new Set());
-  const [courseOrder, setCourseOrder] = useState(0);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const [bulkDeleteCoursesModalOpen, setBulkDeleteCoursesModalOpen] = useState(false);
   const [coursesPagination, setCoursesPagination] = useState<Pagination>({
@@ -214,9 +205,8 @@ export default function LearningPlanEditorPage() {
     handleSubmit: handleSubmitSettings,
     formState: { errors: settingsErrors },
     setValue: setSettingsValue,
-    watch: watchSettings,
   } = useForm<UpdateLearningPlanForm>({
-    resolver: zodResolver(updateLearningPlanSchema),
+    resolver: zodResolver(updateLearningPlanSchema) as any,
   });
 
   const [publishing, setPublishing] = useState(false);
@@ -289,7 +279,7 @@ export default function LearningPlanEditorPage() {
   };
 
   // Handle content item click
-  const handleContentItemClick = async (contentItem: any, courseId: string) => {
+  const handleContentItemClick = async (contentItem: any, _courseId: string) => {
     setSelectedContentItem(contentItem);
     setExpandedContentItem(null);
     
@@ -390,10 +380,7 @@ export default function LearningPlanEditorPage() {
             const progressData = await progressResponse.json();
             if (expandedContentItem.type === "VIDEO") {
               // Video progress format
-              const progress = progressData.totalDuration > 0 
-                ? (progressData.watchTime / progressData.totalDuration) 
-                : 0;
-              setExpandedContentItem((prev) => prev ? {
+              setExpandedContentItem((prev: any) => prev ? {
                 ...prev,
                 completed: progressData.completed ?? prev.completed,
                 lastPage: null,
@@ -401,7 +388,7 @@ export default function LearningPlanEditorPage() {
               } : null);
             } else {
               // Content progress format
-              setExpandedContentItem((prev) => prev ? {
+              setExpandedContentItem((prev: any) => prev ? {
                 ...prev,
                 completed: progressData.completed ?? prev.completed,
                 lastPage: progressData.lastPage ?? prev.lastPage,
@@ -431,7 +418,7 @@ export default function LearningPlanEditorPage() {
           const progressResponse = await fetch(`/api/progress/content/${expandedContentItem.id}`);
           if (progressResponse.ok) {
             const progressData = await progressResponse.json();
-            setExpandedContentItem((prev) => prev ? {
+            setExpandedContentItem((prev: any) => prev ? {
               ...prev,
               completed: progressData.completed ?? prev.completed,
               lastPage: progressData.lastPage ?? prev.lastPage,
@@ -569,7 +556,6 @@ export default function LearningPlanEditorPage() {
           setCoverImagePreview(planData.coverImage);
         }
 
-        setCourseOrder(planData.courses.length);
       } catch (error) {
         console.error("Error fetching learning plan:", error);
       } finally {
@@ -891,7 +877,7 @@ export default function LearningPlanEditorPage() {
       if (response.ok) {
         const data = await response.json();
         // Filter out courses already in the plan
-        const planCourseIds = new Set(plan.courses.map((c) => c.id));
+        const planCourseIds = new Set(plan?.courses?.map((c) => c.id) || []);
         setAvailableCourses((data.courses || []).filter((c: any) => !planCourseIds.has(c.id)));
         setCoursesPagination({
           page: data.pagination?.page || coursesPagination.page,
@@ -972,7 +958,6 @@ export default function LearningPlanEditorPage() {
       if (planResponse.ok) {
         const planData = await planResponse.json();
         setPlan(planData);
-        setCourseOrder(planData.courses.length);
       }
       alert(`Successfully added ${result.assigned || selectedCourseIdsForAdd.size} course(s)${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
     } catch (error) {
@@ -1006,6 +991,7 @@ export default function LearningPlanEditorPage() {
 
   const handleSelectAllCourses = (checked: boolean) => {
     if (checked) {
+      if (!plan) return;
       setSelectedCourseIds(new Set(plan.courses.map((c) => c.id)));
     } else {
       setSelectedCourseIds(new Set());
@@ -1152,7 +1138,7 @@ export default function LearningPlanEditorPage() {
       case "ENROLLED":
         return <Badge variant="default">Enrolled</Badge>;
       case "IN_PROGRESS":
-        return <Badge variant="primary">In Progress</Badge>;
+        return <Badge variant="info">In Progress</Badge>;
       case "COMPLETED":
         return <Badge variant="success">Completed</Badge>;
       case "PENDING_APPROVAL":
@@ -1181,7 +1167,7 @@ export default function LearningPlanEditorPage() {
       }
 
       const updatedPlan = await response.json();
-      setPlan({ ...plan, status: "PUBLISHED" });
+      setPlan(updatedPlan);
       alert("Learning plan published successfully!");
     } catch (error) {
       console.error("Error publishing learning plan:", error);
@@ -1423,9 +1409,9 @@ export default function LearningPlanEditorPage() {
                                             if (item.completed) {
                                               return <Badge variant="success" className="text-xs">Complete</Badge>;
                                             } else if (item.progress !== undefined && item.progress > 0) {
-                                              return <Badge variant="primary" className="text-xs">In Progress</Badge>;
+                                              return <Badge variant="info" className="text-xs">In Progress</Badge>;
                                             } else {
-                                              return <Badge variant="secondary" className="text-xs">Not Started</Badge>;
+                                              return <Badge variant="default" className="text-xs">Not Started</Badge>;
                                             }
                                           })()}
                                           {item.progress !== undefined && item.progress > 0 && !item.completed && (
@@ -1995,7 +1981,7 @@ export default function LearningPlanEditorPage() {
                           </TableCell>
                           <TableCell>
                             {enrollment.user.isInstructor ? (
-                              <Badge variant="primary">Instructor</Badge>
+                              <Badge variant="info">Instructor</Badge>
                             ) : (
                               <Badge variant="default">Learner</Badge>
                             )}

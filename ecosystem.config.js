@@ -3,12 +3,12 @@ module.exports = {
     {
       name: "lms",
       script: "npm",
-      args: "run dev",
+      args: "start",
       cwd: "/home/hendo420/lms",
       instances: 1,
       exec_mode: "fork",
       env: {
-        NODE_ENV: "development",
+        NODE_ENV: "production",
         PORT: process.env.PORT || 3000,
       },
       error_file: "./logs/pm2-error.log",

@@ -140,7 +140,7 @@ export function VideoPlayer({
           });
 
           if (response.ok) {
-            const data = await response.json();
+            await response.json();
             // Always call onProgressUpdate when progress changes, not just when next is unlocked
             if (onProgressUpdate) {
               onProgressUpdate({

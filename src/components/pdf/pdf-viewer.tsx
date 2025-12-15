@@ -41,7 +41,7 @@ export function PDFViewer({
   const [error, setError] = useState<string | null>(null);
   const [viewedPages, setViewedPages] = useState<Set<number>>(new Set());
   const [completed, setCompleted] = useState(false);
-  const [currentProgress, setCurrentProgress] = useState(0);
+  const [, setCurrentProgress] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pageWidth, setPageWidth] = useState<number | null>(null);
   const [pageHeight, setPageHeight] = useState<number | null>(null);

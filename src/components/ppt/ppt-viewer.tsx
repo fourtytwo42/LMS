@@ -164,7 +164,7 @@ export function PPTViewer({ pptUrl, title }: PPTViewerProps) {
 
       // Listen for slide change events
       if (viewer.on) {
-        viewer.on('slideChange', (slideIndex: number) => {
+        viewer.on('slideChange', (slideIndex: unknown) => {
           setCurrentSlide(slideIndex as number);
         });
       }
@@ -227,19 +227,6 @@ export function PPTViewer({ pptUrl, title }: PPTViewerProps) {
       }
     };
   }, [pptUrl]);
-
-  const goToSlide = async (index: number) => {
-    if (index >= 0 && index < totalSlides && viewerInstanceRef.current && canvasRef.current) {
-      try {
-        console.log(`PPT Viewer: Navigating to slide ${index}`);
-        await viewerInstanceRef.current.renderSlide(index, canvasRef.current);
-        setCurrentSlide(index);
-        console.log(`PPT Viewer: Successfully navigated to slide ${index}`);
-      } catch (e) {
-        console.error("Error navigating to slide:", e);
-      }
-    }
-  };
 
   const nextSlide = async () => {
     if (viewerInstanceRef.current && canvasRef.current && currentSlide < totalSlides - 1) {

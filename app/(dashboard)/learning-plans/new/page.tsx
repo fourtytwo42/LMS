@@ -147,9 +147,9 @@ export default function NewLearningPlanPage() {
       // Convert empty strings to undefined for optional number fields
       const submitData = {
         ...data,
-        estimatedTime: data.estimatedTime === "" || data.estimatedTime === undefined ? undefined : data.estimatedTime,
-        maxEnrollments: data.maxEnrollments === "" || data.maxEnrollments === undefined ? undefined : data.maxEnrollments,
-        difficultyLevel: data.difficultyLevel === "" ? undefined : data.difficultyLevel,
+        estimatedTime: data.estimatedTime === undefined ? undefined : data.estimatedTime,
+        maxEnrollments: data.maxEnrollments === undefined ? undefined : data.maxEnrollments,
+        difficultyLevel: data.difficultyLevel === undefined ? undefined : data.difficultyLevel,
         coverImage: data.coverImage || undefined,
       };
 

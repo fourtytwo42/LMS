@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, BookOpen, Award, CheckCircle, Lock, Play, ArrowRight } from "lucide-react";
+import { Clock, BookOpen, Award, CheckCircle, Play } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 interface LearningPlan {
@@ -366,8 +366,7 @@ export default function LearnerDashboardPage() {
     title: string,
     items: (LearningPlan | Course)[],
     type: "learningPlan" | "course",
-    status: "AVAILABLE" | "ENROLLED" | "COMPLETED",
-    emptyMessage: string
+    status: "AVAILABLE" | "ENROLLED" | "COMPLETED"
   ) => {
     if (items.length === 0) return null;
 
@@ -411,7 +410,6 @@ export default function LearnerDashboardPage() {
             availableLearningPlans,
             "learningPlan",
             "AVAILABLE",
-            "No available learning plans"
           )}
 
           {renderSection(
@@ -419,7 +417,6 @@ export default function LearnerDashboardPage() {
             enrolledLearningPlans,
             "learningPlan",
             "ENROLLED",
-            "No learning plans in progress"
           )}
 
           {renderSection(
@@ -427,7 +424,6 @@ export default function LearnerDashboardPage() {
             completedLearningPlans,
             "learningPlan",
             "COMPLETED",
-            "No completed learning plans"
           )}
         </div>
       )}
@@ -445,7 +441,6 @@ export default function LearnerDashboardPage() {
             availableCourses,
             "course",
             "AVAILABLE",
-            "No available courses"
           )}
 
           {renderSection(
@@ -453,7 +448,6 @@ export default function LearnerDashboardPage() {
             enrolledCourses,
             "course",
             "ENROLLED",
-            "No courses in progress"
           )}
 
           {renderSection(
@@ -461,7 +455,6 @@ export default function LearnerDashboardPage() {
             completedCourses,
             "course",
             "COMPLETED",
-            "No completed courses"
           )}
         </div>
       )}

@@ -195,7 +195,7 @@ export function PPTImageViewer({ pptUrl, title }: PPTImageViewerProps) {
             alt={`Slide ${currentSlide + 1}`}
             className="w-full h-auto rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
             style={{ maxHeight: "80vh" }}
-            onError={(e) => {
+            onError={(_e) => {
               console.error("Failed to load slide image:", slideImages[currentSlide]);
               setError(`Failed to load slide ${currentSlide + 1}`);
             }}

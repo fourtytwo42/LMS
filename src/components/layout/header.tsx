@@ -6,7 +6,6 @@ import Link from "next/link";
 import { LogOut, User, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/notifications/notification-center";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ProfileEditModal } from "@/components/profile/profile-edit-modal";

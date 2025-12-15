@@ -319,7 +319,7 @@ export default function CourseAnalyticsPage() {
                     <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
                       {new Date(user.enrolledAt).toLocaleDateString()}
                     </td>
-                    {analytics.enrolledUsers.some((u) => u.completedAt) && (
+                    {analytics.enrolledUsers?.some((u) => u.completedAt) && (
                       <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
                         {user.completedAt
                           ? new Date(user.completedAt).toLocaleDateString()

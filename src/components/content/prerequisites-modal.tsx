@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Square, X } from "lucide-react";
+import { CheckSquare, Square } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ContentItem {

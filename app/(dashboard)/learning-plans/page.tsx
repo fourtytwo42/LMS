@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit, Trash2, BookOpen, Eye, Send } from "lucide-react";
+import { Plus, Trash2, BookOpen, Eye, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
@@ -12,7 +12,6 @@ import { DataTable } from "@/components/tables/data-table";
 import type { Column } from "@/components/tables/data-table";
 import { TableToolbar } from "@/components/tables/table-toolbar";
 import { TablePagination } from "@/components/tables/table-pagination";
-import { Select } from "@/components/ui/select";
 
 interface LearningPlan {
   id: string;

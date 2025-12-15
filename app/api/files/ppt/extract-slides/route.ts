@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth/middleware";
-import { readFile, mkdir, writeFile, readdir, unlink } from "fs/promises";
+import { mkdir, readdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 

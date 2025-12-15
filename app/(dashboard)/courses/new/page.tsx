@@ -58,7 +58,7 @@ export default function NewCoursePage() {
     setValue,
     watch,
   } = useForm<CreateCourseForm>({
-    resolver: zodResolver(createCourseSchema),
+    resolver: zodResolver(createCourseSchema) as any,
     defaultValues: {
       publicAccess: false,
       selfEnrollment: false,

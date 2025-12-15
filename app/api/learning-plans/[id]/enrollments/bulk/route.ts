@@ -134,6 +134,7 @@ export async function POST(
             create: {
               userId: userId,
               learningPlanId: learningPlanId,
+              assignedById: user.id,
             },
             update: {},
           });
@@ -150,6 +151,7 @@ export async function POST(
               create: {
                 userId: userId,
                 courseId: courseRelation.courseId,
+                assignedById: user.id,
               },
               update: {},
             });

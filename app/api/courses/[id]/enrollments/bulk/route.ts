@@ -153,6 +153,7 @@ export async function POST(
             create: {
               userId: userId,
               courseId: courseId,
+              assignedById: user.id,
             },
             update: {},
           });
